@@ -1,0 +1,42 @@
+##
+# This values yaml file provide override values to deploy ppc64le zookeeper service using bitnami zookeeper helm chart 
+# for HCL Commerce
+#   - chart version: 6.7.2
+#   - ppc64le zookeeper app version: 3.6.2
+# 
+# To Deploy zookeeper using this sample values, and some manual steps are also required to deploy ppc64le zookeeper successfully
+# 1. Create a namespace
+#    kubectl create ns zookeeper
+# 2. Add helm repo
+#    helm repo add bitnami https://charts.bitnami.com/bitnami
+# 3. Download the helm chart
+#    helm pull bitnami/zookeeper --version "6.7.2"
+# 4. Unzip the downloaded helm chart
+# 5. Modify statefulset.yaml file in the templates folder of the zookeeper helm chart
+#    - Update the commands section under containers with the following content
+#      a) Insert a new command "yum install -y hostname" before "HOSTNAME=`hostname -s`"
+#      b) Replace "exec /entrypoint.sh /run.sh" with "exec /usr/bin/start-zk.sh"
+# 6. Deploy zookeeper using this override values
+#    helm install my-zookeeper <MODIFED_ZOOKEEPER_HELM_CHART_RELEVANT_PATH> -n zookeeper -f zookeeper-values.yaml
+# 7. Monitor deployment until all pods are healthy
+# 
+# To get the complete values.yaml file, please visit 
+#   https://github.com/bitnami/charts/blob/1290a275c762676555465b9e31d8ecdf70b38e39/bitnami/zookeeper/values.yaml
+#
+# To get more information related to this version of zookeeper helm chart, please visit
+#   https://github.com/bitnami/charts/blob/ab0dbe4163efec91ebf2cfa48efd77154ff2cdb5/bitnami/zookeeper/README.md
+##
+image:
+  registry: ibmcom
+  repository: zookeeper-ppc64le
+  tag: 3.6.2
+fullnameOverride: "hcl-commerce-zookeeper"
+replicaCount: 1
+maxClientCnxns: 120
+## Below are some special settings required to successfully deploy plinux zookeeper image with the bitnami helm chart 
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+securityContext:
+  runAsUser: 0

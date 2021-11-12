@@ -1,0 +1,668 @@
+{{- if .Values.global.sofySolutionContext }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if and (eq $envType "share") }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-data-query-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /
+  host: commerce-data-query\..*
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}query-app:30901
+  bypass_auth: true
+---
+{{- if $.Values.ingress.nifi.enabled }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-nifi-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /
+  host: commerce-data-nifi\..*
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: http://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}nifi-app:30600
+  bypass_auth: true
+---
+{{- end }}
+{{- if $.Values.ingress.ingest.enabled }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-ingest-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /
+  host: commerce-data-ingest\..*
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}ingest-app:30801
+  bypass_auth: true
+---
+{{- end }}
+{{- if $.Values.ingress.registry.enabled }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-registry-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /
+  host: commerce-data-registry\..*
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: http://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}registry-app:30400
+  bypass_auth: true
+---
+{{- end }}
+
+{{- else }}
+
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-wcs-mapping
+spec:  
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /wcs/
+  rewrite: /wcs/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app:5443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-wcs-mapping
+spec:  
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /wcs/
+  rewrite: /wcs/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app:5443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-tooling-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /tooling/
+  rewrite: /tooling/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-tooling-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /tooling/
+  rewrite: /tooling/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-cmc-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /lobtools/
+  rewrite: /lobtools/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-cmc-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /lobtools/
+  rewrite: /lobtools/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-admin-rest-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /rest/
+  rewrite: /rest/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-admin-rest-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /rest/
+  rewrite: /rest/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-asset-preview-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /webapp/wcs/preview/
+  rewrite: /webapp/wcs/preview/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8006
+  bypass_auth: true
+---
+{{- if $.Values.storeWeb.enabled }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-react-store-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /
+  rewrite: /
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-react-store-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /
+  rewrite: /
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-react-store-hclstore-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /hclstore/
+  rewrite: /hclstore/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-react-store-hclstore-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /hclstore/
+  rewrite: /hclstore/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-react-preview-domain-asset-preview-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /webapp/wcs/preview/
+  rewrite: /webapp/wcs/preview/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8006
+  bypass_auth: true
+---
+{{- end }}
+
+{{- if $.Values.crsApp.enabled }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-crsstore-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  prefix: /wcs/
+  rewrite: /wcs/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-crs\..*
+  {{- else }}
+  host: commerce-live-crs\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 60000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app:8443
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-preview-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  prefix: /webapp/remote/preview
+  rewrite: /webapp/remote/preview
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-crs\..*
+  {{- else }}
+  host: commerce-live-crs\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 60000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app:8443
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-wcsstore-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  prefix: /wcsstore
+  rewrite: /wcsstore
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-crs\..*
+  {{- else }}
+  host: commerce-live-crs\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app:8443
+---
+{{- end }}
+
+{{- if eq $.Values.common.searchEngine "elastic" }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-search-mapping
+spec:  
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /search/
+  rewrite: /search/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app:30901
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-search-mapping
+spec:  
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /search/
+  rewrite: /search/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app:30901
+  bypass_auth: true
+---
+{{- else }}
+  {{- if eq $envType "auth"}}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-search-master-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /search/
+  rewrite: /search/
+  host: commerce-preview\..*
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}search-app-master:3738
+  bypass_auth: true
+---
+  {{- end }}
+
+  {{- if eq $envType "live"}}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-search-repeater-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /search/
+  rewrite: /search/
+  host: commerce-live\..*
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}search-app-repeater:3738
+  bypass_auth: true
+---
+  {{- end }}
+{{- end }}
+
+{{- if $.Values.dx.enabled }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-wps-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  prefix: /wps/
+  rewrite: /wps/
+  service: https://{{ $.Release.Name }}-service:10042
+  timeout_ms: 10000
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-api-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  prefix: /dx/api/core/
+  rewrite: /dx/api/core/
+  service: http://{{ $.Release.Name }}-service-ring-api:3000
+  timeout_ms: 10000
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-ip-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  connect_timeout_ms: 1200000
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  idle_timeout_ms: 1200000
+  prefix: /dx/api/image-processor/
+  prefix_regex: false
+  rewrite: /dx/api/image-processor/
+  service: http://{{ $.Release.Name }}-service-imgproc:8080
+  timeout_ms: 1200000
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-uicon-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  connect_timeout_ms: 1200000
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  idle_timeout_ms: 1200000
+  prefix: /dx/ui/content/
+  prefix_regex: false
+  rewrite: /dx/ui/content/
+  service: http://{{ $.Release.Name }}-service-content-ui:3000
+  timeout_ms: 1200000
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-uidam-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  connect_timeout_ms: 1200000
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  idle_timeout_ms: 1200000
+  prefix_regex: false
+  prefix: /dx/ui/dam/
+  rewrite: /dx/ui/dam/
+  service: http://{{ $.Release.Name }}-service-dam:3001
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-dam-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  prefix: /dx/api/dam/
+  rewrite: /dx/api/dam/
+  service: http://{{ $.Release.Name }}-service-dam:3001
+  timeout_ms: 10000
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-hcl-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  prefix: /hcl/
+  rewrite: /hcl/
+  service: https://{{ $.Release.Name }}-service:10202
+  timeout_ms: 1200000
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-hclstore-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  case_sensitive: false
+  host: dx\..*
+  prefix: /hclstore/
+  rewrite: /hclstore/
+  host_regex: true
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+---
+{{- end }}
+
+{{- if $.Values.cacheApp.enabled }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-cache-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  prefix: /
+  rewrite: /
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-cache\..*
+  {{- else }}
+  host: commerce-live-cache\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 60000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}cache-app:40901
+---
+{{- end }}
+
+{{- end }}
+{{- end }}
+{{- end }}

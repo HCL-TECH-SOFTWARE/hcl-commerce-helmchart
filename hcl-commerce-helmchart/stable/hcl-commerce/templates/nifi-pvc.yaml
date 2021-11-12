@@ -1,0 +1,23 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{ if and (has "share" $envTypeList) (eq .Values.common.searchEngine "elastic") (.Values.nifiApp.persistence.enabled) (not .Values.nifiApp.persistence.existingClaim) (not .Values.nifiApp.persistentVolumeClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-nifi-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  accessModes:
+  - {{ .Values.nifiApp.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.nifiApp.persistence.storage }}
+  {{- if .Values.nifiApp.persistence.storageClass }}
+  storageClassName: {{ .Values.nifiApp.persistence.storageClass }}
+  {{- end }}
+{{- end }}

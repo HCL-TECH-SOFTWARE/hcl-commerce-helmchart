@@ -1,0 +1,32 @@
+##
+# This values yaml file provides override values to deploy kibana helm chart for EFK logging 
+#   - chart version: 8.1.3
+#   - kibana app version: 7.12.1
+# 
+# To Deploy kibana for EFK logging using this sample values
+# 1. Create a namespace 
+#    kubectl create ns log
+# 2. Add helm repo
+#    helm repo add bitnami https://charts.bitnami.com/bitnami
+# 3. Deploy kibana using this override values
+#     helm install kibana bitnami/kibana -n log -f log-kibana-values.yaml --version "8.1.3"
+# 4. Monitor deployment until all pods are healthy
+# 
+# To get the complete values.yaml file, please visit 
+#   https://github.com/bitnami/charts/blob/01800b1562a7c5fe3743e5ec39eccd10ae6459e4/bitnami/kibana/values.yaml
+#
+# To get more information related to this version of elasticsearch helm chart, please visit
+#   https://github.com/bitnami/charts/blob/bb07808b2334dc99303db04a0860967a1a30f9ad/bitnami/kibana/README.md
+##
+fullnameOverride: "hcl-commerce-log-kibana"
+service:
+  type: LoadBalancer
+elasticsearch:
+  enabled: false
+  external:
+    hosts:
+      - hcl-commerce-log-elasticsearch-coordinating-only.log.svc.cluster.local
+    port: 9200
+  hosts:
+    - hcl-commerce-log-elasticsearch-coordinating-only
+  port: 9200

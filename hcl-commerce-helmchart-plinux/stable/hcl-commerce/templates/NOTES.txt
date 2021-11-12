@@ -1,0 +1,152 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if eq .Values.license "accept" -}}
+Chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+{{- if eq .Values.common.environmentType "share" }}
+HCL Commerce V9 shared components (new tooling{{ if eq .Values.common.searchEngine "elastic"}} and data platform{{end}}) have been deployed, and it will take several minutes to fully start.
+
+If you haven't deployed the HCL Commerce auth or live, you can deploy it now.
+helm install {{ .Values.common.tenant }}-{{ .Values.common.environmentName }}-auth <path-to-helmchart> -f <custom-values-yaml-file> -n <namespace>
+helm install {{ .Values.common.tenant }}-{{ .Values.common.environmentName }}-live <path-to-helmchart> -f <custom-values-yaml-file> -n <namespace>
+
+{{- else }}
+HCL Commerce V9 {{ .Release.Name }} release startup will take average 10-15 minutes with sequence.
+
+Access Environment:
+{{- if .Values.global.sofySolutionContext }}
+1. Check sofy deployment page to get the domain assigned to this solution deployment
+2. Access the environment with following URLs:
+{{- if has "auth" $envTypeList }}
+Authoring Emerald (B2C) Store Front:
+https://commerce-preview.<sofy_domain>/Emerald
+
+Authoring Sapphire (B2B) Store Front:
+https://commerce-preview.<sofy_domain>/Sapphire
+
+Authoring Management Center:
+https://commerce-preview.<sofy_domain>/lobtools/cmc/ManagementCenter
+{{- end }}
+
+{{- if has "live" $envTypeList }}
+Live Emerald (B2C) Store Front:
+https://commerce-live.<sofy_domain>/Emerald
+
+Live Sapphire (B2B) Store Front:
+https://commerce-live.<sofy_domain>/Sapphire
+
+Live Management Center:
+https://commerce-live.<sofy_domain>/lobtools/cmc/ManagementCenter
+{{- end }}
+
+{{- else }}
+1. Check ingress load balancer IP address.
+kubectl get ingress -n {{ .Release.Namespace }}
+
+
+2. Create the ingress server IP and hostname mapping on your server by editing the  /etc/hosts file.
+{{- if has "auth" $envTypeList }}
+<Ingress_IP> tsapp.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+<Ingress_IP> cmc.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+<Ingress_IP> accelerator.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+<Ingress_IP> admin.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+<Ingress_IP> org.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+{{- if or (.Values.crsApp.enabled) (.Values.common.localStoreEnabled) }}
+<Ingress_IP> store.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+{{- end }}
+{{- if and (.Values.storeWeb.enabled) (eq .Values.common.searchEngine "elastic") }}
+<Ingress_IP> www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+<Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+{{- end }}
+<Ingress_IP> search.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+{{- end }}
+
+{{- if has "live" $envTypeList }}
+<Ingress_IP> tsapp.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+<Ingress_IP> cmc.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+<Ingress_IP> accelerator.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+<Ingress_IP> admin.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+<Ingress_IP> org.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+{{- if or (.Values.crsApp.enabled) (.Values.common.localStoreEnabled) }}
+<Ingress_IP> store.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+{{- end }}
+{{- if and (.Values.storeWeb.enabled) (eq .Values.common.searchEngine "elastic") }}
+<Ingress_IP> www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+<Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+{{- end }}
+<Ingress_IP> search.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+{{- if eq .Values.common.searchEngine "solr" }}
+<Ingress_IP> searchrepeater.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+{{- end }}
+{{- end }}
+
+3. Access the environment with following URLs:
+{{- if has "auth" $envTypeList }}
+{{- if or (.Values.crsApp.enabled) (.Values.common.localStoreEnabled) }}
+Authoring Aurora Store Front:
+https://store.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/wcs/shop/en/auroraesite
+{{ end }}
+
+{{- if and (.Values.storeWeb.enabled) (eq .Values.common.searchEngine "elastic") }}
+Authoring Emerald (Sample B2C) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/Emerald
+
+Authoring Sapphire (Sample B2B) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/Sapphire
+{{- end }}
+
+Authoring Management Center:
+https://cmc.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/lobtools/cmc/ManagementCenter
+
+Authoring Organization Admin Console:
+https://org.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/webapp/wcs/orgadmin/servlet/ToolsLogon?XMLFile=buyerconsole.BuyAdminConsoleLogon
+
+Authoring Accelerator:
+https://accelerator.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/webapp/wcs/tools/servlet/ToolsLogon?XMLFile=common.mcLogon
+
+Authoring Commerce Admin Console:
+https://admin.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/webapp/wcs/admin/servlet/ToolsLogon?XMLFile=adminconsole.AdminConsoleLogon
+{{- end }}
+
+{{- if has "live" $envTypeList }}
+{{- if or (.Values.crsApp.enabled) (.Values.common.localStoreEnabled) }}
+
+Live Aurora Store Front:
+https://store.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/wcs/shop/en/auroraesite
+{{ end }}
+
+{{- if and (.Values.storeWeb.enabled) (eq .Values.common.searchEngine "elastic") }}
+Live Emerald (Sample B2C) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/Emerald
+
+Live Sapphire (Sample B2B) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/Sapphire
+{{- end }}
+
+Live Management Center:
+https://cmc.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/lobtools/cmc/ManagementCenter
+
+Live Organization Admin Console:
+https://org.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/webapp/wcs/orgadmin/servlet/ToolsLogon?XMLFile=buyerconsole.BuyAdminConsoleLogon
+
+Live Accelerator:
+https://accelerator.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/webapp/wcs/tools/servlet/ToolsLogon?XMLFile=common.mcLogon
+
+Live Commerce Admin Console:
+https://admin.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/webapp/wcs/admin/servlet/ToolsLogon?XMLFile=adminconsole.AdminConsoleLogon
+{{- end }}
+
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- if eq .Values.license "view" }}
+**************************************************************************
+    LICENSE
+**************************************************************************
+
+{{ .Files.Get "LICENSES/notices" }}
+
+{{ .Files.Get "LICENSES/LA_en" }}
+
+{{ .Files.Get "LICENSES/MLA.txt" }}
+**************************************************************************
+{{- end }}

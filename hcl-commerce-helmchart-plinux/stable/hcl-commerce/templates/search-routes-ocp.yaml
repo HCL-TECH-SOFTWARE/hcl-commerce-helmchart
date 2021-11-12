@@ -1,0 +1,38 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (.Values.openshiftDeployment.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.solrsearch.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.solrsearch.live }}
+{{- end }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-solr-search-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  to:
+    kind: Service
+    {{- if eq $envType "auth" }}
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}search-app-master
+    {{- else if eq $envType "live" }}
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}search-app-repeater
+    {{- end }}    
+  port:
+    targetPort: 3738
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

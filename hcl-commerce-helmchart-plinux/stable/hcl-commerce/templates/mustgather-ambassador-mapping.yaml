@@ -1,0 +1,27 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.ingress.enabled) (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (eq .Values.ingress.ingressController "ambassador") }}
+{{- $ingress_conf := $.Values.ingress.mustgather }}
+apiVersion: getambassador.io/v2
+kind: TLSContext
+metadata:
+  name: ssl-context-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}-mustgather
+spec:
+  hosts:
+  - {{ tpl ($ingress_conf.domain | toString) $ }}
+  secret: {{ default (printf "%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-mustgather-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}commerce-mustgather:42021
+  bypass_auth: true
+---
+{{- end }}

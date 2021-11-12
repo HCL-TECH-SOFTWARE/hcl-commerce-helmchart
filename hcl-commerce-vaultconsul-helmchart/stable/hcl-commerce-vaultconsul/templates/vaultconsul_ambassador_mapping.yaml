@@ -1,0 +1,15 @@
+{{- if and .Values.common.enableIngress (eq .Values.common.ingressController "ambassador")}}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: vault-domain-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /
+  host: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: http://vault-consul:8200
+  bypass_auth: true
+{{- end }}

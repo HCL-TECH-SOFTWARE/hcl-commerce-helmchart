@@ -1,0 +1,134 @@
+{{- if and .Values.tsDb.enabled (eq .Values.common.dbType "onedb") }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+      group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+      release: {{ $.Release.Name }}
+      chart: {{ $.Chart.Name }}
+      heritage: {{ $.Release.Service }}
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        productName: "HCL Commerce"
+        productVersion: {{ $.Values.common.productVersion | quote }}
+      labels:
+        component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+        group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+        app: HCL-Commerce
+        release: {{ $.Release.Name }}
+        chart: {{ $.Chart.Name }}
+        heritage: {{ $.Release.Service }}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      hostname: onedb
+      {{- if $.Values.tsDb.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.tsDb.nodeSelector | indent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+           {{- if $.Values.tsDb.nodeLabel }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: wc-node-select-flag
+                  operator: In
+                  values:
+                  - {{ $.Values.tsDb.nodeLabel }}
+           {{- else }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityRequiredDuringScheduling" $ | indent 8 }}
+           {{- end }}
+           preferredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityPreferredDuringScheduling" $ | indent 8 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      {{- if include "image.pull.secret" $ }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" $ }}
+      {{- end }}
+      securityContext:
+        runAsUser: 200
+        runAsGroup: 200
+        fsGroup: 200
+      {{- if $.Values.tsDb.persistence.enabled }}
+      volumes:
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsdb-volume
+          persistentVolumeClaim:
+            {{- if $.Values.tsDb.persistence.existingClaim }}
+            claimName: {{ $.Values.tsDb.persistence.existingClaim }}
+            {{- else }}
+            claimName: {{ $.Release.Name }}-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-tsdb-pvc
+            {{- end }}
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsonedb-config-volume
+          persistentVolumeClaim:
+            {{- if $.Values.tsDb.persistence.existingClaimConfig }}
+            claimName: {{ $.Values.tsDb.persistence.existingClaimConfig }}
+            {{- else }}
+            claimName: {{ $.Release.Name }}-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-tsonedb-config-pvc
+            {{- end }}
+      {{- end }}
+      containers:
+      - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+        image: {{ include "image.repo" $ }}{{ $.Values.tsDb.image }}:{{ $.Values.tsDb.tag }}
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        resources:
+{{ toYaml $.Values.tsDb.resources | indent 12 }}
+        env:
+        - name: "LICENSE"
+          value: {{ $.Values.license | quote }}
+        - name: "SEARCH_ENGINE"
+          value: {{ $.Values.common.searchEngine }}
+        - name: "LICENSE_SERVER"
+          value: "https://hclsoftware.compliance.flexnetoperations.com/instances/SBFKNHM1XC2R/request"
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
+        ports:
+        - containerPort: 9088
+          name: db
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: 9088
+          initialDelaySeconds: 600
+          timeoutSeconds: 300
+        readinessProbe:
+          tcpSocket:
+            port: 9088
+        {{- if $.Values.tsDb.persistence.enabled }}
+        volumeMounts:
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsdb-volume
+            mountPath: /opt/hcl/data
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsonedb-config-volume
+            mountPath: /opt/hcl/config
+        {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

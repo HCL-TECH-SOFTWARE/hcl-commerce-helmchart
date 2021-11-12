@@ -1,0 +1,46 @@
+##
+# This values yaml file provides override values to deploy fluentd helm chart for EFK logging 
+#   - chart version: 3.7.4
+#   - fluentd app version: 1.12.4
+# 
+# To Deploy fluentd for EFK logging using this sample values
+# 1. Create a namespace 
+#    kubectl create ns log
+# 2. Add helm repo
+#    helm repo add bitnami https://charts.bitnami.com/bitnami
+# 3. Create configuration maps:
+#    kubectl apply -f log-aggregator-configmap.yaml -n log
+#    kubectl apply -f log-forwarder-configmap.yaml -n log
+# 4. Deploy fluentd using this override values
+#    helm install fluentd bitnami/fluentd -n log -f log-fluentd-values.yaml --version "3.7.4"
+# 5. Monitor deployment until all pods are healthy
+# 
+# To get the complete values.yaml file, please visit 
+#   https://github.com/bitnami/charts/blob/9f57a1076641d4e715770cd9afc2e83999ecfad4/bitnami/fluentd/values.yaml
+#
+# To get more information related to this version of fluentd helm chart, please visit
+#   https://github.com/bitnami/charts/blob/18d525a64b268b46494629e21808f053fc130ff2/bitnami/fluentd/README.md
+##
+fullnameOverride: "hcl-commerce-log-fluentd"
+resources:
+  limits:
+    memory: 1000Mi
+  requests:
+    cpu: 200m
+    memory: 500Mi
+forwarder:
+  configMap: log-forwarder-configmap
+  extraEnv:
+    - name: FLUENTD_DAEMON_USER
+      value: root
+    - name: FLUENTD_DAEMON_GROUP
+      value: root
+    - name: ELASTICSEARCH_HOST
+      value: hcl-commerce-log-elasticsearch-coordinating-only.log.svc.cluster.local
+    - name: ELASTICSEARCH_PORT
+      value: "9200"
+aggregator:
+   # Disable Aggregator
+   enabled: false
+
+ 

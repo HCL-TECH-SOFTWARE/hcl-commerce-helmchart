@@ -1,0 +1,29 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") (eq $.Values.common.searchEngine "elastic") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if has "share" $envTypeList }}
+{{- $ingress_conf := $.Values.ingress.query.data }}
+apiVersion: getambassador.io/v2
+kind: TLSContext
+metadata:
+  name: ssl-context-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}-query
+spec:
+  hosts:
+  - {{ tpl ($ingress_conf.domain | toString) $ }}
+  secret: {{ default (printf "%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-data-query-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: http://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}query-app:30900
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}

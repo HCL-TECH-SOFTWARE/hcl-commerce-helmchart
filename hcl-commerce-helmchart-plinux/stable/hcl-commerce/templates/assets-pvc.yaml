@@ -1,0 +1,48 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{ if and (.Values.assetsPVC.enabled) (has "share" $envTypeList) }}
+{{- if (not .Values.assetsPVC.existingClaim.auth) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth-assets-pvc
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  accessModes:
+  - {{ $.Values.assetsPVC.accessMode }}
+  resources:
+    requests:
+      storage: {{ $.Values.assetsPVC.storage }}
+  {{- if include "rwx.storageclass.name" $ }}
+  storageClassName: {{ include "rwx.storageclass.name" $ }}
+  {{- end }}
+{{- end }}
+{{- if (not .Values.assetsPVC.existingClaim.live) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}live-assets-pvc
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  accessModes:
+  - {{ $.Values.assetsPVC.accessMode }}
+  resources:
+    requests:
+      storage: {{ $.Values.assetsPVC.storage }}
+  {{- if include "rwx.storageclass.name" $ }}
+  storageClassName: {{ include "rwx.storageclass.name" $ }}
+  {{- end }}
+{{- end }}
+{{- end }}

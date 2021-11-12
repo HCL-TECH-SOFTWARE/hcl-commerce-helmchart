@@ -1,0 +1,7 @@
+{{- if and (.Values.ingress.enabled) ( .Values.dx.enabled) (eq .Values.ingress.ingressController "gke") (not .Values.openshiftDeployment.enabled) (eq .Values.common.searchEngine "elastic") }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{- if or (and (has "auth" $envTypeList) (.Values.dx.namespace.auth)) (and (has "live" $envTypeList) (.Values.dx.namespace.live)) }}
+  {{- $dx_gke_check_fail_msg := "\n\n########################################\nHCL Commerce\nHelm Configuration Validation Error\n########################################\nHCL Commerce with GKE ingress currently does not support DX.\nPlease deploy Commerce with nginx ingress in order to use DX.\n" }}
+  {{- fail $dx_gke_check_fail_msg }}
+{{- end }}
+{{- end }}

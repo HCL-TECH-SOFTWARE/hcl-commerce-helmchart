@@ -1,0 +1,47 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (eq $.Values.common.searchEngine "elastic") (not .Values.openshiftDeployment.enabled) (.Values.ingress.nifi.enabled) }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if has "share" $envTypeList }}
+{{- $ingress_conf := $.Values.ingress.nifi }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}nifi-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    {{- if eq $.Values.ingress.ingressController "nginx" }}
+    kubernetes.io/ingress.class: {{ default "nginx" $ingress_conf.ingressClass | quote }}
+    {{- else if eq $.Values.ingress.ingressController "gke" }}
+    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}
+spec:
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%sshare-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} / {{- else if eq $.Values.ingress.ingressController "gke" }} /* {{- end }}
+        backend:
+          serviceName: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.nifiApp.name}}
+          servicePort: 30600
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} / {{- else if eq $.Values.ingress.ingressController "gke" }} /* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.nifiApp.name}}
+            port:
+              number: 30600
+      {{- end }}
+{{- end }}
+{{- end }}
+---

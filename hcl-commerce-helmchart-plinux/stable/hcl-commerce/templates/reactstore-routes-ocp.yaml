@@ -1,0 +1,226 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") ($.Values.storeWeb.enabled) (.Values.openshiftDeployment.enabled) (eq $.Values.common.searchEngine "elastic") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.reactstore.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.reactstore.live }}
+{{- end }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+  port:
+    targetPort: 6443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-wcsstore-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /wcsstore
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+  port:
+    targetPort: 6443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-hclstore-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /hclstore
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+  port:
+    targetPort: 6443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-wcs-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /wcs
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
+  port:
+    targetPort: 5443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-search-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /search
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
+  port:
+    targetPort: 30901
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-lobtools-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /lobtools
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 8000
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-rest-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /rest
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 8000
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-wcs-preview-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /webapp/wcs/preview
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 8006
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-tooling-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /tooling
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+  port:
+    targetPort: 7443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

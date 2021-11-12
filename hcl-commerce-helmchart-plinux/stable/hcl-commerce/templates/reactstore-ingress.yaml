@@ -1,0 +1,206 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (not .Values.openshiftDeployment.enabled) ($.Values.storeWeb.enabled) (eq $.Values.common.searchEngine "elastic") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.reactstore.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.reactstore.live }}
+{{- end }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    {{- if eq $.Values.ingress.ingressController "nginx" }}
+    kubernetes.io/ingress.class: {{ default "nginx" $ingress_conf.ingressClass | quote }}
+    {{- else if eq $.Values.ingress.ingressController "gke" }}
+    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
+    {{- end }}
+    ingress.kubernetes.io/secure-backends: "true"
+    ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- if eq $.Values.ingress.ingressController "nginx" }}
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    {{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) }}
+    nginx.ingress.kubernetes.io/proxy-body-size: "800m"
+    nginx.org/client-max-body-size: "800m"
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx"
+    {{- else }}
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web"
+    {{- end }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} / {{- else if eq $.Values.ingress.ingressController "gke" }} /* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+          servicePort: 6443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcsstore {{- else if eq $.Values.ingress.ingressController "gke" }} /wcsstore/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+          servicePort: 6443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /hclstore {{- else if eq $.Values.ingress.ingressController "gke" }} /hclstore/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+          servicePort: 6443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
+          servicePort: 5443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search {{- else if eq $.Values.ingress.ingressController "gke" }} /search/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
+          servicePort: 30901
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /lobtools {{- else if eq $.Values.ingress.ingressController "gke" }} /lobtools/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /rest {{- else if eq $.Values.ingress.ingressController "gke" }} /rest/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /webapp/wcs/preview {{- else if eq $.Values.ingress.ingressController "gke" }} /webapp/wcs/preview/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8006
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /tooling {{- else if eq $.Values.ingress.ingressController "gke" }} /tooling/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+          servicePort: 7443
+      {{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) }}
+      - path: /dx
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+          servicePort: 443
+      - path: /wps
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+          servicePort: 443
+      - path: /hcl
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+          servicePort: 443
+      {{- if and (eq $envType "auth") (get $.Values.dx.namespace "live") }}
+      - path: /dx/api/dam
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live-dx
+          servicePort: 443
+      {{- end }}
+      {{- end }}
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} / {{- else if eq $.Values.ingress.ingressController "gke" }} /* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+            port:
+              number: 6443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcsstore {{- else if eq $.Values.ingress.ingressController "gke" }} /wcsstore/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+            port:
+              number: 6443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /hclstore {{- else if eq $.Values.ingress.ingressController "gke" }} /hclstore/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+            port:
+              number: 6443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
+            port:
+              number: 5443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search {{- else if eq $.Values.ingress.ingressController "gke" }} /search/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
+            port:
+              number: 30901
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /lobtools {{- else if eq $.Values.ingress.ingressController "gke" }} /lobtools/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /rest {{- else if eq $.Values.ingress.ingressController "gke" }} /rest/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /webapp/wcs/preview {{- else if eq $.Values.ingress.ingressController "gke" }} /webapp/wcs/preview/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8006
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /tooling {{- else if eq $.Values.ingress.ingressController "gke" }} /tooling/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+            port:
+              number: 7443
+      {{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) }}
+      - path: /dx/
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+            port:
+              number: 443
+      - path: /wps/
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+            port:
+              number: 443
+      - path: /hcl/
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+            port:
+              number: 443
+      {{- if and (eq $envType "auth") (get $.Values.dx.namespace "live") }}
+      - path: /dx/api/dam/
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live-dx
+            port:
+              number: 443
+      {{- end }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

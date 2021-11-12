@@ -1,0 +1,16 @@
+{{- if and .Values.common.enableIngress (.Values.openshiftDeployment.enabled)}}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: vault-{{ .Values.common.tenant }}-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    agroup: {{ .Release.Namespace }}
+spec:
+  host: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
+  to:
+    kind: Service
+    name: vault-consul
+  port:
+    targetPort: 8200
+{{- end }}

@@ -1,0 +1,160 @@
+{{- if and .Values.tsDb.enabled (eq .Values.common.dbType "oracle") }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+      group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+      release: {{ $.Release.Name }}
+      chart: {{ $.Chart.Name }}
+      heritage: {{ $.Release.Service }}
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        productName: "HCL Commerce"
+        productVersion: {{ $.Values.common.productVersion | quote }}
+      labels:
+        component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+        group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+        app: HCL-Commerce
+        release: {{ $.Release.Name }}
+        chart: {{ $.Chart.Name }}
+        heritage: {{ $.Release.Service }}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      {{- if $.Values.tsDb.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.tsDb.nodeSelector | indent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+           {{- if $.Values.tsDb.nodeLabel }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: wc-node-select-flag
+                  operator: In
+                  values:
+                  - {{ $.Values.tsDb.nodeLabel }}
+           {{- else }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityRequiredDuringScheduling" $ | indent 8 }}
+           {{- end }}
+           preferredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityPreferredDuringScheduling" $ | indent 8 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      {{- if include "image.pull.secret" $ }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" $ }}
+      {{- end }}
+      {{- if $.Values.tsDb.persistence.enabled }}
+      volumes:
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsdb-volume
+          persistentVolumeClaim:
+            {{- if $.Values.tsDb.persistence.existingClaim }}
+            claimName: {{ $.Values.tsDb.persistence.existingClaim }}
+            {{- else }}
+            claimName: {{ $.Release.Name }}-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-tsdb-pvc
+            {{- end }}
+      initContainers:
+      - name: pre-load-db-data
+        image: "{{ include "image.repo" $ }}{{ $.Values.tsDb.image }}:{{ $.Values.tsDb.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: ["/bin/bash"]
+        args: ["-c", 'if [ ! -f /data/.preload_completed ]; then cp -rp /opt/oracle/oradata/* /data; rc=$?; if [ "$rc" = "0" ]; then echo "Data has been loaded successfully."; touch /data/.preload_completed; else echo "Failed to load data."; fi; exit $rc; else echo "Skip loading data."; exit 0; fi']
+        volumeMounts:
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsdb-volume
+            mountPath: /data
+        securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
+            privileged: false
+      {{- end }}
+      containers:
+      - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+        image: {{ include "image.repo" $ }}{{ $.Values.tsDb.image }}:{{ $.Values.tsDb.tag }}
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        resources:
+{{ toYaml $.Values.tsDb.resources | indent 12 }}
+        env:
+        - name: "LICENSE"
+          value: {{ $.Values.license | quote }}
+        - name: "SEARCH_ENGINE"
+          value: {{ $.Values.common.searchEngine }}
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
+        securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+              - SYS_RESOURCE
+              - IPC_OWNER
+              - SYS_NICE
+        ports:
+        - containerPort: 1521
+          name: db
+          protocol: TCP
+        livenessProbe:
+          tcpSocket:
+            port: 1521
+          initialDelaySeconds: 600
+          timeoutSeconds: 300
+        readinessProbe:
+          tcpSocket:
+            port: 1521
+        {{- if $.Values.tsDb.persistence.enabled }}
+        volumeMounts:
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsdb-volume
+            mountPath: /opt/oracle/oradata
+        {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

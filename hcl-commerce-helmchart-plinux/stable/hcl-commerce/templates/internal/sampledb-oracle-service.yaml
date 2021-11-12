@@ -1,0 +1,27 @@
+{{- if and .Values.tsDb.enabled (eq .Values.common.dbType "oracle") }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }} 
+spec:
+  type: NodePort
+  ports:
+  - port: 1521
+    name: dbport
+  selector:
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
+{{- end }}
+---
+{{- end }}
+{{- end }}

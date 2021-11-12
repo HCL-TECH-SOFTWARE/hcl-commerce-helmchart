@@ -1,0 +1,34 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (.Values.openshiftDeployment.enabled) -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.accelerator.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.accelerator.live }}
+{{- end }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-accelerator-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 8001
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

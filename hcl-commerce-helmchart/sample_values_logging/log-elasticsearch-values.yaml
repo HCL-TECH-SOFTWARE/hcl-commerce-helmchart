@@ -1,0 +1,29 @@
+##
+# This values yaml file provides override values to deploy elasticsearch helm chart for EFK logging 
+#   - chart version: 15.3.0
+#   - elasticsearch app version: 7.13.1-debian-10-r0
+# 
+# To Deploy elasticsearch for EFK logging using this sample values
+# 1. Create a namespace
+#    kubectl create ns log
+# 2. Add helm repo
+#    helm repo add bitnami https://charts.bitnami.com/bitnami
+# 3. Deploy elasticsearch using this override values
+#    helm install elasticsearch elastic/elasticsearch -n elastic -f log-elasticsearch-values.yaml --version "15.3.0"
+# 4. Monitor deployment until all pods are healthy
+# 
+# To get the complete values.yaml file, please visit 
+#   https://github.com/bitnami/charts/blob/5937747f5c54d7f15b3e1490b0c0ef15566d7632/bitnami/elasticsearch/values.yaml
+#
+# To get more information related to this version of elasticsearch helm chart, please visit
+#   https://github.com/bitnami/charts/blob/5937747f5c54d7f15b3e1490b0c0ef15566d7632/bitnami/elasticsearch/README.md
+##
+fullnameOverride: "hcl-commerce-log-elasticsearch"
+esJavaOpts: "-Xmx2g -Xms2g"
+resources:
+  requests:
+    cpu: "1000m"
+    memory: "2Gi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"

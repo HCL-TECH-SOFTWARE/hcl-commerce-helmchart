@@ -1,0 +1,110 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (.Values.openshiftDeployment.enabled) -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.cmc.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.cmc.live }}
+{{- end }}
+{{- if or (eq $.Values.common.searchEngine "solr") (not $.Values.storeWeb.enabled) (and (eq $envType "auth") (ne $ingress_conf.domain $.Values.ingress.reactstore.auth.domain)) (and (eq $envType "live") (ne $ingress_conf.domain $.Values.ingress.reactstore.live.domain)) }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-cmc-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 8000
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-cmc-tooling-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /tooling
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+  port:
+    targetPort: 7443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+{{- if $.Values.common.localStoreEnabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-cmc-webapp-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /webapp
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-cmc-wcsstore-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /wcsstore
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 443
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

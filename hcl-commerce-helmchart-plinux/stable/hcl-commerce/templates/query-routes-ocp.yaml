@@ -1,0 +1,36 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (.Values.openshiftDeployment.enabled) (eq $.Values.common.searchEngine "elastic") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.query.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.query.live }}
+{{- end }}
+{{- if or (not $.Values.storeWeb.enabled) (and (eq $envType "auth") (ne $ingress_conf.domain $.Values.ingress.reactstore.auth.domain)) (and (eq $envType "live") (ne $ingress_conf.domain $.Values.ingress.reactstore.live.domain)) }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-query-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
+  port:
+    targetPort: 30901
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+{{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

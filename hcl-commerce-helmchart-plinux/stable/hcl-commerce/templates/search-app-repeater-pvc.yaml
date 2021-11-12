@@ -1,0 +1,23 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{ if and (has "live" $envTypeList) (eq .Values.common.searchEngine "solr") (.Values.searchAppRepeater.persistence.enabled) (not .Values.searchAppRepeater.persistence.existingClaim) (not .Values.searchAppRepeater.persistentVolumeClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-search-repeater-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  accessModes:
+  - {{ .Values.searchAppRepeater.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.searchAppRepeater.persistence.storage }}
+  {{- if .Values.searchAppRepeater.persistence.storageClass }}
+  storageClassName: {{ .Values.searchAppRepeater.persistence.storageClass }}
+  {{- end }}
+{{- end }}

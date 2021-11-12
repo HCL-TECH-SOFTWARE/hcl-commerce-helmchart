@@ -1,0 +1,53 @@
+{{- if not .Values.common.serviceAccountName }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-commerce
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+  labels:
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+rules:
+  - apiGroups: [""]
+    resources:
+    - configmaps
+    - namespaces
+    - secrets
+    - persistentvolumeclaims
+    - services
+    - pods
+    - pods/log
+    verbs: ["get", "watch", "list","create","delete","patch","update"]
+  {{- if and (.Values.openshiftDeployment.enabled) ($.Values.openshiftDeployment.sccName) }}
+  - apiGroups:
+    - security.openshift.io 
+    resourceNames:
+    - {{ $.Values.openshiftDeployment.sccName }}
+    resources:
+    - securitycontextconstraints 
+    verbs: 
+    - use
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-commerce
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-commerce
+subjects:
+  - name: {{ .Release.Name }}-commerce
+    namespace: {{ .Release.Namespace | quote }}
+    kind: ServiceAccount
+{{- end }}

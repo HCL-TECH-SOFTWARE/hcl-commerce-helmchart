@@ -1,0 +1,36 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (.Values.metrics.enabled) (.Values.metrics.serviceMonitor.enabled) (has "share" $envTypeList) (eq .Values.common.searchEngine "elastic") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name:  {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.nifiApp.name}}
+  {{- if .Values.metrics.serviceMonitor.namespace }}
+  namespace: {{ .Values.metrics.serviceMonitor.namespace }}
+  {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.nifiApp.name}}
+    group: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    {{- range $key, $value := .Values.metrics.serviceMonitor.selector }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  endpoints:
+  - port: metrics
+    interval: {{ .Values.metrics.serviceMonitor.interval }}
+    path: /metrics
+  - port: hclmetrics
+    interval: {{ .Values.metrics.serviceMonitor.interval }}
+    path: /monitor/metrics
+  selector:
+    matchLabels:
+      component: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.nifiApp.name}}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+{{- end -}}

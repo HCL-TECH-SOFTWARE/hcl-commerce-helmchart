@@ -1,0 +1,471 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+{{- $_ := set $ "envType" $envType }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2020
+######################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.tsApp.name}}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      {{- if $.Values.backwardCompatibility.selector.app }}
+      app: {{ $.Values.backwardCompatibility.selector.app }}
+      {{- end }}
+      {{- if $.Values.backwardCompatibility.selector.chart }}
+      chart: {{ $.Values.backwardCompatibility.selector.chart }}
+      {{- else }}
+      chart: {{ $.Chart.Name }}
+      {{- end }}
+      release: {{ $.Release.Name }}
+      heritage: {{ $.Release.Service }}
+      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.tsApp.name}}
+      group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+      {{- range $key, $value := $.Values.backwardCompatibility.selector.extraSelector }}
+      {{ $key }}: {{ $value | quote }}
+      {{- end }}
+  replicas: {{ $.Values.tsApp.replica }}
+  template:
+    metadata:
+      annotations:
+        productName: "HCL Commerce"
+        productVersion: {{ $.Values.common.productVersion | quote }}
+        {{- if and ($.Values.metrics.enabled) ($.Values.metrics.prometheusAnnotations.enabled) }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /monitor/metrics
+        prometheus.io/port: "5280"
+        {{- end }}
+      labels:
+        {{- if $.Values.backwardCompatibility.selector.app }}
+        app: {{ $.Values.backwardCompatibility.selector.app }}
+        {{- else }}
+        app: HCL-Commerce
+        {{- end }}
+        {{- if $.Values.backwardCompatibility.selector.Chart }}
+        chart: {{ $.Values.backwardCompatibility.selector.Chart }}
+        {{- else }}
+        chart: {{ $.Chart.Name }}
+        {{- end }}
+        release: {{ $.Release.Name }}
+        heritage: {{ $.Release.Service }}
+        component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.tsApp.name}}
+        group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        {{- range $key, $value := $.Values.backwardCompatibility.selector.extraSelector }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+    spec:
+      {{- if $.Values.tsApp.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.tsApp.nodeSelector | indent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+           {{- if $.Values.tsApp.nodeLabel }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: wc-node-select-flag
+                  operator: In
+                  values:
+                  - {{ $.Values.tsApp.nodeLabel }}
+           {{- else }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityRequiredDuringScheduling" $ | indent 8 }}
+           {{- end }}
+           preferredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityPreferredDuringScheduling" $ | indent 8 }}
+      {{- include "tsapp-podAntiAffinity" $ | indent 6 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      {{- if or $.Values.tsDb.enabled $.Values.vaultconsul.enabled $.Values.tsApp.userScripts.enabled $.Values.tsApp.demoPack.enabled }}
+      initContainers:
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.tsApp.userScripts.enabled) }}
+      - name: user-script-transfer
+        image: "{{ include "image.repo" $ }}{{ $.Values.tsApp.userScripts.initContainer.image }}:{{ $.Values.tsApp.userScripts.initContainer.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: 
+{{ toYaml $.Values.tsApp.userScripts.initContainer.command | indent 10 }}
+        args:
+{{ toYaml $.Values.tsApp.userScripts.initContainer.args | indent 10 }}
+        {{- if $.Values.tsApp.userScripts.initContainer.env }}
+        env:
+          {{- range $key, $value := $.Values.tsApp.userScripts.initContainer.env }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote}}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+          - name:  user-scripts
+            mountPath: /data
+      {{- end }}
+      {{- if and $.Values.global.sofySandboxContext $.Values.tsApp.demoPack.enabled }}
+      - name: demo-pack-transfer
+        image: "{{ $.Values.global.hclPreviewImageRegistry }}/{{ $.Values.tsApp.demoPack.initContainer.image }}:{{ $.Values.tsApp.demoPack.initContainer.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: 
+{{ toYaml $.Values.tsApp.demoPack.initContainer.command | indent 10 }}
+        args:
+{{ toYaml $.Values.tsApp.demoPack.initContainer.args | indent 10 }}
+        {{- if $.Values.tsApp.demoPack.initContainer.env }}
+        env:
+          {{- range $key, $value := $.Values.tsApp.demoPack.initContainer.env }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote}}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+          - name:  demopack
+            mountPath: /data
+      {{- end }}
+      {{- if and $.Values.tsDb.enabled (eq $.Values.common.dbType "db2") }}
+      - name: transaction-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','transaction','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+      {{- end }}
+      {{- if $.Values.vaultconsul.enabled }}
+      - name: vault-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+      {{- end }}
+      {{- end }}
+      volumes:
+        - name: logs-sharing
+          emptyDir: {}
+        - name: cores-sharing
+        {{- if get $.Values.tsApp.coresSharingPersistentVolumeClaim $envType}}
+          persistentVolumeClaim:
+            claimName: {{ get $.Values.tsApp.coresSharingPersistentVolumeClaim $envType }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+      {{- if $.Values.assetsPVC.enabled }}
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-assets-volume
+          persistentVolumeClaim:
+            {{- if get $.Values.assetsPVC.existingClaim $envType }}
+            claimName: {{ get $.Values.assetsPVC.existingClaim $envType }}
+            {{- else }}
+            claimName: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-assets-pvc
+            {{- end }}
+      {{- end }}
+      {{- if $.Values.common.bindingConfigMap }}
+        - name: config-volume
+          configMap:
+            name: {{ $.Values.common.bindingConfigMap }}
+      {{- end }}
+      {{- if $.Values.hclCache.configMap }}
+        - name: hcl-cache-config
+          configMap:
+            name: {{ include "hcl.cache.configmap.name" $ | quote }}
+      {{- end }}
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.tsApp.userScripts.enabled) }}
+        - name: user-scripts
+          emptyDir: {}
+      {{- end }}
+      {{- if and $.Values.global.sofySandboxContext $.Values.tsApp.demoPack.enabled }}
+        - name: demopack
+          emptyDir: {}
+      {{- end }}
+      {{- if include "image.pull.secret" $ }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" $ }}
+      {{- end }}
+      containers:
+      - name: ts-app
+        image: "{{ include "image.repo" $ }}{{ $.Values.tsApp.image }}:{{ $.Values.tsApp.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        resources:
+{{ toYaml $.Values.tsApp.resources | indent 12 }}
+        env:
+        - name: "LICENSE"
+          value: {{ $.Values.license | quote }}
+        {{- if include "license.url" $ }}
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
+        - name: "FLEXNET_URL"
+          value: {{ include "license.url" $ | quote }}
+        {{- end }}
+        {{- if include "license.id" $ }}
+        - name: "FLEXNET_DEVICE_ID"
+          value: {{ include "license.id" $ | quote }}
+        {{- end }}
+        {{- if and (include "license.user" $) (ne (include "license.user" $) "admin") }}
+        - name: "FLEXNET_USER"
+          value: {{ $.Values.hclFlexnetUserName | quote }}
+        {{- end }}
+        {{- if include "license.user.password" $ }}
+        - name: "FLEXNET_PASSWORD"
+          value: {{ include "license.user.password" $ | quote }}
+        {{- end }}
+        {{- if $.Values.common.commerceVersion }}
+        {{- if (or (eq $.Values.common.commerceVersion "9.0.0.1") (eq $.Values.common.commerceVersion "9.0.0.0")) }}
+          {{- if $.Values.common.overridePreconfig }}
+        - name: "OVERRIDE_PRECONFIG"
+          value: {{ $.Values.common.overridePreconfig | quote }}
+          {{- end }}
+        {{- end}}
+        {{- else }}
+        - name: "CONFIGURE_MODE"
+          value: {{ $.Values.common.configureMode | quote }}
+        {{- end }}
+        - name: "ENVIRONMENT"
+          value: {{ $.Values.common.environmentName | quote }}
+        - name: "TENANT"
+          value: {{$.Values.common.tenant | quote }}
+        - name: "ENVTYPE"
+          value: {{ $envType | quote }}
+        {{- if $.Values.logging.jsonLogging.enabled }}
+        - name: "ENABLE_JSON_LOGGING"
+          value: "true"
+        {{- end }}
+        - name: "DOMAIN_NAME"
+          value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        {{- if $.Values.global.sofySolutionContext }}
+        - name: "EXTERNAL_DOMAIN_NAME"
+        {{- if $.Values.global.domain }}
+          value: {{ $.Values.global.domain }}
+        {{- else }}
+          valueFrom:
+              configMapKeyRef:
+                name: {{ $.Release.Name }}-domain
+                key: HOST
+        {{- end }}
+        - name: "STOREWEB_HOST"
+          {{- if eq $envType "auth" }}
+          value: "commerce-preview-crs.$(EXTERNAL_DOMAIN_NAME)"
+          {{- else }}
+          value: "commerce-live-crs.$(EXTERNAL_DOMAIN_NAME)"
+          {{- end }}
+        - name: "REACT_STORE_HOST"
+          {{- if eq $envType "auth" }}
+          value: "commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+          {{- else }}
+          value: "commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+          {{- end }}
+        - name: "TOOLING_BASE_URL"
+          {{- if eq $envType "auth" }}
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)/tooling"
+          {{- else }}
+          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)/tooling"
+          {{- end }}
+        - name: "REACT_STORE_PREVIEW_HOST"
+          {{- if eq $envType "auth" }}
+          value: "commerce-preview-store.$(EXTERNAL_DOMAIN_NAME)"
+          {{- else }}
+          value: "commerce-live-store.$(EXTERNAL_DOMAIN_NAME)"
+          {{- end }}
+          {{- if eq $envType "auth" }}
+        - name: "SEARCH_QUERY_BASE_URL"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "SEARCH_DATA_QUERY_BASE_URL"
+          value: "https://commerce-data-query.$(EXTERNAL_DOMAIN_NAME)"
+          {{- end }}
+        {{- else }} # not sofy
+        - name: "EXTERNAL_DOMAIN_NAME"
+          value: "{{ $.Values.common.externalDomain }}"
+        - name: "STOREWEB_HOST"
+          {{- if eq $envType "auth" }}
+          value: {{ tpl ($.Values.ingress.crs.auth.domain | toString) $ | quote }}
+          {{- else }}
+          value: {{ tpl ($.Values.ingress.crs.live.domain | toString) $ | quote }}
+          {{- end }}
+        - name: "TOOLING_BASE_URL"
+          {{- if $.Values.storeWeb.enabled }}
+            {{- if eq $envType "auth" }}
+          value: "https://{{ tpl ($.Values.ingress.reactstore.auth.domain | toString) $ }}/tooling"
+            {{- else }}
+          value: "https://{{ tpl ($.Values.ingress.reactstore.live.domain | toString) $ }}/tooling"
+            {{- end }}
+          {{- else }}
+            {{- if eq $envType "auth" }}
+          value: "https://{{ tpl ($.Values.ingress.cmc.auth.domain | toString) $ }}/tooling"
+            {{- else }}
+          value: "https://{{ tpl ($.Values.ingress.cmc.live.domain | toString) $ }}/tooling"
+            {{- end }}
+          {{- end }}
+        {{- if $.Values.storeWeb.enabled }}
+          {{- if eq $envType "auth" }}
+        - name: "REACT_STORE_HOST"
+          value: {{ tpl ($.Values.ingress.reactstore.auth.domain | toString) $ | quote }}
+        - name: "REACT_STORE_PREVIEW_HOST"
+          value: {{ tpl ($.Values.ingress.reactstorepreview.auth.domain | toString) $ | quote }}
+        - name: "SEARCH_QUERY_BASE_URL"
+          value: "https://{{ tpl ($.Values.ingress.query.auth.domain | toString) $ }}"
+        - name: "SEARCH_DATA_QUERY_BASE_URL"
+          value: "https://{{ tpl ($.Values.ingress.query.data.domain | toString) $ }}"
+          {{- else }}
+        - name: "REACT_STORE_HOST"
+          value: {{ tpl ($.Values.ingress.reactstore.live.domain | toString) $ | quote }}
+        - name: "REACT_STORE_PREVIEW_HOST"
+          value: {{ tpl ($.Values.ingress.reactstorepreview.live.domain | toString) $ | quote }}
+          {{- end }} # end auth and live check
+        {{- end }} # end storeweb
+        {{- end }} # end sofy context check
+        - name: "DBTYPE"
+          value: {{ $.Values.common.dbType | quote }}
+        - name: "VAULT_CA"
+          value: {{ $.Values.vaultCA.enabled | quote }}
+        {{- if $.Values.tsApp.merchantKey }}
+        - name: "MERCHANTKEY_ENCRYPT"
+          value: {{ $.Values.tsApp.merchantKey | quote }}
+        {{- end }}
+        - name: "SPIUSER_NAME"
+          value: {{ $.Values.common.spiUserName | quote}}
+        - name: "SPIUSER_PWD"
+          value: {{ $.Values.common.spiUserPwdAes | quote}}
+        {{- if eq $.Values.common.searchEngine "elastic" }}
+        - name: "ELASTICSEARCH"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.metrics.enabled }}
+        - name: "EXPOSE_METRICS"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.tsApp.marketingEventListeners.enabled }}
+        - name: "MARKETING_EVENT_LISTENER_ENABLED"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.tsApp.wasAdminConsole.enabled }}
+        - name: "WAS_ADMIN_CONSOLE_ENABLED"
+          value: "true"
+        {{- end }}
+        {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
+        - name: "VAULT_URL"
+          value: {{ $.Values.common.vaultUrl | quote }}
+        {{- if $.Values.common.vaultTokenSecret }}
+        - name: "VAULT_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.common.vaultTokenSecret }}
+              key: VAULT_TOKEN
+        {{- end }}
+        {{- end }}
+        {{- if $.Values.common.localStoreEnabled }}
+        - name: "LOCALSTOREWEB"
+        {{- if eq $envType "auth" }}
+          value: {{ tpl ($.Values.ingress.cmc.auth.domain | toString) $ | quote }}
+        {{- else }}
+          value: {{ tpl ($.Values.ingress.cmc.live.domain | toString) $ | quote }}
+        {{- end }}
+        {{- end }}
+        {{- if $.Values.common.ipv6Enabled }}
+        - name: "IPV6_ENABLED"
+          value: "true"
+        {{- end }}
+{{- if get $.Values.tsApp.envParameters $envType }}
+     {{- range $key, $value := get $.Values.tsApp.envParameters $envType }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+     {{- end }}
+{{- end }}
+        ports:
+        - containerPort: 5080
+          name: db5080
+          protocol: TCP
+        - containerPort: 5443
+          name: db5443
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /wcs/resources/health/ping
+            port: 5443
+            scheme: HTTPS
+          initialDelaySeconds: 300
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /wcs/resources/health/ping
+            port: 5443
+            scheme: HTTPS
+          initialDelaySeconds: {{ default 600 $.Values.tsApp.livenessProbe.initialDelaySeconds }}
+          timeoutSeconds: 300
+        securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+        volumeMounts:
+          - name: logs-sharing
+            mountPath: /opt/WebSphere/AppServer/profiles/default/logs/container
+          - name: cores-sharing
+            mountPath: /opt/WebSphere/AppServer/profiles/default/cores/container
+        {{- if $.Values.assetsPVC.enabled }}
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-assets-volume
+            mountPath: /SETUP/assets
+        {{- end }}
+        {{- if $.Values.common.bindingConfigMap }}
+          - name: config-volume
+            mountPath: /SETUP/ext-config/config.properties
+            subPath: config.properties
+            readOnly: false
+        {{- end }}
+        {{- if $.Values.hclCache.configMap }}
+          - name: hcl-cache-config
+            mountPath: /SETUP/hcl-cache/cache_cfg-ext.yaml
+            subPath: cache_cfg-ext.yaml
+          - name: hcl-cache-config
+            mountPath: /SETUP/hcl-cache/redis_cfg.yaml
+            subPath: redis_cfg.yaml
+        {{- end }}
+        {{- if and (not $.Values.global.sofySandboxContext) ($.Values.tsApp.userScripts.enabled) }}
+          - name:  user-scripts
+            mountPath: /SETUP/user_scripts
+        {{- end }}
+        {{- if and $.Values.global.sofySandboxContext $.Values.tsApp.demoPack.enabled }}
+          - name:  demopack
+            mountPath: /SETUP/user_scripts
+        {{- end }}
+---
+{{- end }}
+{{- end }}

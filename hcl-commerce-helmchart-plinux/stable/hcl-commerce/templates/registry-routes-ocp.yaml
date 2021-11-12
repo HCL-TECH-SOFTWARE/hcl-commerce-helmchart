@@ -1,0 +1,25 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (eq $.Values.common.searchEngine "elastic") (.Values.openshiftDeployment.enabled) (.Values.ingress.registry.enabled) }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if has "share" $envTypeList }}
+{{- $ingress_conf := $.Values.ingress.registry }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}registry-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  to:
+    kind: Service
+    name: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.registryApp.name}}
+  port:
+    targetPort: 30400
+{{- end }}
+{{- end }}
+---

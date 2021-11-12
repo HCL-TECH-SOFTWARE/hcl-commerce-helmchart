@@ -1,0 +1,305 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (has "share" $envTypeList) (eq .Values.common.searchEngine "elastic") }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2020
+######################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  name: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.ingestApp.name}}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      chart: {{ .Chart.Name }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+      component: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.ingestApp.name}}
+      group: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}
+  replicas: {{ .Values.ingestApp.replica }}
+  template:
+    metadata:
+      annotations:
+        productName: "HCL Commerce"
+        productVersion: {{ .Values.common.productVersion | quote }}
+        {{- if and ($.Values.metrics.enabled) ($.Values.metrics.prometheusAnnotations.enabled) }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /monitor/metrics
+        prometheus.io/port: "30880"
+        {{- end }}
+      labels:
+        app: HCL-Commerce
+        chart: {{ .Chart.Name }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+        component: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.ingestApp.name}}
+        group: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      {{- if .Values.ingestApp.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.ingestApp.nodeSelector | indent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+           {{- if .Values.ingestApp.nodeLabel }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: wc-node-select-flag
+                  operator: In
+                  values:
+                  - {{ .Values.ingestApp.nodeLabel }}
+           {{- else }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityRequiredDuringScheduling" . | indent 8 }}
+           {{- end }}
+           preferredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityPreferredDuringScheduling" . | indent 8 }}
+      {{- include "ingestapp-podAntiAffinity" . | indent 6 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ .Values.common.serviceAccountName | default (printf "%s-commerce" .Release.Name) }}
+      {{- if or $.Values.vaultconsul.enabled $.Values.zookeeper.enabled $.Values.redis.enabled $.Values.elasticsearch.enabled (and (not $.Values.global.sofySandboxContext) ($.Values.ingestApp.userScripts.enabled)) (and $.Values.global.sofySandboxContext $.Values.ingestApp.demoPack.enabled) }}
+      initContainers:
+      {{- end }}
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.ingestApp.userScripts.enabled) }}
+      - name: user-script-transfer
+        image: "{{ include "image.repo" $ }}{{ $.Values.ingestApp.userScripts.initContainer.image }}:{{ $.Values.ingestApp.userScripts.initContainer.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: 
+{{ toYaml $.Values.ingestApp.userScripts.initContainer.command | indent 10 }}
+        args:
+{{ toYaml $.Values.ingestApp.userScripts.initContainer.args | indent 10 }}
+        {{- if $.Values.ingestApp.userScripts.initContainer.env }}
+        env:
+          {{- range $key, $value := $.Values.ingestApp.userScripts.initContainer.env }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote}}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+          - name:  user-scripts
+            mountPath: /data
+      {{- end }}
+      {{- if and $.Values.global.sofySandboxContext $.Values.ingestApp.demoPack.enabled }}
+      - name: demo-pack-transfer
+        image: "{{ $.Values.global.hclPreviewImageRegistry }}/{{ $.Values.ingestApp.demoPack.initContainer.image }}:{{ $.Values.ingestApp.demoPack.initContainer.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: 
+{{ toYaml $.Values.ingestApp.demoPack.initContainer.command | indent 10 }}
+        args:
+{{ toYaml $.Values.ingestApp.demoPack.initContainer.args | indent 10 }}
+        {{- if $.Values.ingestApp.demoPack.initContainer.env }}
+        env:
+          {{- range $key, $value := $.Values.ingestApp.demoPack.initContainer.env }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote}}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+          - name:  demopack
+            mountPath: /data
+      {{- end }}
+      {{- if $.Values.vaultconsul.enabled }}
+      - name: vault-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+      {{- end }}
+      {{- if $.Values.zookeeper.enabled }}
+      - name: zookeeper-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','zookeeper','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype', 'auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}, '-pod_name_pattern', '{{ $.Values.zookeeper.fullnameOverride }}-0', '-container_name', 'zookeeper']
+      {{- end }}
+      {{- if $.Values.redis.enabled }}
+      - name: redis-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','redis','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype', 'auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}, '-pod_name_pattern', '{{ $.Values.redis.fullnameOverride }}-master-0', '-container_name', 'redis']
+      {{- end }}
+      {{- if $.Values.elasticsearch.enabled }}
+      - name: elasticsearch-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','elasticsearch','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype', 'auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}, '-pod_name_pattern', '{{ $.Values.elasticsearch.fullnameOverride }}-0', '-container_name', 'elasticsearch']
+      {{- end }}
+      volumes:
+        - name: logs-sharing
+          emptyDir: {}
+        - name: cores-sharing
+        {{- if .Values.ingestApp.coresSharingPersistentVolumeClaim }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.ingestApp.coresSharingPersistentVolumeClaim }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+      {{- if .Values.common.bindingConfigMap }}
+        - name: config-volume
+          configMap:
+            name: {{ .Values.common.bindingConfigMap }}
+      {{- end }}
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.ingestApp.userScripts.enabled) }}
+        - name: user-scripts
+          emptyDir: {}
+      {{- end }}
+      {{- if and $.Values.global.sofySandboxContext $.Values.ingestApp.demoPack.enabled }}
+        - name: demopack
+          emptyDir: {}
+      {{- end }}
+      {{- if include "image.pull.secret" . }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" . }}
+      {{- end }}
+      containers:
+      - name: ingest-app
+        image: "{{ include "image.repo" . }}{{ .Values.ingestApp.image }}:{{ .Values.ingestApp.tag }}"
+        {{- if .Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ .Values.common.imagePullPolicy }}
+        {{- end }}
+        resources:
+{{ toYaml .Values.ingestApp.resources | indent 12 }}
+        env:
+        - name: "LICENSE"
+          value: {{ .Values.license | quote }}
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
+        - name: "CONFIGURE_MODE"
+          value: {{ .Values.common.configureMode | quote }}
+        - name: "ENVIRONMENT"
+          value: {{ .Values.common.environmentName | quote }}
+        - name: "TENANT"
+          value: {{ .Values.common.tenant | quote }}
+        {{- if $.Values.logging.jsonLogging.enabled }}
+        - name: "ENABLE_JSON_LOGGING"
+          value: "true"
+        {{- end }}
+        - name: "DOMAIN_NAME"
+          value: "{{ .Release.Namespace }}.svc.cluster.local"
+        {{- if .Values.metrics.enabled }}
+        - name: "EXPOSE_METRICS"
+          value: "true"
+        {{- end }}
+        - name: "VAULT_CA"
+          value: {{ .Values.vaultCA.enabled | quote }}
+        {{- if (or (eq .Values.common.configureMode "Vault") .Values.vaultCA.enabled) }}
+        - name: "VAULT_URL"
+          value: {{ .Values.common.vaultUrl | quote  }}
+        {{- if .Values.common.vaultTokenSecret }}
+        - name: "VAULT_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.common.vaultTokenSecret }}
+              key: VAULT_TOKEN
+        {{- end }}
+        {{- end }}
+        {{- if $.Values.common.ipv6Enabled }}
+        - name: "IPV6_ENABLED"
+          value: "true"
+        {{- end }}
+{{- if .Values.ingestApp.envParameters }}
+     {{- range $key, $value := .Values.ingestApp.envParameters }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+     {{- end }}
+{{- end }}
+        ports:
+        - containerPort: 30800
+          name: port30800
+          protocol: TCP
+        - containerPort: 30801
+          name: port30801
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 30800
+            scheme: HTTP
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 30800
+            scheme: HTTP
+          periodSeconds: 30
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 30800
+            scheme: HTTP
+          failureThreshold: 30
+          periodSeconds: 10
+        securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+        volumeMounts:
+          - name: logs-sharing
+            mountPath: /opt/WebSphere/Liberty/usr/servers/default/logs/container
+          - name: cores-sharing
+            mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+        {{- if .Values.common.bindingConfigMap }}
+          - name: config-volume
+            mountPath: /SETUP/ext-config/config.properties
+            subPath: config.properties
+            readOnly: false
+        {{- end }}
+        {{- if and (not $.Values.global.sofySandboxContext) ($.Values.ingestApp.userScripts.enabled) }}
+          - name:  user-scripts
+            mountPath: /SETUP/user_scripts
+        {{- end }}
+        {{- if and $.Values.global.sofySandboxContext $.Values.ingestApp.demoPack.enabled }}
+          - name:  demopack
+            mountPath: /SETUP/user_scripts
+        {{- end }}
+{{- end }}

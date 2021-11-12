@@ -1,0 +1,26 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if and (ne $envType "share") ($.Values.tsDb.enabled) ($.Values.tsDb.persistence.enabled) (not $.Values.tsDb.persistence.existingClaimConfig) (eq $.Values.common.dbType "onedb") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Release.Name }}-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsonedb-config-pvc
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  accessModes:
+  - {{ $.Values.tsDb.persistence.accessMode }}
+  resources:
+    requests:
+      storage: "1Gi"
+  {{- if $.Values.tsDb.persistence.storageClass }}
+  storageClassName: {{ $.Values.tsDb.persistence.storageClass }}
+  {{- end }}
+---
+{{- end }}
+{{- end }}

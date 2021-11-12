@@ -1,0 +1,82 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (not .Values.openshiftDeployment.enabled) ($.Values.crsApp.enabled) -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.crs.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.crs.live }}
+{{- end }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-crs-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    {{- if eq $.Values.ingress.ingressController "nginx" }}
+    kubernetes.io/ingress.class: {{ default "nginx" $ingress_conf.ingressClass | quote }}
+    {{- else if eq $.Values.ingress.ingressController "gke" }}
+    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
+    {{- end }}
+    ingress.kubernetes.io/secure-backends: "true"
+    ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- if eq $.Values.ingress.ingressController "nginx" }}
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app"
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app
+          servicePort: 8443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcsstore {{- else if eq $.Values.ingress.ingressController "gke" }} /wcsstore/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app
+          servicePort: 8443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /webapp/remote/preview {{- else if eq $.Values.ingress.ingressController "gke" }} /webapp/remote/preview/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app
+          servicePort: 8443
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app
+            port:
+              number: 8443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcsstore {{- else if eq $.Values.ingress.ingressController "gke" }} /wcsstore/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app
+            port:
+              number: 8443
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /webapp/remote/preview {{- else if eq $.Values.ingress.ingressController "gke" }} /webapp/remote/preview/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app
+            port:
+              number: 8443
+      {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

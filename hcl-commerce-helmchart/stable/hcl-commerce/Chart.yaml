@@ -1,0 +1,26 @@
+######################################################
+# Licensed Materials - Property of HCL Technologies
+# HCL Commerce
+# (C) Copyright HCL Technologies Limited 1996, 2020
+######################################################
+apiVersion: v2
+description: HCL Commerce Version 9 Helm Chart
+keywords:
+  - HCL Commerce V9
+name: hcl-commerce
+version: 91.8.0
+kubeVersion: ">=1.16.0-0"
+appVersion: "9.1.8.0"
+dependencies:
+  - name: elasticsearch
+    version: 7.12.0
+    repository: https://helm.elastic.co
+    condition: elasticsearch.enabled
+  - name: zookeeper
+    version: 6.7.2
+    repository: https://charts.bitnami.com/bitnami
+    condition: zookeeper.enabled
+  - name: redis
+    version: 14.1.1
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

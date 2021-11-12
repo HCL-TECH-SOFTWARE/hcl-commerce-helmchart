@@ -1,0 +1,72 @@
+{{ if and .Values.vaultConsul.externalCA.enabled .Values.vaultConsul.externalCA.autoCreate }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2020
+######################################################
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: {{ .Chart.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  name: hclcom-vault-pre-install-{{ .Values.common.tenant | lower}}{{ randAlphaNum 10 | lower }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-delete-policy": "hook-succeeded"
+    "helm.sh/hook-weight": "10"
+spec:
+  backoffLimit: 5
+  activeDeadlineSeconds: 100
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+        chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ .Release.Name }}-commerce-vault
+      restartPolicy: Never
+      {{- if include "supportC.image.pull.secret" . }}
+      imagePullSecrets:
+        - name: {{ include "supportC.image.pull.secret" . }}
+      {{- end }}
+      containers:
+        - name: pre-install-job-createsecret-{{ .Values.common.tenant | lower}}-{{ randAlphaNum 10 | lower }}
+          image: {{ include "supportC.image.repo" . }}{{ .Values.supportC.image }}:{{ .Values.supportC.tag }}
+          {{- if .Values.supportC.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.supportC.imagePullPolicy }}
+          {{- end }}
+          args: ['createsecret', '-tenant',{{ .Values.common.tenant | quote }},'-env',"vault",'-envtype','ca','-domain', {{ .Values.common.externalDomain | quote }}, '-namespace',{{ .Release.Namespace | quote }},'-replace','true','-is_ca', 'true']
+          securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+{{- end -}}

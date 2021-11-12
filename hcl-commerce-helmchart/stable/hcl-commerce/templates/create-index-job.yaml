@@ -1,0 +1,101 @@
+{{- if and .Values.searchIndexCreation.enabled (eq .Values.common.searchEngine "elastic") }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if has "auth" $envTypeList }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2020
+######################################################
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  name: {{ $.Release.Name }}-hclcom-index-creation-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}-{{ randAlphaNum 10 | lower }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: {{ $.Values.searchIndexCreation.overalMaxDuration }}
+  template:
+    metadata:
+      labels:
+        app: HCL-Commerce
+        chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+        release: {{ $.Release.Name }}
+        heritage: {{ $.Release.Service }}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      affinity:
+      {{- include "nodeaffinity" $ | indent 6 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      restartPolicy: OnFailure
+      {{- if include "image.pull.secret" $ }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" $ }}
+      {{- end }}
+      initContainers:
+      - name: transaction-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','transaction-web-self','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype', 'auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+      - name: nifi-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','nifi','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype','auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.nifiMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+      - name: ingest-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','ingest','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype','auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.ingestMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+      containers:
+        - name: index-creation-job-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}-{{ randAlphaNum 10 | lower }}
+          image: {{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}
+          tty: true
+          {{- if $.Values.common.imagePullPolicy }}
+          imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+          {{- end }}
+          args: ['buildIndexES', '-tenant',{{ $.Values.common.tenant | quote }},'-env',{{ $.Values.common.environmentName | quote }}, '-namespace',{{ $.Release.Namespace | quote }}, '-spi_basic_auth', {{ $.Values.common.spiUserPwdBase64 | quote}}, '-store_ids', {{ $.Values.searchIndexCreation.storeIds | quote }}, '-interval', {{ $.Values.searchIndexCreation.interval | quote }}, '-max_index_duration', {{ $.Values.searchIndexCreation.indexMaxDuration | quote }}, '-max_txn_duration', {{ $.Values.searchIndexCreation.txnMaxDuration | quote }}, '-max_nifi_duration', {{ $.Values.searchIndexCreation.nifiMaxDuration | quote }}, '-max_ingest_duration', {{ $.Values.searchIndexCreation.ingestMaxDuration | quote }}, '-max_retry', {{ $.Values.searchIndexCreation.maxRetry | quote }}, '-push_to_live', {{- if $.Values.searchIndexCreation.pushToLiveEnabled -}} 'yes' {{- else -}} 'no' {{- end -}}, '-calculate_price', {{- if $.Values.searchIndexCreation.calculatePriceEnabled -}} 'yes' {{- else -}} 'no' {{- end -}}, '-calculate_price_store_ids', {{ $.Values.searchIndexCreation.calculatePriceStoreIds | quote }}]
+          securityContext:
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+---
+{{- end }}
+{{- end }}

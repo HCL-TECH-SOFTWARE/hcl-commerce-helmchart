@@ -1,0 +1,48 @@
+##
+# This values yaml file provide override values to deploy bitnami redis helm chart 
+# for HCL Commerce
+#   - chart version: 14.1.1
+#   - redis app version: 6.2.3
+# 
+# To Deploy redis using this sample values
+# 1. Create a namespace
+#    kubectl create ns redis
+# 2. Add helm repo
+#    helm repo add bitnami https://charts.bitnami.com/bitnami
+# 3. Deploy Redis using this override values
+#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "14.1.1"
+# 4. Monitor deployment until all pods are healthy
+# 
+# To get the complete values.yaml file, please visit 
+#   https://github.com/bitnami/charts/blob/d14bba34ddc0f12d079cc8a406cc94af9e91a5fb/bitnami/redis/values.yaml
+#
+# To get more information related to this version of redis helm chart, please visit
+#   https://github.com/bitnami/charts/blob/4faadf9f659333c176200a72dbabdb39c0d26787/bitnami/redis/README.md
+##
+architecture: standalone
+fullnameOverride: "hcl-commerce-redis"
+replica:
+  replicaCount: 0
+image:
+  registry: docker.io
+  repository: bitnami/redis
+  tag: 6.2.3-debian-10-r0
+  pullPolicy: IfNotPresent
+auth:
+  enabled: false
+master:
+  disableCommands: []
+  persistence:
+    enabled: false
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 2Gi
+  configuration: |-
+    appendonly no
+    save ""
+    maxmemory 1000mb
+    maxmemory-policy volatile-lru

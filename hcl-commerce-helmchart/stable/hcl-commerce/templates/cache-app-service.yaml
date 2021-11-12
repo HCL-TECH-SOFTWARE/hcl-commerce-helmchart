@@ -1,0 +1,43 @@
+{{- $cfg_ext := tpl .Values.hclCache.configMap.cache_cfg_ext . | fromYaml}}
+{{- if and (.Values.cacheApp.enabled) ($cfg_ext.redis.enabled) }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2020
+######################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{$.Values.cacheApp.name}}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{$.Values.cacheApp.name}}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    cloud.google.com/app-protocols: '{"port40900":"HTTP","port40901":"HTTPS"}'
+spec:
+  type: NodePort
+  ports:
+  - port: 40900
+    name: port40900
+  - port: 40901
+    name: port40901
+  {{- if $.Values.metrics.enabled }}
+  - port: 40280
+    name: metrics
+  {{- end }}
+  selector:
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{$.Values.cacheApp.name}}
+---
+{{- end }}
+{{- end }}
+{{- end }}

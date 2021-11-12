@@ -1,0 +1,1172 @@
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2020
+######################################################
+
+#####################################################
+# SoFy has not been supported yet for ppc64le
+# SoFy related deployment values
+# Please leave them untouched in non-SoFy deployment
+#####################################################
+## [SoFy] global values used by solution deployment on SoFy
+global:
+  ## Image registry used by deployment on SoFy
+  hclImageRegistry: hclcr.io/sofy
+  hclImagePullSecret: ''
+
+  ## Flexnet license information
+  hclFlexnetURL: ''
+  hclFlexnetID: ''
+
+  ## Other global values used by deployment
+  sofySolution: false
+  ambassadorID: ""
+  domain: ""
+
+## [SoFy] Disable creating public routes for certain services in a Sofy solution
+disablePublicRoute:
+  store: false
+  nifi: false
+  ingest: false
+  registry: false
+  query: false
+
+## [SoFy] Disable Access Control Service (authentication and authorization) for certain services in a Sofy solution
+disableAccessControl:
+  store: true
+  nifi: true
+  ingest: true
+  registry: true
+  query: true
+
+## [SoFy] Override some values for zookeeper
+zookeeper:
+  enabled: false
+  fullnameOverride: "hcl-commerce-zookeeper"
+  replicaCount: 1
+  ## Below are some special settings required to successfully deploy plinux zookeeper image with the bitnami helm chart  
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  securityContext:
+    runAsUser: 0
+
+## [SoFy] Override some values for redis
+redis:
+  enabled: false
+  usePassword: false
+  fullnameOverride: "hcl-commerce-redis"
+  replicaCount: 1
+  cluster:
+    enabled: false
+  master:
+    command: "/usr/local/bin/docker-entrypoint.sh"
+    disableCommands: []
+
+## [SoFy] Override some values for elasticsearch
+elasticsearch:
+  enabled: false
+  fullnameOverride: "hcl-commerce-elasticsearch"
+  imageTag: "v7.8.0"
+  replicas: 1
+  minimumMasterNodes: 1
+  esJavaOpts: "-Xmx6g -Xms6g"
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "6Gi"
+    limits:
+      cpu: "2000m"
+      memory: "8Gi"
+  esConfig:
+    elasticsearch.yml: |
+      indices.query.bool.max_clause_count: 100000
+      xpack.monitoring.collection.enabled: true
+      xpack.ml.enabled: false
+      bootstrap.system_call_filter: false
+
+## [SoFy] Override some values for vaultconsul
+vaultconsul:
+  enabled: false
+
+#####################################################
+# Commerce deployment values for ppc64le
+#####################################################
+
+## Default values for HCL Commerce V9
+## This is a YAML-formatted file.
+## Declare variables to be passed into your templates.
+arch:
+  ppc64le: "3 - Most preferred"
+  amd64: "0 - Do not use"
+  s390x: "0 - Do not use"
+
+## To view the license, run "helm install license ./ --set license=view --dry-run"
+## In order to deploy HCL Commerce, set the license to "accept" by accepting the license
+license: not_accepted
+
+## The flexnet server url used for license entitlement check, e.g https://hclsoftware.compliance.flexnetoperations.com
+## If vault configuration mode is used, this value can be set in vault in $TENANT/$ENVNMAE/flexnetUrl
+hclFlexnetURL: ""
+
+## The flexnet device id
+## If vault configuration mode is used, this value can be set in vault in $TENANT/$ENVNMAE/flexnetDeviceId
+hclFlexnetID: ""
+
+## The flexnet user name. Please keep it as "admin"
+## If vault configuration mode is used, this value can be set in vault in $TENANT/$ENVNMAE/flexnetUserName
+hclFlexnetUserName: "admin"
+
+## The AES encrypted password for flexnet user
+## This value can be obtained by running wcs_encrypt.sh utility from utility container
+## Visit https://help.hcltechsw.com/commerce/9.1.0/admin/refs/rwcs_encrypt.html for wcs_encrypt utility
+## If vault configuration mode is used, this value can be set in vault in $TENANT/$ENVNMAE/flexnetUserPassword
+hclFlexnetUserPassword: ""
+
+## Common configuration for all component Docker
+common:
+  ## HCL Commerce Production Information
+  productVersion: 9.1.8.0
+
+  ## If specified it will add an environment variable to all the containers to specify the timezone to use
+  ## in the format of: America/Toronto by following the ICANN TZ Database.
+  ## If not specified, 'GMT' is used in all the containers by default.
+  ##
+  ## CAUTION: changing the timzone will impact on some business logics, such as marketing web activity and promotion
+  ## start and end date/time, as they are set to the commerce server time and won't auto update based on this timezone
+  ## setting. It is recommended to keep it empty if your commerce is already on production and never set it explicitly
+  ## previously.
+  timezone:
+
+  ## Commerce environment info
+  tenant: demo
+  environmentName: qa
+
+  ## Commerce environment instances to deploy [share|auth|live].
+  ## It could be a single instance or a comma separated list of instances
+  environmentType: auth
+
+  ## Search type [solr|elastic]
+  searchEngine: elastic
+
+  ## The name of the secret which contains the vault token
+  vaultTokenSecret: "vault-token-secret"
+
+  ## DBType, options: db2, oracle
+  dbType: db2
+
+  ## The docker registry repository with "<docker_registry_domain>[:port]/" format
+  imageRepo: my-docker-registry.io:5000/
+
+  ## Default value of spiUserName is configured for Commerce Version 9 sample Db2 Docker.
+  ## Please correct this value to match your spi user name configured in your environment
+  spiUserName: spiuser
+
+  ## The AES encrypted value of the spiuser password
+  ## This value can be obtained by running wcs_encrypt.sh utility from utility container
+  ## Visit https://help.hcltechsw.com/commerce/9.0.0/install/tasks/tiginstall_definespi.html to find more details
+  spiUserPwdAes:
+
+  ## Base64 encoded value for <spiuser>:<password>
+  ## This value can be obtained by running "echo -n <spiuser>:<password> | base64"
+  spiUserPwdBase64:
+
+  ## Vault v1 api url. Following default value is for development mode vault deployed in vault name space
+  vaultUrl: http://vault-consul.vault.svc.cluster.local:8200/v1
+
+  ## External domain used for ingress and store preview URL
+  ## For example. in hostname store.demoqaauth.mycompany.com , .mycompany.com would be the External Domain name.
+  externalDomain: .mycompany.com
+
+  ## Default value for BindingConfigMap; you can change the default config map name.
+  ## If you use vault as configuration mode, you should set it as empty value
+  bindingConfigMap:
+
+  ## As default, configMode is Vault
+  configureMode: Vault
+
+  ## Input the imagePull Secret Name which created by admin, in case you have image pull access control cross namespace
+  ## kubectl create secret docker-registry myregistrykey --docker-server=<cluster_CA_domain>:8500 --docker-username=<user_name> --docker-password=<user_password> --docker-email=<user_email>
+  imagePullSecrets: ''
+
+  ## If you need to force-pull Docker image, use Always
+  imagePullPolicy: IfNotPresent
+
+  ## Specify service account
+  #serviceAccountName: default
+
+  ## dataIngressEnabled has been deprecated and removed in hcl-commerce helm chart version 2.1.4
+  ## When dataIngressEnabled is set to true, it will create ingress for data platform services, such as nifi, ingest and query services.
+  ## Please keep it as false for production for security reason
+  ## dataIngressEnabled: false
+
+  ## ingressController has been moved to ingress.ingressController
+  ## ingressController: nginx
+
+  ## When migrating from V7 or V8, there is an option to deploy the old Aurora based store in transaction server
+  ## In this case, set localStoreEnabled to be true to allow service and ingress to be configured properly
+  ## By default it is not enabled as the default Aurora store comes with V9 is remote, i.e. run on it's own server
+  localStoreEnabled: false
+
+  ## When disbaled, commerce apps will add java.net.preferIPv4Stack=true jvm arg
+  ipv6Enabled: false
+
+## Default to use vault as CA to issue certificate
+vaultCA:
+  enabled: true
+  # dnsNameInSubjectAlternativeName: None
+  # containerHostname: None
+
+## ingressSecret has been moved to ingress.ingressSecret
+## ingressSecret:
+##   autoCreate: true
+##   replaceExist: true
+
+## In previous helmchart for Commerce 9.0.x.x, the deployment matches the following labels to select pods
+##   app (WCSV9)
+##   chart ({{ .Chart.Name }}, e.g ibm-websphere-commerce)
+##   release ({{ .Release.Name }}, e.g demo-qa-auth)
+##   heritage ({{ .Release.Service }}, e.g Helm)
+##   component ({{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{ .Values.common.environmentType }}{{.Values.xxApp.name}},
+##              e.g demoqaauthcrs-app)
+##   group ({{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{ .Values.common.environmentType }}, e.g demoqaauth)
+##
+## In this helmchart, the app and chart values are updated. This would cause helm upgrade fail as the LabelSelector is immutable.
+##
+## To upgrade v9.0.x.x deployment to v9.1.x.x using this chart without downtime,
+## specify the labels below to match the existing deployment.
+##
+## For new deployment, leave the values commented
+##
+backwardCompatibility:
+  selector: {}
+    ## In V9.0.x.x helmchart, app is specified as WCSV9 by default
+    #app: WCSV9
+
+    ## In V9.0.x.x helmchart, chart is specified as ibm-websphere-commerce by default
+    #chart: ibm-websphere-commerce
+
+    ## Specify any extra labels to match deployment to pods
+    #extraSelector:
+      #label1: value1
+      #label2: value2
+
+## HCL Cache is used by HCL Commerce V9 by default starting from V9.1.0.0
+## The following detailed configuration will be used to create a config map and then be passed to each Commerce application
+## The same configuration must be used to deploy auth, live and share. If you update this configmap, please
+## make sure you re-deploy auth, live and share to have all commerce apps running with the same cache and redis configuration.
+hclCache:
+  configMap:
+    # content for cache_cfg-ext.yaml
+    cache_cfg_ext: |-
+      redis:
+        enabled: true
+        yamlConfig: "/SETUP/hcl-cache/redis_cfg.yaml" # Please leave this line untouched
+    # content for redis_cfg.yaml
+    redis_cfg: |-
+      singleServerConfig:
+        idleConnectionTimeout: 10000
+        connectTimeout: 3000
+        timeout: 1000
+        retryAttempts: 1
+        retryInterval: 500
+        subscriptionsPerConnection: 5
+        sslEnableEndpointIdentification: true
+        sslProvider: "JDK"
+        pingConnectionInterval: 0
+        keepAlive: true
+        tcpNoDelay: true
+        address: "redis://hcl-commerce-redis-master.redis.svc.cluster.local.:6379"
+        subscriptionConnectionMinimumIdleSize: 1
+        subscriptionConnectionPoolSize: 50
+        connectionMinimumIdleSize: 24
+        connectionPoolSize: 64
+        database: 0
+        dnsMonitoringInterval: 5000
+        password: "${JNDI/ENCRYPTED:REDIS_PASSWORD_ENCRYPT:-}"
+      threads: 16
+      nettyThreads: 32
+      referenceEnabled: true
+      transportMode: "NIO"
+      lockWatchdogTimeout: 30000
+      keepPubSubOrder: true
+      useScriptCache: false
+      minCleanUpDelay: 5
+      maxCleanUpDelay: 1800
+      addressResolverGroupFactory: !<org.redisson.connection.DnsAddressResolverGroupFactory> {}
+
+## CreateSampleConfig supports quick deploy with the HCL Commerce sample Db2 Docker image, which can be used with your authoring environments, If you deploy on different tenant and env, update the DBHOSTNAME.
+createSampleConfig:
+  enabled: false
+  dbHostName: demoqaauthdb
+  dbName: mall
+  dbUser: wcs
+  dbPass: wcs1
+  dbPort: 50000
+  dbaUser: db2inst1
+  dbaPassEncrypt:
+  dbPassEncrypt:
+
+## Flag to enable metrics. Enabled by default
+metrics:
+  enabled: true
+  ## Flag to add prometheus scraping annotations to pods. Disabled by default
+  prometheusAnnotations:
+    enabled: false
+  ## Flag to enable service monitor. Disabled by default
+  serviceMonitor:
+    enabled: false
+    ## Specify a namespace in which to install the ServiceMonitor resource.
+    ## Default to use the same release namespace where commerce is deployed to
+    # namespace: monitoring
+
+    # interval between service monitoring requests
+    interval: 15s
+
+    ## Defaults to what's used if you follow CoreOS [Prometheus Install Instructions](https://github.com/helm/charts/tree/master/stable/prometheus-operator#tldr)
+    ## [Prometheus Selector Label](https://github.com/helm/charts/tree/master/stable/prometheus-operator#prometheus-operator-1)
+    ## [Kube Prometheus Selector Label](https://github.com/helm/charts/tree/master/stable/prometheus-operator#exporters)
+    selector:
+      prometheus: kube-prometheus
+
+## DX has not been supported yet for ppc64le
+## Flag to enable DX. Only effective when using elastic search
+## In addtion, nginx ingress has to be used to deploy DX. HCL Commerce currently does not support deploying DX with GKE ingress.
+dx:
+  enabled: false
+  namespace:
+    # Auth DX should be deployed under the same cluster, specify its namespace here
+    auth: ""
+    # Live DX should be deployed under the same cluster, specify its namespace here
+    live: ""
+
+## Job to build index for elastic search
+## If enabled, a job will be created with helm release to wait for all commerce services ready before triggering the index build.
+## It will also monitor the index to complete.
+## When pushToLiveEnabled is enabled, it will also push index to live (assuming live is also being deployed or already deployed).
+## The job will timeout and fail after specified maxDuration if not index is not completed within timeout.
+## Please make maxDuration value reasonable according to your data size and number of store data to index.
+searchIndexCreation:
+  enabled: false
+  pushToLiveEnabled: false
+  overalMaxDuration: 6000
+  indexMaxDuration: 2400
+  interval: 15
+  maxRetry: 5
+  txnMaxDuration: 1200
+  nifiMaxDuration: 900
+  ingestMaxDuration: 3600
+  storeIds: "11,12"
+  calculatePriceEnabled: false
+  calculatePriceStoreIds: "12"
+
+## Global Logging configuration applies to all deployed app
+logging:
+  jsonLogging:
+    enabled: false
+
+## Assets presistent volumes configration
+assetsPVC:
+  enabled: false
+  ## keep it empty would use the cluster default storageClass
+  storageClass: ""
+  storage: "5Gi"
+  ## accessMode here must be ReadWriteMany
+  accessMode: "ReadWriteMany"
+  ## if existing claims are empty, assets PVC will be auto generated while deploying shared instance
+  existingClaim:
+    auth: ""
+    live: ""
+
+## Enable this feature for deployment using openshift.
+## Ingress rules would be implemented using openshift routes.
+openshiftDeployment:
+  enabled: false
+  ## The name of an SecurityContextConstraints resource the service account should have access to
+  sccName: "privileged"
+  ## destinationCACertificate used to validate ssl certificate for commerce routes
+  ## Format
+  ## destinationCACertificate: |-
+  ##   -----BEGIN CERTIFICATE-----
+  ##   [......]
+  ##   -----END CERTIFICATE-----
+  destinationCACertificate: |-
+
+## Ingress configuration
+ingress:
+  ## ingress enablement. Make it disabled for SoFy deployment
+  enabled: true
+  ## use 'networking.k8s.io/v1beta1' for kubernetes between 1.16 and 1.19 (exclusive)
+  ## use 'networking.k8s.io/v1' for kubernetes 1.19 and above
+  ## see https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122 for details
+  apiVersion: networking.k8s.io/v1beta1
+
+  ## ingress controller [nginx|gke|ambassador]
+  ##   nginx - nginx ingress controller
+  ##   gke - cloud load balancing using HTTP(S) Load Balancer in GKE
+  ##   ambassador - ambassador API gateway
+  ingressController: nginx
+
+  ## IngressSecret is used to specify whether Helm needs to auto-generate the secret for ingress. For production environment, you can choose generate the secret with real CA certificate.
+  ingressSecret:
+    autoCreate: true
+    replaceExist: true
+
+  ## ingress configuration
+  ## domain:
+  ##   required.
+  ##   can use template language to reference other values.
+  ## ingressClass:
+  ##   optional.
+  ##   keep ingressClass empty to use the default ingress class, i.e. 'nginx' for nginx ingress controller, 'gce' for gke ingress controller, and empty for ambassador id
+  ##   otherwise, specify the custom ingress controller for each ingress.
+  ##   For ambassador, specify the ambassadorId as the ingressClass.
+  ## tlsSecret:
+  ##   optional.
+  ##   keep it empty to use the tls secret auto generated to match the ootb domain pattern.
+  ##   Otherwise specify the tls secret for each ingress to match the domain name.
+  cmc:
+    auth:
+      domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  accelerator:
+    auth:
+      domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  admin:
+    auth:
+      domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  org:
+    auth:
+      domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  crs:
+    auth:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  localstore:
+    auth:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  reactstore:
+    auth:
+      domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  reactstorepreview:
+    auth:
+      domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  query:
+    auth:
+      domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    data:
+      domain: query.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  solrsearch:
+    auth:
+      domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: searchrepeater.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  transaction:
+    auth:
+      domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  cache:
+    auth:
+      enabled: false
+      domain: cache.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      enabled: false
+      domain: cache.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+  nifi:
+    enabled: false
+    domain: nifi.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    ingressClass:
+    tlsSecret:
+  ingest:
+    enabled: false
+    domain: ingest.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    ingressClass:
+    tlsSecret:
+  registry:
+    enabled: false
+    domain: registry.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    ingressClass:
+    tlsSecret:
+  mustgather:
+    enabled: false
+    domain: mustgather.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    ingressClass:
+    tlsSecret:
+
+
+#######################################################
+## Following are individual application configuration #
+#######################################################
+
+tsDb:
+  ## By default, the sample Db2 Docker image is used in the deployment.
+  ## This sample DB2 should only be used for non-production environment.
+  ## Please see https://help.hcltechsw.com/commerce/9.1.0/install/tasks/tiginstalldb2overview.html for details
+  enabled: true
+  name: ts-db
+  image: commerce/ts-db
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 4096Mi
+      cpu: 2
+    limits:
+      memory: 6144Mi
+      cpu: 2
+  nodeLabel: ""
+  nodeSelector: {}
+  persistence:
+    enabled: true
+    existingClaim: ""
+    # keep storageClass empty to use the cluster default storageClass
+    storageClass: ""
+    storage: "10Gi"
+    accessMode: "ReadWriteOnce"
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+tsApp:
+  name: ts-app
+  replica: 1
+  image: commerce/ts-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 4096Mi
+      cpu: 500m
+    limits:
+      memory: 5120Mi
+      cpu: 2
+  ## uncomment following property and set a proper merchant key to overwrite the merchant key in transaction server
+  #merchantKey:
+  ## when using custom envParameters, use key: value format
+  envParameters:
+    auth: {}
+    live: {}
+  livenessProbe:
+    initialDelaySeconds: 800
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim:
+    auth: ""
+    live: ""
+  ## Flag to enable WebSphere Application Server (WAS) Admin Console. Disabled by default
+  wasAdminConsole:
+    enabled: false
+  ## Behavioral marketing event listener enablement. Disabled by default
+  ## see https://help.hcltechsw.com/commerce/9.1.0/admin/tasks/tsbenable.html for details
+  marketingEventListeners:
+    enabled: false
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+searchAppMaster:
+  name: search-app-master
+  image: commerce/search-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  nodeLabel: ""
+  ## persistentVolumeClaim is deprecated and will be removed in future version
+  ## Please sepcify the existing pvc in searchAppMaster.persistence.existingClaim instead
+  ## searchAppMaster.persistence.existingClaim will take precedence if specified
+  persistentVolumeClaim: ""
+  persistence:
+    enabled: true
+    existingClaim: ""
+    # keep storageClass empty to use the cluster default storageClass
+    storageClass: ""
+    storage: "5Gi"
+    accessMode: "ReadWriteOnce"
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+searchAppRepeater:
+  name: search-app-repeater
+  image: commerce/search-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  nodeLabel: ""
+  ## persistentVolumeClaim is deprecated and will be removed in future version
+  ## Please sepcify the existing pvc in searchAppRepeater.persistence.existingClaim instead
+  ## searchAppRepeater.persistence.existingClaim will take precedence if specified
+  persistentVolumeClaim: ""
+  persistence:
+    enabled: true
+    existingClaim: ""
+    # keep storageClass empty to use the cluster default storageClass
+    storageClass: ""
+    storage: "5Gi"
+    accessMode: "ReadWriteOnce"
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+searchAppSlave:
+  name: search-app-slave
+  replica: 1
+  image: commerce/search-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  persistence:
+    ## when persistence is enabled. it will deploy search slave in StatefulSet. Otherwise Deployment will be created.
+    enabled: false
+    # keep storageClass empty to use the cluster default storageClass
+    storageClass: ""
+    storage: "5Gi"
+    accessMode: "ReadWriteOnce"
+  ## health check mode could be 'startup' or 'readiness'
+  ##  'startup' mode will cross check search repeater as well
+  ##  'readiness' mode will only check slave itself without checking repeater
+  healthCheckMode: startup
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+tsWeb:
+  name: ts-web
+  replica: 1
+  image: commerce/ts-web
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 1024Mi
+      cpu: 500m
+    limits:
+      memory: 2048Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  nodeLabel: ""
+  nodeSelector: {}
+
+toolingWeb:
+  name: tooling-web
+  replica: 1
+  image: commerce/tooling-web
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 1024Mi
+      cpu: 500m
+    limits:
+      memory: 2048Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  nodeLabel: ""
+  nodeSelector: {}
+
+storeWeb:
+  enabled: true
+  name: store-web
+  replica: 1
+  image: commerce/store-web
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 1024Mi
+      cpu: 500m
+    limits:
+      memory: 2048Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters:
+    auth: {}
+    live: {}
+  nodeLabel: ""
+  nodeSelector: {}
+
+crsApp:
+  enabled: true
+  name: crs-app
+  image: commerce/crs-app
+  tag: v9-latest
+  replica: 1
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters:
+    auth: {}
+    live: {}
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim:
+    auth: ""
+    live: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+xcApp:
+  enabled: true
+  name: xc-app
+  image: commerce/xc-app
+  tag: v9-latest
+  replica: 1
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters:
+    auth: {}
+    live: {}
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim:
+    auth: ""
+    live: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+nifiApp:
+  name: nifi-app
+  image: commerce/search-nifi-app
+  tag: v9-latest
+  replica: 1
+  resources:
+    requests:
+      memory: 6144Mi
+      cpu: 500m
+    limits:
+      memory: 10240Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  nodeLabel: ""
+  ## The version of the bootstrap connector data bundled in the nifi image
+  ## This version change will cause bootstrap data reload and any customized
+  ## data will need to be applied when this version is updated
+  dataVersion: 9.1.8.0
+  ## persistentVolumeClaim is deprecated and will be removed in future version
+  ## Please sepcify the existing pvc in nifiApp.persistence.existingClaim instead
+  ## nifiApp.persistence.existingClaim will take precedence if specified
+  persistentVolumeClaim: ""
+  persistence:
+    enabled: true
+    existingClaim: ""
+    # keep storageClass empty to use the cluster default storageClass
+    storageClass: ""
+    storage: "10Gi"
+    accessMode: "ReadWriteOnce"
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+registryApp:
+  name: registry-app
+  image: commerce/search-registry-app
+  tag: v9-latest
+  replica: 1
+  resources:
+    requests:
+      memory: 1024Mi
+      cpu: 500m
+    limits:
+      memory: 2048Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim: ""
+
+ingestApp:
+  name: ingest-app
+  image: commerce/search-ingest-app
+  tag: v9-latest
+  replica: 1
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+queryApp:
+  name: query-app
+  image: commerce/search-query-app
+  tag: v9-latest
+  replica:
+    auth: 1
+    live: 1
+    data: 1
+  resources:
+    auth:
+      requests:
+        memory: 2048Mi
+        cpu: 500m
+      limits:
+        memory: 4096Mi
+        cpu: 2
+    live:
+      requests:
+        memory: 2048Mi
+        cpu: 500m
+      limits:
+        memory: 4096Mi
+        cpu: 2
+    data:
+      requests:
+        memory: 2048Mi
+        cpu: 500m
+      limits:
+        memory: 3072Mi
+        cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters:
+    auth: {}
+    live: {}
+    data: {}
+  nodeLabel: ""
+  nodeSelector:
+    auth: {}
+    live: {}
+    data: {}
+  coresSharingPersistentVolumeClaim:
+    auth: ""
+    live: ""
+    data: ""
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+  ## demoPack is only used in SoFy sandbox, keep it disabled in your deployment
+  demoPack:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
+cacheApp:
+  name: cache-app
+  enabled: false
+  ingress:
+    enabled: false
+  replica: 1
+  image: commerce/cache-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 2048Mi
+      cpu: 2
+  envParameters: {}
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim:
+    auth: ""
+    live: ""
+
+## Note: Must-Gather application is NOT production-ready
+## Please keep enabled to be false in deployment
+mustgatherApp:
+  name: mustgather-app
+  enabled: false
+  replica: 1
+  image: commerce/mustgather-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 1
+  envParameters: {}
+  nodeLabel: ""
+  nodeSelector: {}
+  coresSharingPersistentVolumeClaim: ""
+
+tsUtils:
+  enabled: false
+  name: ts-utils
+  image: commerce/ts-utils
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 4096Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters:
+    auth: {}
+    live: {}
+  nodeLabel: ""
+  coresSharingPersistentVolumeClaim:
+    auth: ""
+    live: ""
+  initContainer:
+    enabled: false
+    image: ""
+    tag: ""
+    command: []
+    args: []
+
+supportC:
+  image: commerce/supportcontainer
+  tag: v9-latest
+
+## Specify the Docker image for Helm test. centos:latest is the default Docker image that is used for Helm test.
+test:
+  image: docker.io/centos:latest

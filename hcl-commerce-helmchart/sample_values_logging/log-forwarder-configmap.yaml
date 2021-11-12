@@ -1,0 +1,111 @@
+##
+# This yaml file is the config map to configure fluentd log forwarder for EFK logging 
+##
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-forwarder-configmap
+data:
+  fluentd.conf: |
+
+    # Ignore fluentd own events
+    <match fluent.**>
+      @type null
+    </match>
+
+    <match kubernetes.var.log.containers.**fluentd**.log>
+      @type null
+    </match>
+
+    <match kubernetes.var.log.containers.**kube**.log>
+      @type null
+    </match>
+    
+    <match kubernetes.var.log.containers.**ingress**.log>
+      @type null
+    </match>
+
+    <match kubernetes.var.log.containers.**kibana**.log>
+      @type null
+    </match>
+
+    # HTTP input for the liveness and readiness probes
+    <source>
+      @type http
+      port 9880
+    </source>
+    
+    <source>
+      @type tail
+      path /var/log/containers/*.log
+      pos_file /opt/bitnami/fluentd/logs/buffers/fluentd-docker.pos
+      time_format %Y-%m-%dT%H:%M:%S
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key time
+          time_type string
+          time_format "%Y-%m-%dT%H:%M:%S.%NZ"
+          keep_time_key false
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^(?<time>.+) (?<stream>stdout|stderr)( (?<logtag>.))? (?<log>.*)$/
+          time_format '%Y-%m-%dT%H:%M:%S.%N%:z'
+          keep_time_key false
+        </pattern>
+      </parse>
+    </source>
+    
+    # Enable json logging parser
+    <filter kubernetes.**>
+      @id filter_parser
+      @type parser
+      key_name log
+      reserve_data true
+      replace_invalid_sequence true
+      reserve_time true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          json_parser json
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+    
+    # Throw the healthcheck to the standard output instead of forwarding it
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+    </filter>
+
+    <match fluentd.healthcheck>
+      @type stdout
+    </match>
+    
+    <match **>
+      @type elasticsearch
+      include_tag_key true
+      host "#{ENV['ELASTICSEARCH_HOST']}"
+      port "#{ENV['ELASTICSEARCH_PORT']}"
+      logstash_format true
+      <buffer>
+        @type file
+        path /opt/bitnami/fluentd/logs/buffers/logs.buffer
+        flush_thread_count 2
+        flush_interval 5s
+        flush_mode interval
+        retry_type exponential_backoff
+        retry_forever
+        retry_max_interval 30
+        chunk_limit_size 2M
+        queue_limit_length 8
+        overflow_action block
+      </buffer>
+    </match>
