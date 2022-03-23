@@ -131,6 +131,22 @@ spec:
             claimName: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}live-assets-pvc
             {{- end }}
       {{- end }}
+      {{- if and (eq $envType "auth") $.Values.tsApp.ldap.auth.enabled $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+        - name: commerce-ldap-config-auth
+          configMap:
+            name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth-ldap-config
+            items:
+            - key: ldap-vmm.properties
+              path: ldap-vmm.properties
+      {{- end }}
+      {{- if and (eq $envType "live") $.Values.tsApp.ldap.live.enabled $.Values.tsApp.ldap.live.useConfigMapForVmmPropertiesFile }}
+        - name: commerce-ldap-config-live
+          configMap:
+            name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}live-ldap-config
+            items:
+            - key: ldap-vmm.properties
+              path: ldap-vmm.properties
+      {{- end }}
       {{- if $.Values.common.bindingConfigMap }}
         - name: config-volume
           configMap:
@@ -180,6 +196,22 @@ spec:
             secretKeyRef:
               name: {{ $.Values.common.vaultTokenSecret }}
               key: VAULT_TOKEN
+        {{- end }}
+        {{- end }}
+        {{ if and (eq $envType "auth") $.Values.tsApp.ldap.auth.enabled }}
+        - name: "LDAP_ENABLE"
+          value: "true"
+        {{ if or $.Values.tsApp.ldap.auth.useVmmPropertiesFile $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+        - name: "LDAP_USE_VMM_PROPERTIES_FILE"
+          value: "true"
+        {{- end }}
+        {{- end }}
+        {{ if and (eq $envType "live") $.Values.tsApp.ldap.live.enabled }}
+        - name: "LDAP_ENABLE"
+          value: "true"
+        {{ if or $.Values.tsApp.ldap.live.useVmmPropertiesFile $.Values.tsApp.ldap.live.useConfigMapForVmmPropertiesFile }}
+        - name: "LDAP_USE_VMM_PROPERTIES_FILE"
+          value: "true"
         {{- end }}
         {{- end }}
 {{- if get $.Values.tsUtils.envParameters $envType }}
@@ -237,6 +269,16 @@ spec:
             mountPath: /SETUP/ext-config/config.properties
             subPath: config.properties
             readOnly: false
+        {{- end }}
+        {{- if and (eq $envType "auth") $.Values.tsApp.ldap.auth.enabled $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+          - name: commerce-ldap-config-auth
+            mountPath: /SETUP/ldap/properties/vmm.properties
+            subPath: ldap-vmm.properties
+        {{- end }}
+        {{- if and (eq $envType "live") $.Values.tsApp.ldap.live.enabled $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+          - name: commerce-ldap-config-live
+            mountPath: /SETUP/ldap/properties/vmm.properties
+            subPath: ldap-vmm.properties
         {{- end }}
 ---
 {{- end }}

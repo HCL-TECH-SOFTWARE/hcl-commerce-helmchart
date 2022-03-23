@@ -498,7 +498,7 @@ spec:
   host_regex: true
   prefix: /wps/
   rewrite: /wps/
-  service: https://{{ $.Release.Name }}-service:10042
+  service: https://{{ $.Release.Name }}-core:10042
   timeout_ms: 10000
 ---
 apiVersion: getambassador.io/v2
@@ -517,7 +517,7 @@ spec:
   host_regex: true
   prefix: /dx/api/core/
   rewrite: /dx/api/core/
-  service: http://{{ $.Release.Name }}-service-ring-api:3000
+  service: http://{{ $.Release.Name }}-ring-api:3000
   timeout_ms: 10000
 ---
 apiVersion: getambassador.io/v2
@@ -539,7 +539,7 @@ spec:
   prefix: /dx/api/image-processor/
   prefix_regex: false
   rewrite: /dx/api/image-processor/
-  service: http://{{ $.Release.Name }}-service-imgproc:8080
+  service: http://{{ $.Release.Name }}-image-processor:3000
   timeout_ms: 1200000
 ---
 apiVersion: getambassador.io/v2
@@ -561,7 +561,7 @@ spec:
   prefix: /dx/ui/content/
   prefix_regex: false
   rewrite: /dx/ui/content/
-  service: http://{{ $.Release.Name }}-service-content-ui:3000
+  service: http://{{ $.Release.Name }}-content-composer:3000
   timeout_ms: 1200000
 ---
 apiVersion: getambassador.io/v2
@@ -583,7 +583,7 @@ spec:
   prefix_regex: false
   prefix: /dx/ui/dam/
   rewrite: /dx/ui/dam/
-  service: http://{{ $.Release.Name }}-service-dam:3001
+  service: http://{{ $.Release.Name }}-digital-asset-management:3000
 ---
 apiVersion: getambassador.io/v2
 kind: Mapping
@@ -601,7 +601,7 @@ spec:
   host_regex: true
   prefix: /dx/api/dam/
   rewrite: /dx/api/dam/
-  service: http://{{ $.Release.Name }}-service-dam:3001
+  service: http://{{ $.Release.Name }}-digital-asset-management:3000
   timeout_ms: 10000
 ---
 apiVersion: getambassador.io/v2
@@ -620,7 +620,7 @@ spec:
   host_regex: true
   prefix: /hcl/
   rewrite: /hcl/
-  service: https://{{ $.Release.Name }}-service:10202
+  service: https://{{ $.Release.Name }}-core:10202
   timeout_ms: 1200000
 ---
 apiVersion: getambassador.io/v2
@@ -660,6 +660,29 @@ spec:
   case_sensitive: false
   timeout_ms: 60000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}cache-app:40901
+---
+{{- end }}
+
+{{- if $.Values.graphqlApp.enabled }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-graphql-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  bypass_auth: true
+  prefix: /graphql/
+  rewrite: /graphql/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-graphql\..*
+  {{- else }}
+  host: commerce-live-graphql\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 60000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}graphql-app:3443
 ---
 {{- end }}
 

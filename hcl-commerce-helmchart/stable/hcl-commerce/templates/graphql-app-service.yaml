@@ -1,0 +1,33 @@
+{{- if .Values.graphqlApp.enabled -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.graphqlApp.name}}
+  namespace: {{ $.Release.Namespace }} 
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.graphqlApp.name}}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  annotations:
+    cloud.google.com/app-protocols: '{"port3443":"HTTPS","port3100":"HTTP"}'
+spec:
+  type: NodePort
+  ports:
+  - port: 3443
+    name: port3443
+  - port: 3100
+    name: port3100
+  selector:
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.graphqlApp.name}}
+{{- end }}
+---
+{{- end }}
+{{- end }}

@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy bitnami redis helm chart 
 # for HCL Commerce
-#   - chart version: 14.1.1
-#   - redis app version: 6.2.3
+#   - chart version: 15.5.2
+#   - redis app version: 6.2.6
 # 
 # To Deploy redis using this sample values
 # 1. Create a namespace
@@ -10,14 +10,14 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy Redis using this override values
-#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "14.1.1"
+#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "15.5.2"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/d14bba34ddc0f12d079cc8a406cc94af9e91a5fb/bitnami/redis/values.yaml
+#   https://github.com/bitnami/charts/blob/bd0a85c26d5ba22f9717f9a487e5473eb9ad9a29/bitnami/redis/values.yaml
 #
 # To get more information related to this version of redis helm chart, please visit
-#   https://github.com/bitnami/charts/blob/4faadf9f659333c176200a72dbabdb39c0d26787/bitnami/redis/README.md
+#   https://github.com/bitnami/charts/blob/bd0a85c26d5ba22f9717f9a487e5473eb9ad9a29/bitnami/redis/README.md
 ##
 architecture: standalone
 fullnameOverride: "hcl-commerce-redis"
@@ -26,7 +26,7 @@ replica:
 image:
   registry: docker.io
   repository: bitnami/redis
-  tag: 6.2.3-debian-10-r0
+  tag: 6.2.6-debian-10-r21
   pullPolicy: IfNotPresent
 auth:
   enabled: false

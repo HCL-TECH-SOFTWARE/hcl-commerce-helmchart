@@ -54,8 +54,8 @@ spec:
         {{- else }}
         app: HCL-Commerce
         {{- end }}
-        {{- if $.Values.backwardCompatibility.selector.Chart }}
-        chart: {{ $.Values.backwardCompatibility.selector.Chart }}
+        {{- if $.Values.backwardCompatibility.selector.chart }}
+        chart: {{ $.Values.backwardCompatibility.selector.chart }}
         {{- else }}
         chart: {{ $.Chart.Name }}
         {{- end }}
@@ -185,6 +185,22 @@ spec:
         - name: hcl-cache-config
           configMap:
             name: {{ include "hcl.cache.configmap.name" $ | quote }}
+      {{- end }}
+      {{- if and (eq $envType "auth") $.Values.tsApp.ldap.auth.enabled $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+        - name: commerce-ldap-config-auth
+          configMap:
+            name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth-ldap-config
+            items:
+            - key: ldap-vmm.properties
+              path: ldap-vmm.properties
+      {{- end }}
+      {{- if and (eq $envType "live") $.Values.tsApp.ldap.live.enabled $.Values.tsApp.ldap.live.useConfigMapForVmmPropertiesFile }}
+        - name: commerce-ldap-config-live
+          configMap:
+            name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}live-ldap-config
+            items:
+            - key: ldap-vmm.properties
+              path: ldap-vmm.properties
       {{- end }}
       {{- if and (not $.Values.global.sofySandboxContext) ($.Values.tsApp.userScripts.enabled) }}
         - name: user-scripts
@@ -384,6 +400,22 @@ spec:
         - name: "IPV6_ENABLED"
           value: "true"
         {{- end }}
+        {{ if and (eq $envType "auth") $.Values.tsApp.ldap.auth.enabled }}
+        - name: "LDAP_ENABLE"
+          value: "true"
+        {{ if or $.Values.tsApp.ldap.auth.useVmmPropertiesFile $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+        - name: "LDAP_USE_VMM_PROPERTIES_FILE"
+          value: "true"
+        {{- end }}
+        {{- end }}
+        {{ if and (eq $envType "live") $.Values.tsApp.ldap.live.enabled }}
+        - name: "LDAP_ENABLE"
+          value: "true"
+        {{ if or $.Values.tsApp.ldap.live.useVmmPropertiesFile $.Values.tsApp.ldap.live.useConfigMapForVmmPropertiesFile }}
+        - name: "LDAP_USE_VMM_PROPERTIES_FILE"
+          value: "true"
+        {{- end }}
+        {{- end }}
 {{- if get $.Values.tsApp.envParameters $envType }}
      {{- range $key, $value := get $.Values.tsApp.envParameters $envType }}
         - name: {{ $key | quote }}
@@ -457,6 +489,16 @@ spec:
           - name: hcl-cache-config
             mountPath: /SETUP/hcl-cache/redis_cfg.yaml
             subPath: redis_cfg.yaml
+        {{- end }}
+        {{- if and (eq $envType "auth") $.Values.tsApp.ldap.auth.enabled $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+          - name: commerce-ldap-config-auth
+            mountPath: /SETUP/ldap/properties/vmm.properties
+            subPath: ldap-vmm.properties
+        {{- end }}
+        {{- if and (eq $envType "live") $.Values.tsApp.ldap.live.enabled $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+          - name: commerce-ldap-config-live
+            mountPath: /SETUP/ldap/properties/vmm.properties
+            subPath: ldap-vmm.properties
         {{- end }}
         {{- if and (not $.Values.global.sofySandboxContext) ($.Values.tsApp.userScripts.enabled) }}
           - name:  user-scripts

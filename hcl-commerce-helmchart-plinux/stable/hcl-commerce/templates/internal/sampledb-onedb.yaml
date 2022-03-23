@@ -103,8 +103,6 @@ spec:
           value: {{ $.Values.license | quote }}
         - name: "SEARCH_ENGINE"
           value: {{ $.Values.common.searchEngine }}
-        - name: "LICENSE_SERVER"
-          value: "https://hclsoftware.compliance.flexnetoperations.com/instances/SBFKNHM1XC2R/request"
         {{- if $.Values.common.timezone }}
         - name: "TZ"
           value: {{ $.Values.common.timezone | quote }}

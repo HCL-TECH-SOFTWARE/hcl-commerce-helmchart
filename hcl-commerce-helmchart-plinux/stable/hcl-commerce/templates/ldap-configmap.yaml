@@ -1,0 +1,38 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{- range $envType := $envTypeList }}
+{{- $_ := set $ "envType" $envType }}
+{{- if and (eq $envType "auth") $.Values.tsApp.ldap.auth.enabled $.Values.tsApp.ldap.auth.useConfigMapForVmmPropertiesFile }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth-ldap-config
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version }}
+    release: {{ $.Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+data:
+  ldap-vmm.properties: |-
+{{ $.Files.Get "config/ldap-vmm-auth.properties" | indent 4}}
+{{- end }}
+{{- if and (eq $envType "live") $.Values.tsApp.ldap.live.enabled $.Values.tsApp.ldap.live.useConfigMapForVmmPropertiesFile }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}live-ldap-config
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version }}
+    release: {{ $.Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+data:
+  ldap-vmm.properties: |-
+{{ $.Files.Get "config/ldap-vmm-live.properties" | indent 4}}
+{{- end }}
+{{- end }}
+

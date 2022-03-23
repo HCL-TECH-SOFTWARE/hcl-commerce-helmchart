@@ -137,6 +137,7 @@ registry-app | 1 | 500m | 2 | 1024Mi | 2048Mi
 ingest-app | 1 | 500m | 2 | 2048Mi | 4096Mi
 query-app | 1 | 500m | 2 | 2048Mi | 4096Mi
 cache-app | 1 | 500m | 2 | 2048Mi | 2048Mi
+graphql-app | 1 | 500m | 2 | 2048Mi | 2048Mi
 mustgather-app | 1 | 500m | 1 | 2048Mi | 4096Mi
 ts-utils | 1 | 500m | 2 | 2048Mi | 4096Mi
 
@@ -165,8 +166,8 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `common.searchEngine`        |   Search type \[solr \| elastic\] | `elastic` |
 | `common.imageRepo`      |   docker image registry             | `my-docker-registry.io:5000/`
 | `common.spiUserName`          |  spiuser name for Commerce                     | `spiuser`                                                    |
-| `common.spiUserPwdAes`        |  spiuser name password by encrypted with AES by wc_encrypt.sh. default plain text password is `passw0rd`. With the default key, `eNdqdvMAUGRUbiuqadvrQfMELjNScudSp5CBWQ8L6aw` could be the sample value to match with the sample db2 container| `nil` |
-| `common.spiUserPwdBase64`        | Base64 encoded value for `<spiuser>:<password>`. default plain text password is passw0rd out of the box, and `c3BpdXNlcjpwYXNzdzByZA==` as base64 encrypted value. This value can be obtained by running `echo -n <spiuser>:<password> \| base64`| `nil`
+| `common.spiUserPwdAes`        |  spiuser name password by encrypted with AES by wc_encrypt.sh. default plain text password is `QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi`. With the default key, `eNdqdvMAUGRUbiuqadvrQfMELjNScudSp5CBWQ8L6aw` could be the sample value to match with the sample db2 container| `nil` |
+| `common.spiUserPwdBase64`        | Base64 encoded value for `<spiuser>:<password>`. default plain text password is QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi out of the box, and `c3BpdXNlcjpReFY3dUNrNlJSaXd2UFZhYTR3ZEQ3OGphSGkyemE4c3NqbmVOTWR1M3ZncWk=` as base64 encrypted value. This value can be obtained by running `echo -n <spiuser>:<password> \| base64`| `nil`
 | `common.vaultUrl`        |  vault v1 api url | `http://vault-consul.vault.svc.cluster.local:8200/v1` (assuming hcl-commerce-vaultconsul-helmchart is used to deploy vault in vault namespace)
 | `common.externalDomain`        | External Domain use to specify the service external domain name| `.mycompany.com`
 | `common.bindingConfigMap`        | ConfigMap name which mount into each default container to expose as environment variables. keep it as blank if not using config map to pass configuration to each application. | `nil`
@@ -217,6 +218,7 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `registryApp`        |  detailed configuration for registryApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `ingestApp`        |  detailed configuration for ingestApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `cacheApp`        |  detailed configuration for cacheApp deployment  | see [values.yaml](./values.yaml) file for default configuration
+| `graphqlApp`        |  detailed configuration for graphqlApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `queryApp`        |  detailed configuration for queryApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `mustgatherApp`        |  detailed configuration for mustgatherApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `tsUtils`        |  detailed configuration for tsUtils deployment  | see [values.yaml](./values.yaml) file for default configuration
@@ -599,15 +601,15 @@ Note: search.demoqaauth.mycompany.com use to expose search master service.  sear
 
 ## Build Search Index
 ### Build Search index for solr based search app
-1. Trigger the Build Index with default master catalog ID ( default spisuer name is spiuser, default spiuser password is passw0rd, default masterCatalogID with sample data is 10001 ).
+1. Trigger the Build Index with default master catalog ID ( default spisuer name is spiuser, default spiuser password is QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi, default masterCatalogID with sample data is 10001 ).
 
-    curl -X POST -u spiuser:passw0rd https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/build?masterCatalogId=10001 -k
+    curl -X POST -u spiuser:QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/build?masterCatalogId=10001 -k
 
     You should get a response with a jobStatusId. e.g 1001
 
-2. Check the Build Index Status ( default spisuer name is spiuser, default spiuser password is passw0rd )
+2. Check the Build Index Status ( default spisuer name is spiuser, default spiuser password is QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi )
 
-    curl -X GET -u spiuser:passw0rd https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/status?jobStatusId=1001 -k
+    curl -X GET -u spiuser:QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/status?jobStatusId=1001 -k
 
 ### Build Search index for elastic based data platform
 1. Create a connector
@@ -626,10 +628,10 @@ For details about creating a connector, see [Creating an Ingest service connecto
 
 2. Run connector
     1. Trigger the build index
-    curl -X POST -k -u spiuser:passw0rd "https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/build?connectorId=auth.reindex&storeId=1"
+    curl -X POST -k -u spiuser:QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi "https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/build?connectorId=auth.reindex&storeId=1"
     You should get a response with a jobStatusId. e.g 1001
-    2. Check the Build Index Status ( default spisuer name is spiuser, default spiuser password is passw0rd )
-    curl -X GET -k -u spiuser:passw0rd "https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/status?jobStatusId=1001"
+    2. Check the Build Index Status ( default spisuer name is spiuser, default spiuser password is QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi )
+    curl -X GET -k -u spiuser:QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi "https://tsapp.demoqaauth.mycompany.com/wcs/resources/admin/index/dataImport/status?jobStatusId=1001"
 
 3. Repeat above steps to create and run url-connector to create SEO for Emerald (Sample B2C react js store ), and price-connector for contract price. See [Creating an Ingest service connector](https://help.hcltechsw.com/commerce/9.1.0/search/tasks/tsdconnector_create.html) for details.
 

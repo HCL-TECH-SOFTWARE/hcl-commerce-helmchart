@@ -2,7 +2,7 @@
 # This values yaml file provide override values to deploy ppc64le redis service using bitnami redis helm chart 
 # for HCL Commerce
 #   - chart version: 11.3.4
-#   - redis app version: 6.2.3
+#   - redis app version: 6.2.6
 # 
 # To Deploy ppc64le redis using this sample values
 # 1. Create a namespace
@@ -28,7 +28,7 @@ serviceAccount:
 image:
   registry: ppc64le
   repository: redis
-  tag: 6.2.3
+  tag: 6.2.6
   pullPolicy: IfNotPresent
 cluster:
   enabled: false

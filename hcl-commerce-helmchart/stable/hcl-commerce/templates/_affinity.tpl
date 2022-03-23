@@ -273,3 +273,18 @@
               - {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{ .envType }}{{.Values.tsUtils.name}}
           topologyKey: kubernetes.io/hostname
 {{- end }}
+
+{{- define "grqphql-podAntiAffinity" }}
+#https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  podAntiAffinity:
+     preferredDuringSchedulingIgnoredDuringExecution:
+     - weight: 100
+       podAffinityTerm: 
+          labelSelector:
+            matchExpressions:
+            - key: component
+              operator: In
+              values:
+              - {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{ .envType }}{{.Values.graphqlApp.name}}
+          topologyKey: kubernetes.io/hostname
+{{- end }}

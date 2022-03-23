@@ -99,6 +99,27 @@ spec:
       imagePullSecrets:
         - name: {{ include "image.pull.secret" $ }}
       {{- end }}
+      {{- if or $.Values.vaultconsul.enabled $.Values.redis.enabled }}
+      initContainers:
+      {{- end }}
+      {{- if $.Values.vaultconsul.enabled }}
+      - name: vault-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+      {{- end }}
+      {{- if $.Values.redis.enabled }}
+      - name: redis-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','redis','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype', 'auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}, '-pod_name_pattern', '{{ $.Values.redis.fullnameOverride }}-master-0', '-container_name', 'redis']
+      {{- end }}
       containers:
       - name: cache-app
         image: "{{ include "image.repo" $ }}{{ $.Values.cacheApp.image }}:{{ $.Values.cacheApp.tag }}"

@@ -1,0 +1,19 @@
+{{- if .Values.commercenfs.enabled }} 
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{ printf "%s-%s" .Release.Namespace .Values.commercenfs.storageClass.name | trunc 63 }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+provisioner: "cluster.local/{{ .Release.Name }}-commercenfs"
+reclaimPolicy: {{ .Values.commercenfs.storageClass.reclaimPolicy }}
+allowVolumeExpansion: {{ .Values.commercenfs.storageClass.allowVolumeExpansion }}
+mountOptions:
+{{- with .Values.commercenfs.storageClass.mountOptions }}
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+
+{{ end -}}
