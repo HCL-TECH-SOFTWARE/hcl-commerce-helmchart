@@ -7,6 +7,9 @@ dependencies:
   version: 6.7.2
 - name: redis
   repository: https://charts.bitnami.com/bitnami
-  version: 14.1.1
-digest: sha256:79150374146391ebc9be0af3d82d3fddbeeba0915fe140f7448f7c879f2ef0e1
-generated: "2021-06-11T23:46:57.9252652-04:00"
+  version: 15.5.2
+- name: nfs-server-provisioner
+  repository: https://kvaps.github.io/charts
+  version: 1.3.1
+digest: sha256:4e705efe725d00dd3bc3a7ca79027a0ab737819495d335b436f2b2f8519a18be
+generated: "2021-11-03T20:56:39.451583-04:00"

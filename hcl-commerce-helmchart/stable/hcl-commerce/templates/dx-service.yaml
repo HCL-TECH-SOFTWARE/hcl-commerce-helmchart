@@ -22,7 +22,11 @@ metadata:
   namespace: {{ $.Release.Namespace }}
 spec:
   type: ExternalName
+  {{- if get $.Values.dx.releaseName $envType }}
+  externalName: {{ get $.Values.dx.releaseName $envType }}-ambassador.{{ get $.Values.dx.namespace $envType }}.svc.cluster.local
+  {{- else }}
   externalName: ambassador.{{ get $.Values.dx.namespace $envType }}.svc.cluster.local
+  {{- end }}
   ports:
   - port: 443
 {{- end }}

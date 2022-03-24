@@ -100,7 +100,9 @@ HCL Cache config map name
 RWX StorageClass name
 */}}
 {{- define "rwx.storageclass.name" -}}
-{{- if .Values.global.sofySandboxContext -}}
+{{- if .Values.commercenfs.enabled -}}
+{{- printf "%s-%s" .Release.Namespace .Values.commercenfs.storageClass.name | trunc 63 }}
+{{- else if .Values.global.sofySandboxContext -}}
 {{- default .Values.global.persistence.rwxStorageClass .Values.global.persistence.testRWXStorageClass -}}
 {{- else -}}
 {{- default .Values.assetsPVC.storageClass .Values.global.persistence.rwxStorageClass -}}

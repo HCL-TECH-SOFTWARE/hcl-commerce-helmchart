@@ -1,9 +1,11 @@
-# HCL Commerce Vault and Consul Deployment
+# HCL Commerce Vault Deployment
+## Important Notice
+Starting from version 2.1.0, consul is no longer deployed as it has not been playing significant role. However, to make values and deployment backward compatible, consul keyword is still used in values and some of the deployment resources.
 
 ## Introduction
 Vault is used to store commerce environment configuration and secret, and is also used as  certification authority (CA) to issue certificate to commerce servers to allow them communicate with SSL.
 
-This chart deploys Vault and Consul for HCL Commerce V9 as the remote configuration center, which stores environment data and acts as the certification agent to issue certificate to each HCL Commerce app server based on unique service name.  Vault and Consul are required before you deploy HCL Commerce V9 application if you plan to use the `Vault` configuration mode.  It needs to be deployed only once and the service can be available to multiple Commerce environments. After the vault is started, it can run scripts to enable mount the tenant secret path and load commerce environment configuration data as you specified in values.yaml, and also it can enable and configure PKI backend to issue certificate if you enable the `vaultConsul.vaultLoadData` in values.yaml.
+This chart deploys Vault for HCL Commerce V9 as the remote configuration center, which stores environment data and acts as the certificate authority to issue certificate to each HCL Commerce app server based on unique service name.  Vault is required before you deploy HCL Commerce V9 application if you plan to use the `Vault` configuration mode.  It needs to be deployed only once and the service can be available to multiple Commerce environments. After the vault is started, it can run scripts to enable mount the tenant secret path and load commerce environment configuration data as you specified in values.yaml, and also it can enable and configure PKI backend to issue certificate if you enable the `vaultConsul.vaultLoadData` in values.yaml.
 
 ## Chart Details
 This Helm Chart is only for testing and development purpose. It does not persist data or handle vault root token securely. However, for development and testing purpose, the data stored in the values.yaml can be used as a master copy and re-load the data every time when vault is redeployed or restarted.  Please refer [guide](
@@ -11,23 +13,21 @@ https://www.vaultproject.io/guides/operations/vault-ha-consul.html) of Vault to 
 
 ## Prerequisites
 ### Docker images
-This Helm Chart attempts to pull Vault and Consul Docker Image from DockerHub. If you use the default settings,
+This Helm Chart attempts to pull Vault  Docker Image from DockerHub. If you use the default settings,
 ensure that your environment can connect to internet. Or you can pull those Docker images to a private Docker Image Repository and update following values
 
 Name |   Default Value | Usage
 ------------- | -------------| -------------
-vaultConsul.imageRepo | docker.io/ | container registry for vault and consul images
+vaultConsul.imageRepo | docker.io/ | container registry for vault images
 vaultConsul.vaultImageName | vault | Vault Docker Image name
-vaultConsul.vaultImageTag | 1.7.0 | Vault Docker Image tag
-vaultConsul.consulImageName | consul | Consul Docker Image name
-vaultConsul.consulImageTag | 1.9.4  | Consul Docker Image tag
+vaultConsul.vaultImageTag | 1.8.5 | Vault Docker Image tag
 supportC.imageRepo | my-docker-registry.io:5000/ | container registry for commerce support container image
 supportC.image | commerce/supportcontainer | full path to the support container image
 supportC.tag | v9-latest | image tag for commerce support container image
 test.image |  docker.io/centos:latest | Helm Test command uses Centos Docker Image
 
 > **Note**
-vault:1.7.0  / consul:1.9.4 have been tested.  There is no guarantee that other tags for those docker images will work as expected.
+vault:1.8.5 has been tested.  There is no guarantee that other tags for those docker images will work as expected.
 
 ### CA certificate
 This helm chart deploy vault in development mode to by pass the unseal process. In this mode the data will be stored in memory only. The configuration data is defined in helm values file so they will be re-loaded everytime when vault is re-deployed / re-started. However, the root CA certificate stored in CA can not be persisted unless it is defined and persisted in a secret. This helm chart allows either specifying CA certificate by a tls secret name, or let this helm chart auto-generate one and persist it in the tls secret during the install time. 
@@ -114,7 +114,7 @@ It is strongly recommended to not modify the default [values.yaml](./values.yaml
 			- commerce-qa
 		```
 #### vaultConsul:
-1. Update `consulImageTag` and `vaultImageTag` if you want to test different images
+1. Update `vaultImageTag` if you want to test different images
 1. Update `vaultToken` to the one you want to use. 
 1. If you change the `vaultToken` value, you will need to run `echo -n new_token | base64` and update `vaultTokenBase64` with this value
 1. Update the data under `vaultData`. E.g update the db information. See above [Plan and Configure Values for vault deployment](#Plan-and-Configure-Values-for-vault-deployment) for details of the data hierarchy in vault.
@@ -123,12 +123,12 @@ It is strongly recommended to not modify the default [values.yaml](./values.yaml
 ## Installing the Chart
 It is recommended to deploy vault in a separate namespace, such as `vault` and serve for all commerce environments. If you don't `vault` namespace, you can create it by `kubectl create ns vault`. Following command is to use helm (v3) to deploy this chart in `vault` namespace.
 ```
-$ helm install vault-consul ./hcl-commerce-vaultconsul -f my-values.yaml -n vault
+$ helm install my-vault ./hcl-commerce-vaultconsul -f my-values.yaml -n vault
 ```
 
-Note: `vault-consul` is the release name, and `./hcl-commerce-vaultconsul` is the local path to the chart, and `vault` is the namespace where this chart deploys to.
+Note: `my-vault` is the release name, and `./hcl-commerce-vaultconsul` is the local path to the chart, and `vault` is the namespace where this chart deploys to.
 
-Once vault is deployed, run "kubectl get pods -n vault" to make sure vault-consul-xxxx has 2/2 in READY column
+Once vault is deployed, run "kubectl get pods -n vault" to make sure vault-xxxx has 2/2 in READY column
 
 Also list the secret in your commerce namespace to make sure the secret has been created.
 ```
@@ -140,15 +140,12 @@ vault-token-secret   Opaque   1      7m44s
 ## Upgrade the deployment
 When you need to update vault values, you can update configuration values in vaultData, and then re-deploy vault using a command similar to following
 ```
-helm upgrade vault-consul ./hcl-commerce-vaultconsul -f my-values.yaml -n vault
+helm upgrade my-vault ./hcl-commerce-vaultconsul -f my-values.yaml -n vault
 ```
-
-## Verifying the Chart
-use the helm test command: `helm test vault-consul --cleanup=true`
 
 ## Uninstalling the Chart
 ```
-$ helm delete vault-consul -n vault
+$ helm delete my-vault -n vault
 ```
 ## Documentation
 * [Learn more about Vault](https://www.vaultproject.io/)

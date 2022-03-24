@@ -23,6 +23,9 @@ global:
   sofySolution: false
   ambassadorID: ""
   domain: ""
+  persistence:
+    rwxStorageClass: ""
+    testRWXStorageClass: ""
 
 ## [SoFy] Disable creating public routes for certain services in a Sofy solution
 disablePublicRoute:
@@ -87,9 +90,24 @@ elasticsearch:
       xpack.ml.enabled: false
       bootstrap.system_call_filter: false
 
-## [SoFy] Override some values for vaultconsul
+## [SoFy] Override some values for vaultconsul, keep it false if not deployed with sofy
 vaultconsul:
   enabled: false
+
+## Currently not support yet for ppc64le
+## Override value for nfs server provisioner
+commercenfs:
+  enabled: false
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 5Gi
+  storageClass:
+    create: false
+    name: commercenfs-storage-class
+    allowVolumeExpansion: true
+    mountOptions:
+      - vers=4.1
 
 #####################################################
 # Commerce deployment values for ppc64le
@@ -128,7 +146,7 @@ hclFlexnetUserPassword: ""
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.8.0
+  productVersion: 9.1.9.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -264,18 +282,31 @@ hclCache:
       redis:
         enabled: true
         yamlConfig: "/SETUP/hcl-cache/redis_cfg.yaml" # Please leave this line untouched
+      # Cache configurations
+      cacheConfigs:
+        # Default configuration enables local and remote caching
+        # See defaultCacheConfig in /SETUP/hcl-cache/cache_cfg.yaml for the out-of-the-box 
+        # default configuration.
+        # The following custom configurations extend and override the definitions in the
+        # /SETUP/hcl-cache/cache_cfg.yaml file.
+        services/cache/SampleCustomLocalOnlyCache:
+          remoteCache:
+            enabled: false
+        services/cache/SampleCustomRemoteOnlyCache:
+          localCache:
+            enabled: false
     # content for redis_cfg.yaml
     redis_cfg: |-
       singleServerConfig:
         idleConnectionTimeout: 10000
         connectTimeout: 3000
         timeout: 1000
-        retryAttempts: 1
+        retryAttempts: 3
         retryInterval: 500
         subscriptionsPerConnection: 5
         sslEnableEndpointIdentification: true
         sslProvider: "JDK"
-        pingConnectionInterval: 0
+        pingConnectionInterval: 30000
         keepAlive: true
         tcpNoDelay: true
         address: "redis://hcl-commerce-redis-master.redis.svc.cluster.local.:6379"
@@ -336,6 +367,12 @@ metrics:
 ## In addtion, nginx ingress has to be used to deploy DX. HCL Commerce currently does not support deploying DX with GKE ingress.
 dx:
   enabled: false
+  # releaseName is only requried if you are using DX helm chart for deployment. Leave it to be empty otherwise.
+  releaseName:
+    # Auth DX release name deployed with DX helm chart
+    auth: ""
+    # Live DX release name deployed with DX helm chart
+    live: ""
   namespace:
     # Auth DX should be deployed under the same cluster, specify its namespace here
     auth: ""
@@ -530,6 +567,15 @@ ingress:
       domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+  graphql:
+     auth:
+       domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+       ingressClass:
+       tlsSecret:
+     live:
+       domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+       ingressClass:
+       tlsSecret:
   cache:
     auth:
       enabled: false
@@ -637,6 +683,29 @@ tsApp:
   ## Flag to enable WebSphere Application Server (WAS) Admin Console. Disabled by default
   wasAdminConsole:
     enabled: false
+
+  ## LDAP configuration. LDAP is disabled by default
+  ## Set enabled flag to true to enable LDAP.
+  ## 3 options to store LDAP properties:
+  ##   1) on Vault: 
+  ##      keep useVmmPropertiesFile and useConfigMapForVmmPropertiesFile as false
+  ##      set LDAP properties on Vault, check https://help.hcltechsw.com/commerce/9.1.0/install/refs/rigvaultmetadata.html for details
+  ##   2) use vmm.properties file: 
+  ##      set useVmmPropertiesFile to true and useConfigMapForVmmPropertiesFile to false;
+  ##      update /SETUP/ldap/properties/vmm.properties and build customized ts-app docker image 
+  ##   3) use ConfigMap: 
+  ##      set useConfigMapForVmmPropertiesFile to true
+  ##      update ldap-vmm-<auth|live>.properties file in helmchart
+  ldap:
+    auth:
+      enabled: false
+      useVmmPropertiesFile: false
+      useConfigMapForVmmPropertiesFile: false
+    live:
+      enabled: false
+      useVmmPropertiesFile: false
+      useConfigMapForVmmPropertiesFile: false
+
   ## Behavioral marketing event listener enablement. Disabled by default
   ## see https://help.hcltechsw.com/commerce/9.1.0/admin/tasks/tsbenable.html for details
   marketingEventListeners:
@@ -674,7 +743,7 @@ searchAppMaster:
   envParameters: {}
   nodeLabel: ""
   ## persistentVolumeClaim is deprecated and will be removed in future version
-  ## Please sepcify the existing pvc in searchAppMaster.persistence.existingClaim instead
+  ## Please specify the existing pvc in searchAppMaster.persistence.existingClaim instead
   ## searchAppMaster.persistence.existingClaim will take precedence if specified
   persistentVolumeClaim: ""
   persistence:
@@ -719,7 +788,7 @@ searchAppRepeater:
   envParameters: {}
   nodeLabel: ""
   ## persistentVolumeClaim is deprecated and will be removed in future version
-  ## Please sepcify the existing pvc in searchAppRepeater.persistence.existingClaim instead
+  ## Please specify the existing pvc in searchAppRepeater.persistence.existingClaim instead
   ## searchAppRepeater.persistence.existingClaim will take precedence if specified
   persistentVolumeClaim: ""
   persistence:
@@ -947,9 +1016,9 @@ nifiApp:
   ## The version of the bootstrap connector data bundled in the nifi image
   ## This version change will cause bootstrap data reload and any customized
   ## data will need to be applied when this version is updated
-  dataVersion: 9.1.8.0
+  dataVersion: 9.1.9.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
-  ## Please sepcify the existing pvc in nifiApp.persistence.existingClaim instead
+  ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified
   persistentVolumeClaim: ""
   persistence:
@@ -1116,6 +1185,23 @@ cacheApp:
     auth: ""
     live: ""
 
+graphqlApp:
+   name: graphql-app
+   enabled: true
+   replica: 1
+   image: commerce/graphql-app
+   tag: v9-latest
+   resources:
+     requests:
+       memory: 2048Mi
+       cpu: 500m
+     limits:
+       memory: 2048Mi
+       cpu: 2
+   envParameters: {}
+   nodeLabel: ""
+   nodeSelector: {}
+
 ## Note: Must-Gather application is NOT production-ready
 ## Please keep enabled to be false in deployment
 mustgatherApp:
@@ -1153,6 +1239,7 @@ tsUtils:
     auth: {}
     live: {}
   nodeLabel: ""
+  nodeSelector: {}
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
