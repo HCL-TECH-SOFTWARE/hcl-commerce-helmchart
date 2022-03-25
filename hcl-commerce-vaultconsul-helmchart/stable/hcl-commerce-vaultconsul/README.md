@@ -20,14 +20,14 @@ Name |   Default Value | Usage
 ------------- | -------------| -------------
 vaultConsul.imageRepo | docker.io/ | container registry for vault images
 vaultConsul.vaultImageName | vault | Vault Docker Image name
-vaultConsul.vaultImageTag | 1.8.5 | Vault Docker Image tag
+vaultConsul.vaultImageTag | 1.9.1 | Vault Docker Image tag
 supportC.imageRepo | my-docker-registry.io:5000/ | container registry for commerce support container image
 supportC.image | commerce/supportcontainer | full path to the support container image
 supportC.tag | v9-latest | image tag for commerce support container image
 test.image |  docker.io/centos:latest | Helm Test command uses Centos Docker Image
 
 > **Note**
-vault:1.8.5 has been tested.  There is no guarantee that other tags for those docker images will work as expected.
+vault:1.9.1 has been tested.  There is no guarantee that other tags for those docker images will work as expected.
 
 ### CA certificate
 This helm chart deploy vault in development mode to by pass the unseal process. In this mode the data will be stored in memory only. The configuration data is defined in helm values file so they will be re-loaded everytime when vault is re-deployed / re-started. However, the root CA certificate stored in CA can not be persisted unless it is defined and persisted in a secret. This helm chart allows either specifying CA certificate by a tls secret name, or let this helm chart auto-generate one and persist it in the tls secret during the install time. 
@@ -117,6 +117,7 @@ It is strongly recommended to not modify the default [values.yaml](./values.yaml
 1. Update `vaultImageTag` if you want to test different images
 1. Update `vaultToken` to the one you want to use. 
 1. If you change the `vaultToken` value, you will need to run `echo -n new_token | base64` and update `vaultTokenBase64` with this value
+1. Enable and update the `vaultLoadDataWithSecret` section to improve your data security (ensure `vaultLoadData` is also enabled in order to load data). With this option enabled, you can ignore the `vaultData` section below. If you choose this method then need to manually create a secret, and put the secret name in `secretName`. A sample yaml file could be found under the sample_secret directory, and make sure you are following the right format.
 1. Update the data under `vaultData`. E.g update the db information. See above [Plan and Configure Values for vault deployment](#Plan-and-Configure-Values-for-vault-deployment) for details of the data hierarchy in vault.
 
 
@@ -138,10 +139,13 @@ vault-token-secret   Opaque   1      7m44s
 ```
 
 ## Upgrade the deployment
-When you need to update vault values, you can update configuration values in vaultData, and then re-deploy vault using a command similar to following
+When you need to update vault values, you can update configuration values in `vaultData`, and then re-deploy vault using a command similar to following
 ```
 helm upgrade my-vault ./hcl-commerce-vaultconsul -f my-values.yaml -n vault
 ```
+
+Note if you choose to enable `vaultLoadDataWithSecret` to load data, then you can use the following way to update vault values (You can ignore this if you are not using `vaultLoadDataWithSecret` to load data):
+1. Update the data secret and then delete the existed vault pod to force a restart to update the vault values.
 
 ## Uninstalling the Chart
 ```

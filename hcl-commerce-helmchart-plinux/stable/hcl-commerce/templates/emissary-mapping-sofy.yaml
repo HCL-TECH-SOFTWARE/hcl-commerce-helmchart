@@ -1,32 +1,30 @@
-{{- if and (.Values.global.sofySolutionContext) (not .Values.global.emissaryID) }}
+{{- if and (.Values.global.sofySolutionContext) (.Values.global.emissaryID) }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if and (eq $envType "share") }}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-data-query-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /
-  host: commerce-data-query\..*
-  host_regex: true
+  hostname: commerce-data-query.*
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}query-app:30901
   bypass_auth: true
 ---
 {{- if $.Values.ingress.nifi.enabled }}
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-nifi-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /
-  host: commerce-data-nifi\..*
-  host_regex: true
+  hostname: commerce-data-nifi.*
   case_sensitive: false
   timeout_ms: 10000
   service: http://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}nifi-app:30600
@@ -34,15 +32,14 @@ spec:
 ---
 {{- end }}
 {{- if $.Values.ingress.ingest.enabled }}
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-ingest-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /
-  host: commerce-data-ingest\..*
-  host_regex: true
+  hostname: commerce-data-ingest.*
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}ingest-app:30801
@@ -50,15 +47,14 @@ spec:
 ---
 {{- end }}
 {{- if $.Values.ingress.registry.enabled }}
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-registry-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /
-  host: commerce-data-registry\..*
-  host_regex: true
+  hostname: commerce-data-registry.*
   case_sensitive: false
   timeout_ms: 10000
   service: http://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}registry-app:30400
@@ -69,172 +65,163 @@ spec:
 {{- else }}
 
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-wcs-mapping
 spec:  
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /wcs/
   rewrite: /wcs/
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app:5443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-preview-wcs-mapping
 spec:  
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /wcs/
   rewrite: /wcs/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app:5443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-tooling-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /tooling/
   rewrite: /tooling/
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-preview-tooling-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /tooling/
   rewrite: /tooling/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-cmc-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /lobtools/
   rewrite: /lobtools/
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-preview-cmc-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /lobtools/
   rewrite: /lobtools/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-admin-rest-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /rest/
   rewrite: /rest/
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-preview-admin-rest-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /rest/
   rewrite: /rest/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-asset-preview-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /webapp/wcs/preview/
   rewrite: /webapp/wcs/preview/
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8006
@@ -242,96 +229,91 @@ spec:
 ---
 {{- if $.Values.storeWeb.enabled }}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-react-store-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /
   rewrite: /
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-preview-react-store-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /
   rewrite: /
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-react-store-hclstore-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /hclstore/
   rewrite: /hclstore/
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-preview-react-store-hclstore-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /hclstore/
   rewrite: /hclstore/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-react-preview-domain-asset-preview-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /webapp/wcs/preview/
   rewrite: /webapp/wcs/preview/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8006
@@ -341,59 +323,56 @@ spec:
 
 {{- if $.Values.crsApp.enabled }}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-crsstore-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   prefix: /wcs/
   rewrite: /wcs/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-crs\..*
+  hostname: commerce-preview-crs.*
   {{- else }}
-  host: commerce-live-crs\..*
+  hostname: commerce-live-crs.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 60000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app:8443
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-preview-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   prefix: /webapp/remote/preview
   rewrite: /webapp/remote/preview
   {{- if eq $envType "auth" }}
-  host: commerce-preview-crs\..*
+  hostname: commerce-preview-crs.*
   {{- else }}
-  host: commerce-live-crs\..*
+  hostname: commerce-live-crs.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 60000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app:8443
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-wcsstore-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   prefix: /wcsstore
   rewrite: /wcsstore
   {{- if eq $envType "auth" }}
-  host: commerce-preview-crs\..*
+  hostname: commerce-preview-crs.*
   {{- else }}
-  host: commerce-live-crs\..*
+  hostname: commerce-live-crs.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app:8443
@@ -402,39 +381,37 @@ spec:
 
 {{- if eq $.Values.common.searchEngine "elastic" }}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-search-mapping
 spec:  
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /search/
   rewrite: /search/
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app:30901
   bypass_auth: true
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-preview-search-mapping
 spec:  
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /search/
   rewrite: /search/
   {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
+  hostname: commerce-preview-store.*
   {{- else }}
-  host: commerce-live-store\..*
+  hostname: commerce-live-store.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app:30901
@@ -443,16 +420,15 @@ spec:
 {{- else }}
   {{- if eq $envType "auth"}}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-search-master-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /search/
   rewrite: /search/
-  host: commerce-preview\..*
-  host_regex: true
+  hostname: commerce-preview.*
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}search-app-master:3738
@@ -462,16 +438,15 @@ spec:
 
   {{- if eq $envType "live"}}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-search-repeater-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   prefix: /search/
   rewrite: /search/
-  host: commerce-live\..*
-  host_regex: true
+  hostname: commerce-live.*
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}search-app-repeater:3738
@@ -482,59 +457,56 @@ spec:
 
 {{- if $.Values.dx.enabled }}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-wps-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   prefix: /wps/
   rewrite: /wps/
   service: https://{{ $.Release.Name }}-core:10042
   timeout_ms: 10000
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-api-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   prefix: /dx/api/core/
   rewrite: /dx/api/core/
   service: http://{{ $.Release.Name }}-ring-api:3000
   timeout_ms: 10000
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-ip-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
   connect_timeout_ms: 1200000
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   idle_timeout_ms: 1200000
   prefix: /dx/api/image-processor/
   prefix_regex: false
@@ -542,21 +514,20 @@ spec:
   service: http://{{ $.Release.Name }}-image-processor:3000
   timeout_ms: 1200000
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-uicon-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
   connect_timeout_ms: 1200000
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   idle_timeout_ms: 1200000
   prefix: /dx/ui/content/
   prefix_regex: false
@@ -564,77 +535,73 @@ spec:
   service: http://{{ $.Release.Name }}-content-composer:3000
   timeout_ms: 1200000
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-uidam-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
   connect_timeout_ms: 1200000
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   idle_timeout_ms: 1200000
   prefix_regex: false
   prefix: /dx/ui/dam/
   rewrite: /dx/ui/dam/
   service: http://{{ $.Release.Name }}-digital-asset-management:3000
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-dam-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   prefix: /dx/api/dam/
   rewrite: /dx/api/dam/
   service: http://{{ $.Release.Name }}-digital-asset-management:3000
   timeout_ms: 10000
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-hcl-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
   {{- if eq $envType "auth" }}
-  host: commerce-preview\..*
+  hostname: commerce-preview.*
   {{- else }}
-  host: commerce-live\..*
+  hostname: commerce-live.*
   {{- end }}
-  host_regex: true
   prefix: /hcl/
   rewrite: /hcl/
   service: https://{{ $.Release.Name }}-core:10202
   timeout_ms: 1200000
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-hclstore-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   case_sensitive: false
-  host: dx\..*
+  hostname: dx.*
   prefix: /hclstore/
   rewrite: /hclstore/
-  host_regex: true
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
 ---
@@ -642,21 +609,20 @@ spec:
 
 {{- if $.Values.cacheApp.enabled }}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-cache-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   prefix: /
   rewrite: /
   {{- if eq $envType "auth" }}
-  host: commerce-preview-cache\..*
+  hostname: commerce-preview-cache.*
   {{- else }}
-  host: commerce-live-cache\..*
+  hostname: commerce-live-cache.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 60000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}cache-app:40901
@@ -665,21 +631,20 @@ spec:
 
 {{- if $.Values.graphqlApp.enabled }}
 ---
-apiVersion: getambassador.io/v2
+apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-graphql-mapping
 spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
   bypass_auth: true
   prefix: /graphql
   rewrite: /graphql
   {{- if eq $envType "auth" }}
-  host: commerce-preview-graphql\..*
+  hostname: commerce-preview-graphql.*
   {{- else }}
-  host: commerce-live-graphql\..*
+  hostname: commerce-live-graphql.*
   {{- end }}
-  host_regex: true
   case_sensitive: false
   timeout_ms: 60000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}graphql-app:3443

@@ -242,9 +242,6 @@ spec:
         {{- end }}
         - name: "TOOLING_ORIGIN"
           value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
-        {{- else }} # non sofy deployment
-        - name: "TOOLING_ORIGIN"
-          value: "https://{{ tpl (.Values.ingress.cmc.auth.domain | toString) . }}"
         {{- end}}
         {{- if $.Values.common.ipv6Enabled }}
         - name: "IPV6_ENABLED"

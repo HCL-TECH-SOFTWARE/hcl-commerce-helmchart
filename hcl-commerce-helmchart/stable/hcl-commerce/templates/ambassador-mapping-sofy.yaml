@@ -1,4 +1,4 @@
-{{- if .Values.global.sofySolutionContext }}
+{{- if and (.Values.global.sofySolutionContext) (not .Values.global.emissaryID) }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if and (eq $envType "share") }}
@@ -672,8 +672,8 @@ metadata:
 spec:
   ambassador_id: {{ $.Values.global.ambassadorID }}
   bypass_auth: true
-  prefix: /graphql/
-  rewrite: /graphql/
+  prefix: /graphql
+  rewrite: /graphql
   {{- if eq $envType "auth" }}
   host: commerce-preview-graphql\..*
   {{- else }}

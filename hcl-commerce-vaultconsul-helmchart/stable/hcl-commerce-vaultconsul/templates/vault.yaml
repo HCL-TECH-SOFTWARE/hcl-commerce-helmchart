@@ -79,6 +79,11 @@ spec:
           - name: external-ca-volume
             mountPath: /vault/config/ca
           {{- end }}
+          {{- if and (.Values.vaultConsul.vaultLoadDataWithSecret.enabled) (.Values.vaultConsul.vaultLoadDataWithSecret.secretName) }}
+          - name: vault-data-secret
+            mountPath: /vault/config/secret
+            readOnly: true
+          {{- end }}
           command:
             - "/bin/sh"
             - "-ec"
@@ -105,7 +110,7 @@ spec:
                     vault write selfserve_production_pki/root/generate/internal common_name="selfserve_production_pki Root CA" ttl=87600h  key_bits=4096 exclude_cn_from_sans=true
                     {{- end }}
                     vault write selfserve_production_pki/roles/generate-cert key_bits=2048  max_ttl=8760h allow_any_name=true
-                    {{- if .Values.vaultConsul.vaultData }}
+                    {{- if and (.Values.vaultConsul.vaultData) (not .Values.vaultConsul.vaultLoadDataWithSecret.enabled) }}
                     {{- range $environmentName, $environmentValues := .Values.vaultConsul.vaultData }}
                     {{- range $key, $value := $environmentValues.auth }}
                     vault kv put {{ $root.Values.common.tenant }}/{{ $environmentName }}/auth/{{ $key }} value="{{ tpl ($value | toString) $ }}"
@@ -118,6 +123,13 @@ spec:
                     {{- end }}
                     {{- end }}
                     {{- end }}
+                    {{- if and (.Values.vaultConsul.vaultLoadDataWithSecret.enabled) (.Values.vaultConsul.vaultLoadDataWithSecret.secretName) }}
+                    while read property; do
+                      entireKey=$(echo "${property}" | cut -d '=' -f1)
+                      value=$(echo "${property}" | cut -d '=' -f2-)
+                      vault kv put {{ $root.Values.common.tenant }}/${entireKey} value="${value}"
+                    done </vault/config/secret/vault-data.properties
+                    {{- end }}
           {{- end }}
         {{ if .Values.vaultConsul.externalCA.enabled }}
       volumes:
@@ -128,5 +140,10 @@ spec:
         {{ else }}
           secretName: {{ .Values.vaultConsul.externalCA.existingSecretName }}
         {{- end }}
+      {{- end }}
+      {{- if and (.Values.vaultConsul.vaultLoadDataWithSecret.enabled) (.Values.vaultConsul.vaultLoadDataWithSecret.secretName) }}
+      - name: vault-data-secret
+        secret:
+          secretName: {{ .Values.vaultConsul.vaultLoadDataWithSecret.secretName }}
       {{- end }}
       serviceAccountName: {{ .Release.Name }}-commerce-vault

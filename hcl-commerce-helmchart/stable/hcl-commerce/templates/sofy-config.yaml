@@ -1,4 +1,4 @@
-{{- if .Values.global.sofySolutionContext }}
+{{- if .Values.global.sofySolution }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 apiVersion: v1
 kind: ConfigMap
@@ -13,6 +13,11 @@ data:
         "name": "{{ .Chart.Name }}",
         "version": "{{ .Chart.Version }}",
         "displayName": "HCL Commerce",
+        "buildOptions": {
+          "dev": {
+            "useEmissary": true
+          }
+        },
         "flexnetFeatures": [ "Comm_orderlines" ],
         "services": {
             {{- if has "share" $envTypeList }}
@@ -66,7 +71,7 @@ data:
                     },
                     "apiroot": {
                         "Store Transaction Service REST API context root": "/wcs/resources/",
-                        "Live Admin REST API context root": "/rest/"
+                        "Admin REST API context root": "/rest/"
                     }
                 }
             },
