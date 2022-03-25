@@ -25,6 +25,8 @@ global:
   persistence:
     rwxStorageClass: ""
     testRWXStorageClass: ""
+  ## [SoFy] Ambassador is incompatible starting with Kubernetes 1.22 and must be migrated to a compatible version of Emissary
+  emissaryID: ""
 
 ## [SoFy] Disable creating public routes for certain services in a Sofy solution
 disablePublicRoute:
@@ -80,7 +82,7 @@ redis:
         memory: 4Gi
       requests:
         cpu: 500m
-        memory: 2Gi
+        memory: 4Gi
     configuration: |-
       appendonly no
       save ""
@@ -91,14 +93,14 @@ redis:
 elasticsearch:
   enabled: false
   fullnameOverride: "hcl-commerce-elasticsearch"
-  imageTag: "7.12.0"
+  imageTag: "7.17.1"
   replicas: 1
   minimumMasterNodes: 1
   esJavaOpts: "-Xmx6g -Xms6g"
   resources:
     requests:
       cpu: "1000m"
-      memory: "6Gi"
+      memory: "8Gi"
     limits:
       cpu: "2000m"
       memory: "8Gi"
@@ -162,7 +164,7 @@ hclFlexnetUserPassword: ""
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.9.0
+  productVersion: 9.1.10.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -638,7 +640,7 @@ tsDb:
   tag: v9-latest
   resources:
     requests:
-      memory: 4096Mi
+      memory: 6144Mi
       cpu: 2
     limits:
       memory: 6144Mi
@@ -677,7 +679,7 @@ tsApp:
   tag: v9-latest
   resources:
     requests:
-      memory: 4096Mi
+      memory: 5120Mi
       cpu: 500m
     limits:
       memory: 5120Mi
@@ -749,7 +751,7 @@ searchAppMaster:
   tag: v9-latest
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi
@@ -794,7 +796,7 @@ searchAppRepeater:
   tag: v9-latest
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi
@@ -840,7 +842,7 @@ searchAppSlave:
   tag: v9-latest
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi
@@ -886,7 +888,7 @@ tsWeb:
   tag: v9-latest
   resources:
     requests:
-      memory: 1024Mi
+      memory: 2048Mi
       cpu: 500m
     limits:
       memory: 2048Mi
@@ -903,7 +905,7 @@ toolingWeb:
   tag: v9-latest
   resources:
     requests:
-      memory: 1024Mi
+      memory: 2048Mi
       cpu: 500m
     limits:
       memory: 2048Mi
@@ -921,7 +923,7 @@ storeWeb:
   tag: v9-latest
   resources:
     requests:
-      memory: 1024Mi
+      memory: 2048Mi
       cpu: 500m
     limits:
       memory: 2048Mi
@@ -941,7 +943,7 @@ crsApp:
   replica: 1
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi
@@ -981,7 +983,7 @@ xcApp:
   replica: 1
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi
@@ -1020,7 +1022,7 @@ nifiApp:
   replica: 1
   resources:
     requests:
-      memory: 6144Mi
+      memory: 10240Mi
       cpu: 500m
     limits:
       memory: 10240Mi
@@ -1031,7 +1033,7 @@ nifiApp:
   ## The version of the bootstrap connector data bundled in the nifi image
   ## This version change will cause bootstrap data reload and any customized
   ## data will need to be applied when this version is updated
-  dataVersion: 9.1.9.0
+  dataVersion: 9.1.10.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
   ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified
@@ -1070,7 +1072,7 @@ registryApp:
   replica: 1
   resources:
     requests:
-      memory: 1024Mi
+      memory: 2048Mi
       cpu: 500m
     limits:
       memory: 2048Mi
@@ -1088,7 +1090,7 @@ ingestApp:
   replica: 1
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi
@@ -1127,21 +1129,21 @@ queryApp:
   resources:
     auth:
       requests:
-        memory: 2048Mi
+        memory: 4096Mi
         cpu: 500m
       limits:
         memory: 4096Mi
         cpu: 2
     live:
       requests:
-        memory: 2048Mi
+        memory: 4096Mi
         cpu: 500m
       limits:
         memory: 4096Mi
         cpu: 2
     data:
       requests:
-        memory: 2048Mi
+        memory: 3072Mi
         cpu: 500m
       limits:
         memory: 3072Mi
@@ -1227,7 +1229,7 @@ mustgatherApp:
   tag: v9-latest
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi
@@ -1244,7 +1246,7 @@ tsUtils:
   tag: v9-latest
   resources:
     requests:
-      memory: 2048Mi
+      memory: 4096Mi
       cpu: 500m
     limits:
       memory: 4096Mi

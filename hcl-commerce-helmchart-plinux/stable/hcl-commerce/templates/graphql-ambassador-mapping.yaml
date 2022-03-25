@@ -21,8 +21,8 @@ metadata:
   name: commerce-{{ $envType }}-graphql-domain-mapping
 spec:
   ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
-  prefix: /graphql/
-  rewrite: /graphql/
+  prefix: /graphql
+  rewrite: /graphql
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false
   case_sensitive: false

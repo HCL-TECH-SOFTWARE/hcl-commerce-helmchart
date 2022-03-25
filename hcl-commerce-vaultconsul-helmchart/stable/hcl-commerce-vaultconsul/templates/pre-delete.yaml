@@ -18,8 +18,8 @@ metadata:
     "helm.sh/hook": pre-delete
     "helm.sh/hook-delete-policy": "hook-succeeded"
 spec:
-  backoffLimit: 5
-  activeDeadlineSeconds: 100
+  backoffLimit: 10
+  activeDeadlineSeconds: 600
   template:
     metadata:
       labels:

@@ -22,7 +22,7 @@ metadata:
     "helm.sh/hook-weight": "10"
 spec:
   backoffLimit: 5
-  activeDeadlineSeconds: 100
+  activeDeadlineSeconds: 600
   template:
     metadata:
       labels:

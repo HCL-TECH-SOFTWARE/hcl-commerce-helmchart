@@ -51,7 +51,7 @@ vaultConsul:
   ## vault docker image name
   vaultImageName: vault
   ## vault docker image tag
-  vaultImageTag: 1.8.5
+  vaultImageTag: 1.9.1
 
   ## plinux vault image name and tag
   #vaultImageName: vault-ppc64le
@@ -103,6 +103,31 @@ vaultConsul:
   vaultTokenBase64: OTkyZDRhNDItMzc5Ni1kMDZlLWM0ZjAtMTZuZjg1MDM4Nzdk
   ## a flag to enable data loading
   vaultLoadData: true
+
+  ## a flag to load data to vault by using kubernetes secret to keep your data safe, ensure vaultLoadData is also enabled to enable data loading
+  ## if you choose this method then need to manually create a secret, and put the secret name here (vaultData section below can leave to be empty)
+  ## a sample yaml file could be found in the sample_secret folder as your reference
+  ##
+  ## Format below is required for the secret you created:
+  ##  # properties under 'both' are created under the environment level, otherwise are created under environment type (auth | live) level
+  ##  vault-data.properties: |-
+  ##    <environment1>/<auth | live >/<name1>=<value1>
+  ##    <environment1>/<auth | live >/<name2>=<value2>
+  ##    <environment1>/<name3>=<value3>
+  ##    ...
+  ##    <environment2>/<auth | live >/<name1>=<value1>
+  ##    <environment2>/<auth | live >/<name2>=<value2>
+  ##    <environment2>/<name3>=<value3>
+  ##
+  ## Note: 
+  ##       1. the default database values are based on the db docker images shipped with commerce
+  ##       2. the default dbHost values are configured assuming using the db docker image deployed in the same K8s cluster in 'commerce' name space.
+  ##       3. the sample data property file covers 2 environments (dev and qa)
+  ##       4. please modify the values based on your deployment sepcificiation
+  vaultLoadDataWithSecret: 
+    enabled: false
+    secretName: "vault-sample-secret"
+
   ## data to load to vault under mounted <tenant> secret
   ## Format:
   ##  <environment1>:
