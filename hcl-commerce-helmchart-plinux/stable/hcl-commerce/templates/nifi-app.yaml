@@ -33,6 +33,9 @@ spec:
       annotations:
         productName: "HCL Commerce"
         productVersion: {{ .Values.common.productVersion | quote }}
+        {{- if $.Values.anthosDeployment.enabled }}
+        sidecar.istio.io/inject: “false”
+        {{- end }}
         {{- if and ($.Values.metrics.enabled) ($.Values.metrics.prometheusAnnotations.enabled) }}
         prometheus.io/scrape: "true"
         prometheus.io/path: /monitor/metrics
@@ -258,6 +261,10 @@ spec:
         {{- end }}
         {{- if $.Values.common.ipv6Enabled }}
         - name: "IPV6_ENABLED"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.metrics.enabled }}
+        - name: "EXPOSE_METRICS"
           value: "true"
         {{- end }}
 {{- if .Values.nifiApp.envParameters }}

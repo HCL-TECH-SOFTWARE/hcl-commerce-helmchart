@@ -60,7 +60,7 @@ spec:
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
           servicePort: 5443
-      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search {{- else if eq $.Values.ingress.ingressController "gke" }} /search/* {{- end }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search/resources {{- else if eq $.Values.ingress.ingressController "gke" }} /search/resources/* {{- end }}
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
           servicePort: 30901
@@ -122,7 +122,7 @@ spec:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
             port:
               number: 5443
-      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search {{- else if eq $.Values.ingress.ingressController "gke" }} /search/* {{- end }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search/resources {{- else if eq $.Values.ingress.ingressController "gke" }} /search/resources/* {{- end }}
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
         backend:
           service:

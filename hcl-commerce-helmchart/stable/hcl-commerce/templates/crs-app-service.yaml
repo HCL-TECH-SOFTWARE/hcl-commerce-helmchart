@@ -22,17 +22,17 @@ metadata:
     app.kubernetes.io/name: {{ include "name" $ }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
   annotations:
-    cloud.google.com/app-protocols: '{"port8443":"HTTPS","port8080":"HTTP"}'
+    cloud.google.com/app-protocols: '{"https-port8443":"HTTPS","http-port8080":"HTTP"}'
 spec:
   type: NodePort
   ports:
   - port: 8443
-    name: port8443
+    name: https-port8443
   - port: 8080
-    name: port8080
+    name: http-port8080
   {{- if $.Values.metrics.enabled }}
   - port: 8280
-    name: metrics
+    name: http-metrics
   {{- end }}
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.crsApp.name}}

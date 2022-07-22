@@ -114,7 +114,7 @@ metadata:
     group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
 spec:
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
-  path: /search
+  path: /search/resources
   to:
     kind: Service
     name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app

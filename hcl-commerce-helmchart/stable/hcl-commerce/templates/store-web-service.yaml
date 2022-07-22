@@ -22,12 +22,12 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ $.Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port6443":"HTTPS"}'
+    cloud.google.com/app-protocols: '{"https-port6443":"HTTPS"}'
 spec:
   type: NodePort
   ports:
   - port: 6443
-    name: port6443
+    name: https-port6443
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.storeWeb.name }}
 {{- end }}

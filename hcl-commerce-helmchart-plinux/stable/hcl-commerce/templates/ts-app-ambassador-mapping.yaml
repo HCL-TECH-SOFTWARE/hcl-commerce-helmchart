@@ -29,7 +29,6 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app:5443
   bypass_auth: true
 ---
-
 {{- if $.Values.tsApp.wasAdminConsole.enabled }}
 apiVersion: getambassador.io/v2
 kind: Mapping

@@ -17,14 +17,14 @@ metadata:
     app.kubernetes.io/name: {{ include "name" $ }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
   annotations:
-    cloud.google.com/app-protocols: '{"port3443":"HTTPS","port3100":"HTTP"}'
+    cloud.google.com/app-protocols: '{"https-port3443":"HTTPS","http-port3100":"HTTP"}'
 spec:
   type: NodePort
   ports:
   - port: 3443
-    name: port3443
+    name: https-port3443
   - port: 3100
-    name: port3100
+    name: http-port3100
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.graphqlApp.name}}
 {{- end }}

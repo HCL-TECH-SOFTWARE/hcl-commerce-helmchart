@@ -49,8 +49,9 @@ data:
                 "disablePublicRoute" : "true",
                 "contextRoots": {
                     "ui": {
-                        "Emerald (B2C) Store": "/Emerald",
+                        "Emerald (B2C) Store": "/Emerald?storeId=11",
                         "Sapphire (B2B) Store": "/Sapphire",
+                        "EmeraldMP (B2C Marketplace) Store": "/Emerald?storeId=31",
                         "Management Center": {
                             "endpoint" : "/lobtools/cmc/ManagementCenterMain?locale=en_US",
                             "DefaultLogin" : {
@@ -139,8 +140,9 @@ data:
                 "disablePublicRoute" : "true",
                 "contextRoots": {
                     "ui": {
-                        "Live Emerald (B2C) Store": "/Emerald",
+                        "Live Emerald (B2C) Store": "/Emerald?storeId=11",
                         "Live Sapphire (B2B) Store": "/Sapphire",
+                        "Live EmeraldMP (B2C Marketplace) Store": "/Emerald?storeId=31",
                         "Live Management Center": {
                             "endpoint" : "/lobtools/cmc/ManagementCenterMain?locale=en_US",
                             "DefaultLogin" : {

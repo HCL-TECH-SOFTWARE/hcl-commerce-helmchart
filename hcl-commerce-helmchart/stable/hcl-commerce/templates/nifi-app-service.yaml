@@ -20,21 +20,21 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port30600":"HTTP"}'
+    cloud.google.com/app-protocols: '{"http-port30600":"HTTP"}'
 spec:
   type: NodePort
   ports:
   - port: 30600
-    name: port30600
+    name: http-port30600
   - port: 30700
-    name: port30700
+    name: http-port30700
   - port: 30606
-    name: port30606
+    name: http-port30606
   {{- if .Values.metrics.enabled }}
   - port: 30680
-    name: metrics
+    name: http-metrics
   - port: 30690
-    name: hclmetrics
+    name: http-hclmetrics
   {{- end }}
   selector:
     component: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.nifiApp.name}}

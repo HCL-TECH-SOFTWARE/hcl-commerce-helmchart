@@ -21,16 +21,16 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ $.Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port9443":"HTTPS","port9080":"HTTP"}'
+    cloud.google.com/app-protocols: '{"https-port9443":"HTTPS","http-port9080":"HTTP"}'
 spec:
   ports:
   - port: 9080
-    name: port9080
+    name: http-port9080
   - port: 9443
-    name: port9443
+    name: https-port9443
   {{- if $.Values.metrics.enabled }}
   - port: 9280
-    name: metrics
+    name: http-metrics
   {{- end }}
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.xcApp.name}}

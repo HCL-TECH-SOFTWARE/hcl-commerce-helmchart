@@ -16,50 +16,6 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{/*
-FlexNet License URL
-*/}}
-{{- define "license.url" -}}
-{{- if .Values.hclFlexnetURL -}}
-{{ tpl .Values.hclFlexnetURL . }}
-{{- else if .Values.global.hclFlexnetURL -}}
-{{ tpl .Values.global.hclFlexnetURL . }}
-{{- end -}}
-{{- end -}}
-
-{{/*
-FlexNet License ID
-*/}}
-{{- define "license.id" -}}
-{{- if .Values.hclFlexnetID -}}
-{{ tpl .Values.hclFlexnetID . }}
-{{- else if .Values.global.hclFlexnetID -}}
-{{ tpl .Values.global.hclFlexnetID . }}
-{{- end -}}
-{{- end -}}
-
-{{/*
-FlexNet License admin user for REST service authentication
-*/}}
-{{- define "license.user" -}}
-{{- if .Values.hclFlexnetUserName -}}
-{{ tpl .Values.hclFlexnetUserName . }}
-{{- else if .Values.global.hclFlexnetUserName -}}
-{{ tpl .Values.global.hclFlexnetUserName . }}
-{{- end -}}
-{{- end -}}
-
-{{/*
-FlexNet License admin password for REST service authentication
-*/}}
-{{- define "license.user.password" -}}
-{{- if .Values.hclFlexnetUserPassword -}}
-{{ tpl .Values.hclFlexnetUserPassword . }}
-{{- else if .Values.global.hclFlexnetUserPassword -}}
-{{ tpl .Values.global.hclFlexnetUserPassword . }}
-{{- end -}}
-{{- end -}}
-
-{{/*
 Image Repository
 */}}
 {{- define "image.repo" -}}

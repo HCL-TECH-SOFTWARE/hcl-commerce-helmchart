@@ -9,7 +9,6 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Create configuration maps:
-#    kubectl apply -f log-aggregator-configmap.yaml -n log
 #    kubectl apply -f log-forwarder-configmap.yaml -n log
 # 4. Deploy fluentd using this override values
 #    helm install fluentd bitnami/fluentd -n log -f log-fluentd-values.yaml --version "3.7.4"

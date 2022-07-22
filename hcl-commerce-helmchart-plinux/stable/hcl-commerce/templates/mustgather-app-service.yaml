@@ -21,12 +21,12 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port42021":"HTTPS"}'
+    cloud.google.com/app-protocols: '{"https-port42021":"HTTPS"}'
 spec:
   type: NodePort
   ports:
   - port: 42021
-    name: port42021
+    name: https-port42021
   selector:
     component: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.mustgatherApp.name}}
 {{- end -}}

@@ -25,6 +25,10 @@ spec:
   activeDeadlineSeconds: 600
   template:
     metadata:
+      {{- if $.Values.anthosDeployment.enabled }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+      {{- end }}
       labels:
         app: HCL-Commerce
         chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}

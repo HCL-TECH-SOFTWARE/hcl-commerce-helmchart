@@ -21,30 +21,30 @@ metadata:
   namespace: {{ $.Release.Namespace }}
   annotations:
     {{- if $.Values.common.localStoreEnabled }}
-    cloud.google.com/app-protocols: '{"web443":"HTTPS","cmc8000":"HTTPS","acc8001":"HTTPS","admin8002":"HTTPS","org8004":"HTTPS","pre8006":"HTTPS","was9043":"HTTPS"}'
+    cloud.google.com/app-protocols: '{"https-web443":"HTTPS","https-cmc8000":"HTTPS","https-acc8001":"HTTPS","https-admin8002":"HTTPS","https-org8004":"HTTPS","https-pre8006":"HTTPS","https-was9043":"HTTPS"}'
     {{- else }}
-    cloud.google.com/app-protocols: '{"cmc8000":"HTTPS","acc8001":"HTTPS","admin8002":"HTTPS","org8004":"HTTPS","pre8006":"HTTPS","was9043":"HTTPS"}'
+    cloud.google.com/app-protocols: '{"https-cmc8000":"HTTPS","https-acc8001":"HTTPS","https-admin8002":"HTTPS","https-org8004":"HTTPS","https-pre8006":"HTTPS","https-was9043":"HTTPS"}'
     {{- end }}
 spec:
   type: NodePort
   ports:
   {{- if $.Values.common.localStoreEnabled }}
   - port: 443
-    name: web443
+    name: https-web443
   {{- end }}
   - port: 8000
-    name: cmc8000
+    name: https-cmc8000
   - port: 8001
-    name: acc8001
+    name: https-acc8001
   - port: 8002
-    name: admin8002
+    name: https-admin8002
   - port: 8004
-    name: org8004
+    name: https-org8004
   - port: 8006
-    name: pre8006
+    name: https-pre8006
   {{- if $.Values.tsApp.wasAdminConsole.enabled }}
   - port: 9043
-    name: was9043
+    name: https-was9043
   {{- end }}
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.tsWeb.name}}

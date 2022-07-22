@@ -103,7 +103,7 @@ It is strongly recommended to not modify the default [values.yaml](./values.yaml
 ### Modify configuration in my-values.yaml file
 #### common:
 1. Change the tenant if you want to name it differently. Note, if you change the tenant name here, you will also need to change the tenant in commerce helm chart values to match the same name.
-1. By default it does not create ingress for vault service. If you want to create an ingress to access vault ui, set `enableIngress` to `true`
+1. By default it does not create ingress for vault service. If you want to create an ingress to access vault ui, set `enableIngress` to `true`. Also, based on your environments, update the configurations for `ingressController` and `ingressApiVersion`.
 1. As part of the vault deployment, it will create a vault token secret in the `commerce` namespace, so that the commerce application can get the vault token from that secret. It requires the commerce namespace existed before you can deploy this vault. If `commerce` namespace has not been created, you can create it now with `kubectl create ns commerce`. If you plan to deploy commerce in other name spaces, you need to create those names spaces now (kubectl create ns <namespace>), and list all of the namespaces in commerceNameSpaces. E.g if I want to deploy 2 commerce environments 'dev' and 'qa' in 'commerce-dev' and 'commerce-qa' name spaces, you would need to:
 	1. kubectl create ns commerce-dev
 	1. kubectl create ns commerce-qa
