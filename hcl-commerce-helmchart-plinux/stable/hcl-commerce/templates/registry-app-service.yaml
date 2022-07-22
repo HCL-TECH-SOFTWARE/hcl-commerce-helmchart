@@ -20,12 +20,12 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port30400":"HTTP"}'
+    cloud.google.com/app-protocols: '{"http-port30400":"HTTP"}'
 spec:
   type: NodePort
   ports:
   - port: 30400
-    name: port30400
+    name: http-port30400
   selector:
     component: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.registryApp.name}}
 {{- end -}}

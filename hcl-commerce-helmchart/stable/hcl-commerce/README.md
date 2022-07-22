@@ -154,10 +154,6 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | Parameter                  | Description                                     | Default                                                    |
 | -----------------------    | ---------------------------------------------   | ---------------------------------------------------------- |
 | `license`             | HCL Commerce V9 license accept             | `not_accepted`                                                        |
-| `hclFlexnetURL`             | The flexnet server url used for license entitlement check             | `''`                                                        |
-| `hclFlexnetID`             | The flexnet device id check             | `''`                                                        |
-| `hclFlexnetUserName`             | The flexnet user name. Please keep it as "admin" check             | `'admin'`                                                        |
-| `hclFlexnetUserPassword`             | The AES encrypted password for flexnet user check             | `''`                                                        |
 | `common.vaultTokenSecret`  | Kubernetes secret object for vault token        | `vault-token-secret`                                                    |
 | `common.dbType`         | database type           | `db2`    |
 | `common.tenant`                |   tenant name                          | `demo`                                                   |
@@ -233,18 +229,6 @@ It is strongly recommended to not modify the default [values.yaml](./values.yaml
 The following values should be modified in your my-values.yaml file to match to your environment and cluster configuration.
 #### license
 You must accept the license before you can deploy HCL Commerce. To view the license, please browse all files under LICENSES directory. To accept the license, set `license` to `accept`.
-
-#### hclFlexnetURL
-The flexnet server url used for license entitlement check, e.g https://hclsoftware.compliance.flexnetoperations.com
-
-#### hclFlexnetID
-The flexnet device id
-
-#### hclFlexnetUserName
-The flexnet user name. Please keep it as "admin"
-
-#### hclFlexnetUserPassword
-The AES encrypted password for flexnet user. This value can be obtained by running wcs_encrypt.sh utility from utility container. Visit https://help.hcltechsw.com/commerce/9.1.0/admin/refs/rwcs_encrypt.html for wcs_encrypt utility
 
 #### common.timezone
 If specified it will add an environment variable to all the containers to specify the timezone to use in the format of: America/Toronto by following the ICANN TZ Database. If not specified, 'GMT' is used in all the containers by default.

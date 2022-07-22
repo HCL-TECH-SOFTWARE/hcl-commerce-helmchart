@@ -19,12 +19,12 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"tool7443":"HTTPS"}'
+    cloud.google.com/app-protocols: '{"https-tool7443":"HTTPS"}'
 spec:
   type: NodePort
   ports:
   - port: 7443
-    name: tool7443
+    name: https-tool7443
   selector:
     component: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.toolingWeb.name}}
   {{- end }}

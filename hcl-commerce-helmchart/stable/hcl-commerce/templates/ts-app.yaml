@@ -225,25 +225,9 @@ spec:
         env:
         - name: "LICENSE"
           value: {{ $.Values.license | quote }}
-        {{- if include "license.url" $ }}
         {{- if $.Values.common.timezone }}
         - name: "TZ"
           value: {{ $.Values.common.timezone | quote }}
-        {{- end }}
-        - name: "FLEXNET_URL"
-          value: {{ include "license.url" $ | quote }}
-        {{- end }}
-        {{- if include "license.id" $ }}
-        - name: "FLEXNET_DEVICE_ID"
-          value: {{ include "license.id" $ | quote }}
-        {{- end }}
-        {{- if and (include "license.user" $) (ne (include "license.user" $) "admin") }}
-        - name: "FLEXNET_USER"
-          value: {{ $.Values.hclFlexnetUserName | quote }}
-        {{- end }}
-        {{- if include "license.user.password" $ }}
-        - name: "FLEXNET_PASSWORD"
-          value: {{ include "license.user.password" $ | quote }}
         {{- end }}
         {{- if $.Values.common.commerceVersion }}
         {{- if (or (eq $.Values.common.commerceVersion "9.0.0.1") (eq $.Values.common.commerceVersion "9.0.0.0")) }}
@@ -438,9 +422,9 @@ spec:
           periodSeconds: 5
         livenessProbe:
           httpGet:
-            path: /wcs/resources/health/ping
-            port: 5443
-            scheme: HTTPS
+            path: /monitor/ping
+            port: 5280
+            scheme: HTTP
           initialDelaySeconds: {{ default 600 $.Values.tsApp.livenessProbe.initialDelaySeconds }}
           timeoutSeconds: 300
         securityContext:

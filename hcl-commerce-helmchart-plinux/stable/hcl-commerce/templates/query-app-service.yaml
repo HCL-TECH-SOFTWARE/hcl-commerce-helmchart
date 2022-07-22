@@ -22,17 +22,17 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ $.Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port30901":"HTTPS","port30900":"HTTP"}'
+    cloud.google.com/app-protocols: '{"https-port30901":"HTTPS","http-port30900":"HTTP"}'
 spec:
   type: NodePort
   ports:
   - port: 30900
-    name: port30900
+    name: http-port30900
   - port: 30901
-    name: port30901
+    name: https-port30901
   {{- if $.Values.metrics.enabled }}
   - port: 30280
-    name: metrics
+    name: http-metrics
   {{- end }}
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{$.Values.queryApp.name}}

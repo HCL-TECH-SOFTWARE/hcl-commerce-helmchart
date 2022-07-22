@@ -21,10 +21,10 @@ metadata:
     {{- end }}
 spec:
   endpoints:
-  - port: metrics
+  - port: http-metrics
     interval: {{ .Values.metrics.serviceMonitor.interval }}
     path: /metrics
-  - port: hclmetrics
+  - port: http-hclmetrics
     interval: {{ .Values.metrics.serviceMonitor.interval }}
     path: /monitor/metrics
   selector:

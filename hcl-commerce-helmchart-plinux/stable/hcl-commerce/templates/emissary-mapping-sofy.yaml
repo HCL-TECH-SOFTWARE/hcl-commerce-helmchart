@@ -227,6 +227,57 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8006
   bypass_auth: true
 ---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-admin-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-admin.*
+  {{- else }}
+  host: commerce-live-admin.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8002
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-accelerator-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-accelerator.*
+  {{- else }}
+  host: commerce-live-accelerator.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8001
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-org-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-org.*
+  {{- else }}
+  host: commerce-live-org.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8004
+  bypass_auth: true
+---
 {{- if $.Values.storeWeb.enabled }}
 ---
 apiVersion: getambassador.io/v3alpha1
@@ -387,8 +438,8 @@ metadata:
   name: commerce-{{ $envType }}-search-mapping
 spec:  
   ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
-  prefix: /search/
-  rewrite: /search/
+  prefix: /search/resources/
+  rewrite: /search/resources/
   {{- if eq $envType "auth" }}
   hostname: commerce-preview.*
   {{- else }}
@@ -405,8 +456,8 @@ metadata:
   name: commerce-{{ $envType }}-store-preview-search-mapping
 spec:  
   ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
-  prefix: /search/
-  rewrite: /search/
+  prefix: /search/resources/
+  rewrite: /search/resources/
   {{- if eq $envType "auth" }}
   hostname: commerce-preview-store.*
   {{- else }}

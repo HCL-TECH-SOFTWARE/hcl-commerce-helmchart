@@ -66,8 +66,8 @@ metadata:
   name: commerce-{{ $envType }}-reactstore-search-mapping
 spec:  
   ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
-  prefix: /search/
-  rewrite: /search/
+  prefix: /search/resources/
+  rewrite: /search/resources/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false
   case_sensitive: false
@@ -160,7 +160,7 @@ spec:
   bypass_auth: true
   case_sensitive: false
   connect_timeout_ms: 1200000
-  host:{{ tpl ($ingress_conf.domain | toString) $ }}
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false
   idle_timeout_ms: 1200000
   prefix: /dx/

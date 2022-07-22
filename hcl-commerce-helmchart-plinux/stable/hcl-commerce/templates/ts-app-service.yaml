@@ -21,17 +21,17 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ $.Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port5443":"HTTPS","port5080":"HTTP"}'
+    cloud.google.com/app-protocols: '{"https-port5443":"HTTPS","http-port5080":"HTTP"}'
 spec:
   type: NodePort
   ports:
   - port: 5080
-    name: port5080
+    name: http-port5080
   - port: 5443
-    name: port5443
+    name: https-port5443
   {{- if $.Values.metrics.enabled }}
   - port: 5280
-    name: metrics
+    name: http-metrics
   {{- end }}
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.tsApp.name}}

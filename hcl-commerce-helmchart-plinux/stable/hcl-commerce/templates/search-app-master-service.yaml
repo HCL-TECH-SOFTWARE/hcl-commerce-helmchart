@@ -20,17 +20,17 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   namespace: {{ $.Release.Namespace }}
   annotations:
-    cloud.google.com/app-protocols: '{"port3738":"HTTPS","port3737":"HTTP"}'
+    cloud.google.com/app-protocols: '{"https-port3738":"HTTPS","http-port3737":"HTTP"}'
 spec:
   type: NodePort
   ports:
   - port: 3737
-    name: port3737
+    name: http-port3737
   - port: 3738
-    name: port3738
+    name: https-port3738
   {{- if $.Values.metrics.enabled }}
   - port: 3280
-    name: metrics
+    name: http-metrics
   {{- end }}
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{$.Values.searchAppMaster.name}}

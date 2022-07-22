@@ -9,7 +9,7 @@ metadata:
 spec:
   hosts:
   - {{ tpl ($ingress_conf.domain | toString) $ }}
-  secret: {{ default (printf "%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+  secret: {{ default (printf "%s%sshare-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
 ---
 apiVersion: getambassador.io/v2
 kind: Mapping

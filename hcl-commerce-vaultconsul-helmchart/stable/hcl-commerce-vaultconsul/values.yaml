@@ -1,4 +1,10 @@
 ## Default values for vault deployment for HCL Commerce V9
+
+#####################################################
+# SoFy related deployment values
+# Please leave them untouched in non-SoFy deployment
+#####################################################
+## [SoFy] global values used by solution deployment on SoFy
 global:
   ## Image registry used by deployment on SoFy
   hclImageRegistry: hclcr.io/sofy
@@ -34,6 +40,11 @@ common:
   ##   gke - cloud load balancing using HTTP(S) Load Balancer in GKE
   ##   ambassador - ambassador API gateway
   ingressController: nginx
+
+  ## use 'extensions/v1beta1' for kubernetes between 1.16 and 1.19 (exclusive)
+  ## use 'networking.k8s.io/v1' for kubernetes 1.19 and above
+  ## see https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122 for details
+  ingressApiVersion: extensions/v1beta1
 
 ## Enable this feature for deployment using openshift.
 openshiftDeployment:
@@ -195,6 +206,7 @@ vaultConsul:
         redisHost: hcl-commerce-redis-master.redis.svc.cluster.local
         redisPort: 6379
         searchDataQueryBaseUrl: 'https://query.demodev.{{ include "external.domain" $ }}'
+        nlpEnableLanguageCode: "en"
     qa:
       auth:
         dbHost: "demoqaauthdb.commerce.svc.cluster.local"
@@ -236,6 +248,7 @@ vaultConsul:
         redisHost: hcl-commerce-redis-master.redis.svc.cluster.local
         redisPort: 6379
         searchDataQueryBaseUrl: 'https://query.demoqa.{{ include "external.domain" $ }}'
+        nlpEnableLanguageCode: "en"
 
 ## This support container image is required when vaultConsul.externalCA.enabled
 ## and vaultConsul.externalCA.autoCreate are both enabled. Please specify the
