@@ -181,6 +181,16 @@ spec:
           value: {{ $envType | quote }}
         - name: "DBTYPE"
           value: {{ $.Values.common.dbType | quote }}
+        - name: "DOMAIN_NAME"
+          value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        - name: "SPIUSER_PWD"
+          value: {{ $.Values.common.spiUserPwdAes | quote}}
+        - name: "SPIUSER_NAME"
+          value: {{ $.Values.common.spiUserName | quote}}
+        {{- if eq $.Values.common.searchEngine "elastic" }}
+        - name: "ELASTICSEARCH_ENABLED"
+          value: "true"
+        {{- end }}
         - name: "VAULT_CA"
           value: {{ $.Values.vaultCA.enabled | quote }}
         {{- if $.Values.tsApp.merchantKey }}

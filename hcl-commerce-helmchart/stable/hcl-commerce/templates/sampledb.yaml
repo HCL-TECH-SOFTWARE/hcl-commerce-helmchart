@@ -190,7 +190,10 @@ spec:
               - SYS_NICE
         ports:
         - containerPort: 50000
-          name: db
+          name: dbport50000
+          protocol: TCP
+        - containerPort: 50001
+          name: dbport50001
           protocol: TCP
         livenessProbe:
           tcpSocket:

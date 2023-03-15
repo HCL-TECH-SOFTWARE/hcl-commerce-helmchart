@@ -1,0 +1,50 @@
+##
+# This values yaml file provide override values to deploy bitnami postgresql helm chart 
+# for HCL Commerce
+#   - chart version: 11.9.13
+#   - postgresql app version: 14.6.0
+# 
+# To Deploy postgresql using this sample values
+# 1. Create a namespace
+#    kubectl create ns postgresql
+# 2. Add helm repo
+#    helm repo add bitnami https://charts.bitnami.com/bitnami
+# 3. Deploy postgresql using this override values
+#    helm install my-postgresql bitnami/postgresql -n postgresql -f postgresql-values.yaml --version "11.9.13"
+# 4. Monitor deployment until all pods are healthy
+# 
+# To get the complete values.yaml file, please visit 
+#   https://github.com/bitnami/charts/blob/c6076945ecc47791d82e545a20ef690dd93ff662/bitnami/postgresql/values.yaml
+#
+# To get more information related to this version of postgresql helm chart, please visit
+#   https://github.com/bitnami/charts/blob/c6076945ecc47791d82e545a20ef690dd93ff662/bitnami/postgresql/README.md
+##
+image:
+  registry: icr.io/ppc64le-oss 
+  repository: postgresql
+  tag: v14.6.0
+  pullPolicy: IfNotPresent
+auth:
+  postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"
+fullnameOverride: "hcl-commerce-postgresql"
+## init.sql is an sample script to initialize the postgresql database used by approval service
+## Please do update the sample password in the script, and also make sure the datasource password under approval server section to be the same
+primary:
+  initdb:
+    scripts:
+      init.sql: |-
+        CREATE DATABASE comdb;
+        CREATE USER hclcom WITH ENCRYPTED PASSWORD 'passw0rd';
+        CREATE SCHEMA hclcom;
+        GRANT ALL PRIVILEGES ON DATABASE comdb TO hclcom;
+        GRANT USAGE ON SCHEMA hclcom TO hclcom;
+        GRANT CREATE ON SCHEMA hclcom TO hclcom;
+  resources:
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+    requests:
+      memory: 2Gi
+      cpu: 1000m
+  containerSecurityContext:
+    runAsUser: 1001

@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (.Values.openshiftDeployment.enabled) -}}
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (.Values.openshiftDeployment.enabled) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}
@@ -102,6 +102,58 @@ spec:
     termination: reencrypt
     destinationCACertificate: |-
 {{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+{{- end }}
+---
+{{- if $.Values.approvalApp.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-cmc-approval-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /approvals
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+  port:
+    targetPort: 6643
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+---
+{{- if not $.Values.ingress.enableManageApprovalPage }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-cmc-manage-approval-route
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  path: /approvals/manage-approval
+  to:
+    kind: Service
+    name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  port:
+    targetPort: 8000
+  tls:
+    termination: reencrypt
+    destinationCACertificate: |-
+{{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

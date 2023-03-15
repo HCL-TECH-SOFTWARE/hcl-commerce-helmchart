@@ -122,24 +122,25 @@ By default, when you use the Helm Chart to deploy HCL Commerce Version 9, you st
 
 Component  | Replica | Request CPU | Limit CPU | Request Memory | Limit Memory
 --------  | -----| -------------| -------------| -------------| -------------
-ts-app | 1 | 500m |  2 | 4096Mi | 5120Mi
-ts-db | 1 | 2 |  2 | 4096Mi | 6144Mi
-ts-web| 1 | 500m |  2 | 2048Mi | 4096Mi
-search-app-master | 1 | 500m |  2 | 2048Mi | 4096Mi
-search-app-repeater ( live ) | 1 | 500m |  2 | 2048Mi | 4096Mi
-search-app-slave ( live ) | 1 | 500m |  2 | 2048Mi | 4096Mi
-crs-app | 1 | 500m |  2 | 2048Mi | 4096Mi
-xc-app | 1 | 500m |  2 | 2048Mi | 4096Mi
-tooling-web | 1 | 500m | 2 | 1024Mi | 2048Mi
-store-web | 1 | 500m | 2 | 1024Mi | 2048Mi
-nifi-app | 1 | 500m | 2 | 5120Mi | 10240Mi
-registry-app | 1 | 500m | 2 | 1024Mi | 2048Mi
-ingest-app | 1 | 500m | 2 | 2048Mi | 4096Mi
-query-app | 1 | 500m | 2 | 2048Mi | 4096Mi
+ts-app | 1 | 500m |  2 | 5120Mi | 5120Mi
+ts-db | 1 | 2 |  2 | 6144Mi | 6144Mi
+ts-web| 1 | 500m |  2 | 2048Mi | 2048Mi
+search-app-master | 1 | 500m |  2 | 4096Mi | 4096Mi
+search-app-repeater ( live ) | 1 | 500m |  2 | 4096Mi | 4096Mi
+search-app-slave ( live ) | 1 | 500m |  2 | 4096Mi | 4096Mi
+crs-app | 1 | 500m |  2 | 4096Mi | 4096Mi
+xc-app | 1 | 500m |  2 | 4096Mi | 4096Mi
+tooling-web | 1 | 500m | 2 | 2048Mi | 2048Mi
+store-web | 1 | 500m | 2 | 2048Mi | 2048Mi
+nifi-app | 1 | 500m | 2 | 10240Mi | 10240Mi
+registry-app | 1 | 500m | 2 | 2048Mi | 2048Mi
+ingest-app | 1 | 500m | 2 | 4096Mi | 4096Mi
+query-app | 1 | 500m | 2 | 4096Mi | 4096Mi
 cache-app | 1 | 500m | 2 | 2048Mi | 2048Mi
 graphql-app | 1 | 500m | 2 | 2048Mi | 2048Mi
-mustgather-app | 1 | 500m | 1 | 2048Mi | 4096Mi
-ts-utils | 1 | 500m | 2 | 2048Mi | 4096Mi
+mustgather-app | 1 | 500m | 1 | 4096Mi | 4096Mi
+ts-utils | 1 | 500m | 2 | 4096Mi | 4096Mi
+approval-app | 1 | 500m | 2 | 2048Mi | 2048Mi
 
 
 Note: Ensure that you have sufficient resources available on your worker nodes to support the HCL Commerce Version 9 deployment.
@@ -162,7 +163,7 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `common.searchEngine`        |   Search type \[solr \| elastic\] | `elastic` |
 | `common.imageRepo`      |   docker image registry             | `my-docker-registry.io:5000/`
 | `common.spiUserName`          |  spiuser name for Commerce                     | `spiuser`                                                    |
-| `common.spiUserPwdAes`        |  spiuser name password by encrypted with AES by wc_encrypt.sh. default plain text password is `QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi`. With the default key, `eNdqdvMAUGRUbiuqadvrQfMELjNScudSp5CBWQ8L6aw` could be the sample value to match with the sample db2 container| `nil` |
+| `common.spiUserPwdAes`        |  spiuser name password by encrypted with AES by wc_encrypt.sh. default plain text password is `QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi`. With the default key, `cSG7n0iFVpt+Az2JUKeJQJGOXfDkZUUpIYCS1hJXL9hYK3yaSQ2ssVCoz/SKoaCH3g+g+9FGcLejkI/KpJLI5Q==` could be the sample value to match with the sample db2 container| `nil` |
 | `common.spiUserPwdBase64`        | Base64 encoded value for `<spiuser>:<password>`. default plain text password is QxV7uCk6RRiwvPVaa4wdD78jaHi2za8ssjneNMdu3vgqi out of the box, and `c3BpdXNlcjpReFY3dUNrNlJSaXd2UFZhYTR3ZEQ3OGphSGkyemE4c3NqbmVOTWR1M3ZncWk=` as base64 encrypted value. This value can be obtained by running `echo -n <spiuser>:<password> \| base64`| `nil`
 | `common.vaultUrl`        |  vault v1 api url | `http://vault-consul.vault.svc.cluster.local:8200/v1` (assuming hcl-commerce-vaultconsul-helmchart is used to deploy vault in vault namespace)
 | `common.externalDomain`        | External Domain use to specify the service external domain name| `.mycompany.com`
@@ -178,7 +179,10 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `backwardCompatibility.selector`        |  pod selector labels defined in the existing deployment. This is required when you deployed Commerce using a different chart previously and want to use this chart to upgrade.  | `empty map`
 | `hclCache.configMap`        |  config map for hcl cache definition  | see [values.yaml](./values.yaml) file for the default configuration
 | `ingress.enabled`        |  ingress enablement. Make it disabled for SoFy deployment | `true`
-| `ingress.ingressController`        |  ingress controller \[nginx \| gke \| ambassador \]. Set it to "gke" when deploying on GKE with http(s) load balancing server as ingress controller. | `nginx`
+| `ingress.ingressController`        |  ingress controller \[nginx \| gke \| emissary \| ambassador \]. Set it to "gke" when deploying on GKE with http(s) load balancing server as ingress controller. | `nginx`
+| `ingress.enableToolingForReactStore`        |  this needs to be set to true when you are planning to allow sapphire store to launch B2B approval tooling. | `true`
+| `ingress.enableManageApprovalPage`        |  this flag is able to enable the manage approval page for marketplace approval service, set to false by default for security. | `false`
+| `ingress.emissaryIdsList`        |  ambassador ids list specifications for the emissary listener | nil
 | `ingress.ingressSecret.autoCreate`        |  specify if need helm pre-install auto create ingress certification secret| `true`
 | `ingress.ingressSecret.replaceExist`        |  specify if need to force replace exist ingress certification secret when deploy | `true`
 | `vaultCA.enabled`        |  enable VaultCA configuration mode | `true`
@@ -187,6 +191,8 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `metrics.serviceMonitor.interval`        |  interval to let prometheus to hit HCL Commerce for service monitoring | `15s`
 | `metrics.serviceMonitor.selector`        | labels for prometheus to match for service monitoring | see [values.yaml](./values.yaml) file for the default configuration
 | `dx.enabled`        |  enable dx related configurations for HCL Commerce | `true`
+| `dx.serviceName.auth`        |  auth dx routing service name | nil
+| `dx.serviceName.live`        |  live dx routing service name | nil
 | `dx.namespace.auth`        |  dx auth environment namespace, note this should be in the same cluster as commerce | nil
 | `dx.namespace.live`        |  dx live environment namespace, note this should be in the same cluster as commerce | nil
 | `searchIndexCreation`        |  detailed configuration for search index job  | see [values.yaml](./values.yaml) file for default configuration
@@ -218,6 +224,7 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `queryApp`        |  detailed configuration for queryApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `mustgatherApp`        |  detailed configuration for mustgatherApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `tsUtils`        |  detailed configuration for tsUtils deployment  | see [values.yaml](./values.yaml) file for default configuration
+| `approvalApp`        |  detailed configuration for approvalApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `supportC.image`        |  supportcontainer docker image for initial container and helm pre-install / post-delete  | `commerce/supportcontainer`
 | `supportC.tag`        |  supportcontainer docker tag  | `v9-latest`
 | `test.image`        |  test docker image for helm test  | `docker.io/centos:latest`
@@ -251,7 +258,7 @@ The docker registry repository with `<docker_registry_domain>[:port]/` format
 The SPI user name used for basic authentication with server to server communication. `spiuser` is the default value comes out of the box.
 
 #### common.spiUserPwdAes
-The AES encrypted value of the spiuser password. `eNdqdvMAUGRUbiuqadvrQfMELjNScudSp5CBWQ8L6aw` can be used to match the value configured in the sample db2 container. This value can be obtained by running wcs_encrypt.sh utility from utility container. Visit [Setting the spiuser password](https://help.hcltechsw.com/commerce/9.1.0/install/tasks/tiginstall_definespi.html) to find more details.
+The AES encrypted value of the spiuser password. `cSG7n0iFVpt+Az2JUKeJQJGOXfDkZUUpIYCS1hJXL9hYK3yaSQ2ssVCoz/SKoaCH3g+g+9FGcLejkI/KpJLI5Q==` can be used to match the value configured in the sample db2 container. This value can be obtained by running wcs_encrypt.sh utility from utility container. Visit [Setting the spiuser password](https://help.hcltechsw.com/commerce/9.1.0/install/tasks/tiginstall_definespi.html) to find more details.
 
 #### common.spiUserPwdBase64
 Base64 encoded value for `<spiuser>:<password>`. This value can be obtained by running `echo -n <spiuser>:<password> | base64`

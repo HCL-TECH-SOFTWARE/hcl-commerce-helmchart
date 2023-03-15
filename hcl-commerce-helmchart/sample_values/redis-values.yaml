@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy bitnami redis helm chart 
 # for HCL Commerce
-#   - chart version: 16.12.0
-#   - redis app version: 6.2.7
+#   - chart version: 17.1.5
+#   - redis app version: 7.0.4
 # 
 # To Deploy redis using this sample values
 # 1. Create a namespace
@@ -10,14 +10,14 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy Redis using this override values
-#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "16.12.0"
+#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "17.1.5"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/a1aa868e3e1f5607a56b1f895f0c39548c4d8873/bitnami/redis/values.yaml
+#   https://github.com/bitnami/charts/blob/e9081af51813fa0fc59f5a3e0d7bbc68c11ce71e/bitnami/redis/values.yaml
 #
 # To get more information related to this version of redis helm chart, please visit
-#   https://github.com/bitnami/charts/blob/a1aa868e3e1f5607a56b1f895f0c39548c4d8873/bitnami/redis/README.md
+#   https://github.com/bitnami/charts/blob/e9081af51813fa0fc59f5a3e0d7bbc68c11ce71e/bitnami/redis/README.md
 ##
 architecture: standalone
 fullnameOverride: "hcl-commerce-redis"
@@ -26,23 +26,30 @@ replica:
 image:
   registry: docker.io
   repository: bitnami/redis
-  tag: 6.2.7-debian-10-r23
+  tag: 7.0.4-debian-11-r17
   pullPolicy: IfNotPresent
 auth:
   enabled: false
+serviceAccount:
+  create: false
+  name: "default"
 master:
   disableCommands: []
   persistence:
     enabled: false
+  ## @param master.nodeSelector Node labels for Redis&reg; master pods assignment
+  ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
   resources:
     limits:
       cpu: 2000m
       memory: 4Gi
     requests:
       cpu: 500m
-      memory: 2Gi
+      memory: 4Gi
   configuration: |-
     appendonly no
     save ""
-    maxmemory 1000mb
+    maxmemory 3000mb
     maxmemory-policy volatile-lru

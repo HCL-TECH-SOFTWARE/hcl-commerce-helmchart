@@ -44,6 +44,40 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
   bypass_auth: true
 ---
+{{- if $.Values.approvalApp.enabled }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-cmc-domain-approval-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /approvals
+  rewrite: /approvals
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
+  bypass_auth: true
+---
+{{- if not $.Values.ingress.enableManageApprovalPage }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-cmc-domain-manage-approval-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /approvals/manage-approval
+  rewrite: /approvals/manage-approval
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

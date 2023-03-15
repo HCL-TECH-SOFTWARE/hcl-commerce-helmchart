@@ -149,18 +149,30 @@ spec:
         - containerPort: 30400
           name: port30400
           protocol: TCP
-        livenessProbe:
+        startupProbe:
           httpGet:
             path: /nifi-registry-api/config
             port: 30400
             scheme: HTTP
-          initialDelaySeconds: 240
-          timeoutSeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 48
         readinessProbe:
           httpGet:
             path: /nifi-registry-api/config
             port: 30400
             scheme: HTTP
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /nifi-registry-api/config
+            port: 30400
+            scheme: HTTP
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 15
         securityContext:
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false

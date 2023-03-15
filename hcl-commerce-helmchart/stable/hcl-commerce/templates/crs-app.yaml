@@ -283,17 +283,23 @@ spec:
           name: port8443
         - containerPort: 8080
           name: port8080
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8443
+            scheme: HTTPS
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
         livenessProbe:
           httpGet:
             path: /
             port: 8443
             scheme: HTTPS
           initialDelaySeconds: 240
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8443
-            scheme: HTTPS
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 15
         securityContext:
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false

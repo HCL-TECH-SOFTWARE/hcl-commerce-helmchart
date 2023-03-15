@@ -420,13 +420,17 @@ spec:
             scheme: HTTPS
           initialDelaySeconds: 300
           periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 6
         livenessProbe:
           httpGet:
             path: /monitor/ping
             port: 5280
             scheme: HTTP
           initialDelaySeconds: {{ default 600 $.Values.tsApp.livenessProbe.initialDelaySeconds }}
-          timeoutSeconds: 300
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 15
         securityContext:
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false

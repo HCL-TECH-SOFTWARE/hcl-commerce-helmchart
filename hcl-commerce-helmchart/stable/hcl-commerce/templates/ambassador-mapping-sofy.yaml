@@ -129,25 +129,6 @@ spec:
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:
-  name: commerce-{{ $envType }}-store-preview-tooling-mapping
-spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
-  prefix: /tooling/
-  rewrite: /tooling/
-  {{- if eq $envType "auth" }}
-  host: commerce-preview-store\..*
-  {{- else }}
-  host: commerce-live-store\..*
-  {{- end }}
-  host_regex: true
-  case_sensitive: false
-  timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
-  bypass_auth: true
----
-apiVersion: getambassador.io/v2
-kind: Mapping
-metadata:
   name: commerce-{{ $envType }}-cmc-mapping
 spec:
   ambassador_id: {{ $.Values.global.ambassadorID }}
@@ -162,6 +143,26 @@ spec:
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- if $.Values.ingress.enableToolingForReactStore }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-tooling-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /tooling/
+  rewrite: /tooling/
+  {{- if eq $envType "auth" }}
+  host: commerce-preview-store\..*
+  {{- else }}
+  host: commerce-live-store\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v2
@@ -183,6 +184,49 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
   bypass_auth: true
 ---
+{{- end }}
+{{- if $.Values.approvalApp.enabled }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-approval-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /approvals
+  rewrite: /approvals
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
+  bypass_auth: true
+---
+{{- if not $.Values.ingress.enableManageApprovalPage }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-manage-approval-mapping
+spec:
+  ambassador_id: {{ $.Values.global.ambassadorID }}
+  prefix: /approvals/manage-approval
+  rewrite: /approvals/manage-approval
+  {{- if eq $envType "auth" }}
+  host: commerce-preview\..*
+  {{- else }}
+  host: commerce-live\..*
+  {{- end }}
+  host_regex: true
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:

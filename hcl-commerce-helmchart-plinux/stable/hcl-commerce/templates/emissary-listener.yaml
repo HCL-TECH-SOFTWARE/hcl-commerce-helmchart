@@ -1,0 +1,39 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") -}}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: emissary-listener-8080
+spec:
+  {{- if .Values.ingress.emissaryIdsList }}
+  ambassador_id:
+{{ toYaml .Values.ingress.emissaryIdsList | indent 4 }}
+  {{- else if .Values.global.emissaryID }}
+  ambassador_id: [ '{{ .Values.global.emissaryID }}' ]
+  {{- end }}
+  port: 8080
+  protocol: HTTP
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: ALL
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Listener
+metadata:
+  name: emissary-listener-8443
+spec:
+  {{- if .Values.ingress.emissaryIdsList }}
+  ambassador_id:
+{{ toYaml .Values.ingress.emissaryIdsList | indent 4 }}
+  {{- else if .Values.global.emissaryID }}
+  ambassador_id: [ '{{ .Values.global.emissaryID }}' ]
+  {{- end }}
+  port: 8443
+  protocol: HTTPS
+  securityModel: XFP
+  hostBinding:
+    namespace:
+      from: ALL
+---
+{{- end }}

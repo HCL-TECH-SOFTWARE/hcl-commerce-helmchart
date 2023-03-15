@@ -1,0 +1,34 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.ingress.enabled) (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (eq .Values.ingress.ingressController "emissary") }}
+{{- $ingress_conf := $.Values.ingress.mustgather }}
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: commerce-mustgather-host
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  acmeProvider:
+    authority: none
+  tlsSecret:
+    name: {{ default (printf "%s%sshare-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-mustgather-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}commerce-mustgather:42021
+  bypass_auth: true
+---
+{{- end }}

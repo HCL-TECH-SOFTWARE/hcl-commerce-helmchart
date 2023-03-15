@@ -26,6 +26,10 @@ image:
 fullnameOverride: "hcl-commerce-zookeeper"
 replicaCount: 1
 maxClientCnxns: 120
+## @param nodeSelector Node labels for pod assignment
+## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
 resources:
   requests:
     cpu: 250m

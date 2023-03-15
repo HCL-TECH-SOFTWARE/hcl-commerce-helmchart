@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy ppc64le elasticsearch service using elasticsearch helm chart 
 # for HCL Commerce
-#   - chart version: 7.12.0
-#   - elasticsearch app version: v7.8.0
+#   - chart version: 7.17.3
+#   - elasticsearch app version: 7.17.3
 # 
 # To Deploy ppc64le elasticsearch using this sample values
 # 1. Create a namespace
@@ -10,21 +10,22 @@
 # 2. Add helm repo
 #    helm repo add elastic https://helm.elastic.co
 # 3. Deploy elasticsearch using this override values
-#    helm install elasticsearch elastic/elasticsearch -n elastic -f elasticsearch-values.yaml --version "7.12.0"
+#    helm install elasticsearch elastic/elasticsearch -n elastic -f elasticsearch-values.yaml --version "7.17.3"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/elastic/helm-charts/blob/v7.12.0/elasticsearch/values.yaml
+#   https://github.com/elastic/helm-charts/blob/v7.17.3/elasticsearch/values.yaml
 #
 # To get more information related to this version of elasticsearch helm chart, please visit
-#   https://github.com/elastic/helm-charts/blob/v7.12.0/elasticsearch/README.md
+#   https://github.com/elastic/helm-charts/blob/v7.17.3/elasticsearch/README.md
 ##
 fullnameOverride: "hcl-commerce-elasticsearch"
-image: "ibmcom/elasticsearch-ppc64le"
-imageTag: "v7.8.0"
+image: "icr.io/ppc64le-oss/elasticsearch-ppc64le"
+imageTag: "7.17.3"
 replicas: 1
 minimumMasterNodes: 1
 esJavaOpts: "-Xmx6g -Xms6g"
+nodeSelector: {}
 resources:
   requests:
     cpu: "1000m"
@@ -38,3 +39,4 @@ esConfig:
     xpack.monitoring.collection.enabled: true
     xpack.ml.enabled: false
     bootstrap.system_call_filter: false
+    http.max_content_length: 1000mb

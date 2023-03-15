@@ -23,7 +23,9 @@ spec:
   type: NodePort
   ports:
   - port: 50000
-    name: http-dbport
+    name: dbport50000
+  - port: 50001
+    name: dbport50001
   selector:
     component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db
 {{- end }}

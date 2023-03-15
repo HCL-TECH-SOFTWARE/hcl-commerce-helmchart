@@ -1,0 +1,33 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (has "share" $envTypeList) (.Values.approvalApp.enabled) }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 2022
+######################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.approvalApp.name}}
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.approvalApp.name}}
+    group: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    cloud.google.com/app-protocols: '{"https-port6643":"HTTPS","http-port6680":"HTTP"}'
+spec:
+  type: NodePort
+  ports:
+  - port: 6680
+    name: http-port6680
+  - port: 6643
+    name: https-port6643
+  selector:
+    component: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.approvalApp.name}}
+{{- end -}}

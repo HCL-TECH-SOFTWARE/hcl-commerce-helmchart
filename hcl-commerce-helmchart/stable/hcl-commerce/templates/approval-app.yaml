@@ -1,0 +1,236 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (has "share" $envTypeList) (.Values.approvalApp.enabled) }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 2022
+######################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  name: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.approvalApp.name}}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      chart: {{ .Chart.Name }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+      component: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.approvalApp.name}}
+      group: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}
+  replicas: {{ .Values.approvalApp.replica }}
+  template:
+    metadata:
+      annotations:
+        productName: "HCL Commerce"
+        productVersion: {{ .Values.common.productVersion | quote }}
+      labels:
+        app: HCL-Commerce
+        chart: {{ .Chart.Name }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+        component: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.approvalApp.name}}
+        group: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      {{- if .Values.approvalApp.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.approvalApp.nodeSelector | indent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+           {{- if .Values.approvalApp.nodeLabel }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: wc-node-select-flag
+                  operator: In
+                  values:
+                  - {{ .Values.approvalApp.nodeLabel }}
+           {{- else }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityRequiredDuringScheduling" . | indent 8 }}
+           {{- end }}
+           preferredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityPreferredDuringScheduling" . | indent 8 }}
+      {{- include "approvalapp-podAntiAffinity" . | indent 6 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ .Values.common.serviceAccountName | default (printf "%s-commerce" .Release.Name) }}
+      volumes:
+      - name: logs-sharing
+        emptyDir: {}
+      - name: approval-boot-config-secret
+        secret:
+          {{- if .Values.approvalApp.bootConfig.existingSecret }}
+          secretName: {{ .Values.approvalApp.bootConfig.existingSecret }}
+          {{- else }}
+          secretName: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.approvalApp.name}}-secret
+          {{- end }}
+      {{- if or .Values.vaultconsul.enabled .Values.postgresql.enabled }}
+      initContainers:
+      {{- end }}
+      {{- if $.Values.vaultconsul.enabled }}
+      - name: vault-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+      {{- end }}
+      {{- if $.Values.postgresql.enabled }}
+      - name: postgresql-readiness-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','postgresql','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','120','-timeout','10','-pod_name_pattern','{{ $.Values.postgresql.fullnameOverride }}-0','-container_name','postgresql']
+      {{- end }}
+      {{- if include "image.pull.secret" $ }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" $ }}
+      {{- end }}
+      containers:
+      - name: approval-app
+        image: "{{ include "image.repo" . }}{{ .Values.approvalApp.image }}:{{ .Values.approvalApp.tag }}"
+        {{- if .Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ .Values.common.imagePullPolicy }}
+        {{- end }}
+        resources:
+{{ toYaml .Values.approvalApp.resources | indent 12 }}
+        env:
+        - name: "LICENSE"
+          value: {{ .Values.license | quote }}
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
+        - name: "CONFIGURE_MODE"
+          value: {{ .Values.common.configureMode | quote }}
+        - name: "ENVIRONMENT"
+          value: {{ .Values.common.environmentName | quote }}
+        - name: "TENANT"
+          value: {{ .Values.common.tenant | quote }}
+        {{- if $.Values.logging.jsonLogging.enabled }}
+        - name: "ENABLE_JSON_LOGGING"
+          value: "true"
+        {{- end }}
+        - name: "DOMAIN_NAME"
+          value: "{{ .Release.Namespace }}.svc.cluster.local"
+        {{- if $.Values.global.sofySolutionContext }}
+        - name: "EXTERNAL_DOMAIN_NAME"
+        {{- if $.Values.global.domain }}
+          value: {{ $.Values.global.domain }}
+        {{- else }}
+          valueFrom:
+              configMapKeyRef:
+                name: {{ $.Release.Name }}-domain
+                key: HOST
+        {{- end }}
+        - name: "AUTH_STORE_ORIGIN"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME):443"
+        - name: "AUTH_TOOLING_ORIGIN"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "LIVE_STORE_ORIGIN"
+          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME):443"
+        - name: "LIVE_TOOLING_ORIGIN"
+          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+        {{- else }} # not sofy
+        - name: "EXTERNAL_DOMAIN_NAME"
+          value: "{{ $.Values.common.externalDomain }}"
+        {{- end }}
+        - name: "SPIUSER_NAME"
+          value: {{ $.Values.common.spiUserName | quote }}
+        - name: "SPIUSER_PWD"
+          value: {{ $.Values.common.spiUserPwdAes | quote }}
+        - name: "VAULT_CA"
+          value: {{ .Values.vaultCA.enabled | quote }}
+        {{- if (or (eq .Values.common.configureMode "Vault") .Values.vaultCA.enabled) }}
+        - name: "VAULT_URL"
+          value: {{ .Values.common.vaultUrl | quote  }}
+        {{- if .Values.common.vaultTokenSecret }}
+        - name: "VAULT_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.common.vaultTokenSecret }}
+              key: VAULT_TOKEN
+        {{- end }}
+        {{- end }}
+        {{- if $.Values.common.ipv6Enabled }}
+        - name: "IPV6_ENABLED"
+          value: "true"
+        {{- end }}
+{{- if .Values.approvalApp.envParameters }}
+     {{- range $key, $value := .Values.approvalApp.envParameters }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+     {{- end }}
+{{- end }}
+        ports:
+        - containerPort: 6680
+          name: port6680
+          protocol: TCP
+        - containerPort: 6643
+          name: port6643
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /approvals/manage-approval/health/ping
+            port: 6643
+            scheme: HTTPS
+          timeoutSeconds: 5
+          periodSeconds: 10
+          initialDelaySeconds: 180
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /approvals/manage-approval/health/ping
+            port: 6643
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 5
+        securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+        volumeMounts:
+        - name: logs-sharing
+          mountPath: /SETUP/app/logs
+        - name: approval-boot-config-secret
+          mountPath: /SETUP/boot-config/
+{{- end }}
+
