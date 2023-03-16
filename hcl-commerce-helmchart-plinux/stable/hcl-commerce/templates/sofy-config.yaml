@@ -19,7 +19,316 @@ data:
           }
         },
         "flexnetFeatures": [ "Comm_orderlines" ],
+        "links":[
+            {{- if has "auth" $envTypeList -}}
+            {
+                "displayName": "Emerald (B2C) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/Emerald?storeId=11",
+                "subdomain": "commerce-preview"
+            },
+            {
+                "displayName": "Sapphire (B2B) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/Sapphire",
+                "subdomain": "commerce-preview"
+            },
+            {
+                "displayName": "EmeraldMP (B2C Marketplace) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/Emerald?storeId=31",
+                "subdomain": "commerce-preview"
+            },
+            {
+                "displayName": "Management Center",
+                "type": "ui",
+                "static": false,
+                "path": "/lobtools/cmc/ManagementCenterMain?locale=en_US",
+                "subdomain": "commerce-preview",
+                "credentials": [
+                    {
+                        "username": "wcsadmin",
+                        "password": "wcs1admin"
+                    }
+                ]
+            },
+            {
+                "displayName": "Customer Service Hub",
+                "type": "ui",
+                "static": false,
+                "path": "/csr",
+                "subdomain": "commerce-preview",
+                "credentials": [
+                    {
+                        "username": "wcsadmin",
+                        "password": "wcs1admin"
+                    }
+                ]
+            },
+            {
+                "displayName": "Store Query REST",
+                "type": "openapiui",
+                "static": false,
+                "path": "/search/resources/swagger-ui.html#/",
+                "subdomain": "commerce-preview"
+            },
+            {
+                "displayName": "Store Transaction Service REST API context root",
+                "type": "apiroot",
+                "static": false,
+                "path": "/wcs/resources/",
+                "subdomain": "commerce-preview"
+            },
+            {{- if $.Values.crsApp.enabled }}
+            {
+                "displayName": "Aurora B2C Store",
+                "type": "ui",
+                "static": false,
+                "path": "/wcs/shop/en/auroraesite",
+                "subdomain": "commerce-preview-crs"
+            },
+            {
+                "displayName": "Aurora B2B Store",
+                "type": "ui",
+                "static": false,
+                "path": "/wcs/shop/en/aurorab2besite",
+                "subdomain": "commerce-preview-crs"
+            },
+            {{- end }}
+            {{- if $.Values.cacheApp.enabled }}
+            {
+                "displayName": "Cache Manager REST",
+                "type": "openapiui",
+                "static": false,
+                "path": "/openapi/ui/#/",
+                "subdomain": "commerce-preview-cache"
+            },
+            {{- end }}
+            {{- if $.Values.graphqlApp.enabled }}
+            {
+                "displayName": "GraphQL REST",
+                "type": "openapiui",
+                "static": false,
+                "path": "/graphql",
+                "subdomain": "commerce-preview-graphql"
+            },
+            {{- end }}
+            {{- end -}}
+            {{- if has "live" $envTypeList -}}
+            {
+                "displayName": "Live Emerald (B2C) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/Emerald?storeId=11",
+                "subdomain": "commerce-live"
+            },
+            {
+                "displayName": "Live Sapphire (B2B) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/Sapphire",
+                "subdomain": "commerce-live"
+            },
+            {
+                "displayName": "Live EmeraldMP (B2C Marketplace) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/Emerald?storeId=3",
+                "subdomain": "commerce-live"
+            },
+            {
+                "displayName": "Live Management Center",
+                "type": "ui",
+                "static": false,
+                "path": "/lobtools/cmc/ManagementCenterMain?locale=en_US",
+                "subdomain": "commerce-live",
+                "credentials": [
+                    {
+                        "username": "wcsadmin",
+                        "password": "wcs1admin"
+                    }
+                ]
+            },
+            {
+                "displayName": "Live Customer Service Hub",
+                "type": "ui",
+                "static": false,
+                "path": "/csr",
+                "subdomain": "commerce-live",
+                "credentials": [
+                    {
+                        "username": "wcsadmin",
+                        "password": "wcs1admin"
+                    }
+                ]
+            },
+            {
+                "displayName": "Live Store Query REST",
+                "type": "openapiui",
+                "static": false,
+                "path": "/search/resources/swagger-ui.html#/",
+                "subdomain": "commerce-live"
+            },
+            {
+                "displayName": "Live Store Transaction Service REST API context root",
+                "type": "apiroot",
+                "static": false,
+                "path": "/wcs/resources/",
+                "subdomain": "commerce-live"
+            },
+            {{- if $.Values.crsApp.enabled }}
+            {
+                "displayName": "Live Aurora B2C Store",
+                "type": "ui",
+                "static": false,
+                "path": "/wcs/shop/en/auroraesite",
+                "subdomain": "commerce-live-crs"
+            },
+            {
+                "displayName": "Live Aurora B2B Store",
+                "type": "ui",
+                "static": false,
+                "path": "/wcs/shop/en/aurorab2besite",
+                "subdomain": "commerce-live-crs"
+            },
+            {{- end }}
+            {{- if $.Values.cacheApp.enabled }}
+            {
+                "displayName": "Live Cache Manager REST",
+                "type": "openapiui",
+                "static": false,
+                "path": "/openapi/ui/#/,
+                "subdomain": "commerce-live-cache"
+            },
+            {{- end }}
+            {{- if $.Values.graphqlApp.enabled }}
+            {
+                "displayName": "Live GraphQL REST",
+                "type": "openapiui",
+                "static": false,
+                "path": "/graphql",
+                "subdomain": "commerce-live-graphql"
+            },
+            {{- end }}
+            {
+                "displayName": "Live Admin REST API context root",
+                "type": "apiroot",
+                "static": false,
+                "path": "/rest/",
+                "subdomain": "commerce-live"
+            },
+            {{- end -}}
+            {{- if $.Values.ingress.ingest.enabled -}}
+            {
+                "displayName": "Data Ingest Service REST API",
+                "type": "openapiui",
+                "static": false,
+                "path": "/swagger-ui.html#/​",
+                "subdomain": "commerce-data-ingest"
+            },
+            {{- end -}}
+            {{- if $.Values.ingress.nifi.enabled -}}
+            {
+                "displayName": "Data Ingest NiFi UI",
+                "type": "ui",
+                "static": false,
+                "path": "/nifi",
+                "subdomain": "commerce-data-nifi"
+            },
+            {{- end -}}
+            {{- if $.Values.ingress.registry.enabled -}}
+            {
+                "displayName": "Data Ingest NiFi Registry UI",
+                "type": "ui",
+                "static": false,
+                "path": "/nifi-registry",
+                "subdomain": "commerce-data-registry"
+            },
+            {{- end -}}
+            {
+                "displayName": "Data Query REST",
+                "type": "openapiui",
+                "static": false,
+                "path": "/search/resources/swagger-ui.html#/",
+                "subdomain": "commerce-data-query"
+            }
+        ],
         "services": {
+          "{{ .Release.Name }}-commerce-preview": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-preview-crs": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-preview-cache": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-preview-graphql": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-live": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-live-crs": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-live-cache": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-live-graphql": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-data-query": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+          "{{ .Release.Name }}-commerce-data-ingest": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-data-nifi": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },
+            "{{ .Release.Name }}-commerce-data-registry": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute" : "true"
+            },      
+          {{- if has "auth" $envTypeList -}}
+          {{- if .Values.tsDb.enabled }}
+          "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authdb": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute": "true"
+          },
+          {{- end }}
+          "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authts-app": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute": "true"
+          },
+          "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authquery-app": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute": "true"
+          },
+          "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authstore-web": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute": "true"
+          },
+          "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authts-web": {
+              "disableAccessControl" : "true",
+              "disablePublicRoute": "true"
+          },
+          {{- end -}}
             {{- if has "share" $envTypeList }}
             "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}ingest-app": {
                 "disableAccessControl" : "true",
@@ -40,167 +349,49 @@ data:
             "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}tooling-web": {
                 "disableAccessControl" : "true",
                 "disablePublicRoute": "true"
+            },
+            {{- end -}}
+            {{- if .Values.elasticsearch.enabled -}}
+            "{{ .Values.elasticsearch.fullnameOverride }}": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            "{{ .Values.elasticsearch.fullnameOverride }}-headless": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            {{- end -}}
+            {{- if .Values.redis.enabled -}}
+            "{{ .Values.redis.fullnameOverride }}-master": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            "{{ .Values.redis.fullnameOverride }}-headless": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            "{{ .Values.redis.fullnameOverride }}-metrics": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            {{- end -}}
+            {{- if .Values.zookeeper.enabled -}}
+            "{{ .Values.zookeeper.fullnameOverride }}": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            "{{ .Values.zookeeper.fullnameOverride }}-headless": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            {{- end -}}
+            {{- if .Values.vaultconsul.enabled -}}
+            "vault-consul": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
             }
             {{- end -}}
-            {{- if has "auth" $envTypeList -}}
-            ,
-            "{{ .Release.Name }}-commerce-preview": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "ui": {
-                        "Emerald (B2C) Store": "/Emerald?storeId=11",
-                        "Sapphire (B2B) Store": "/Sapphire",
-                        "EmeraldMP (B2C Marketplace) Store": "/Emerald?storeId=31",
-                        "Management Center": {
-                            "endpoint" : "/lobtools/cmc/ManagementCenterMain?locale=en_US",
-                            "DefaultLogin" : {
-                                "username" : "wcsadmin",
-                                "password" : "wcs1admin"
-                            }
-                        },
-                        "Customer Service Hub": {
-                            "endpoint" : "/csr",
-                            "DefaultLogin" : {
-                                "username" : "wcsadmin",
-                                "password" : "wcs1admin"
-                            }
-                        }
-                    },
-                    "openapiui": {
-                        "Store Query REST" : "/search/resources/swagger-ui.html#/"
-                    },
-                    "apiroot": {
-                        "Store Transaction Service REST API context root": "/wcs/resources/",
-                        "Admin REST API context root": "/rest/"
-                    }
-                }
-            },
-            {{- if $.Values.crsApp.enabled }}
-            "{{ .Release.Name }}-commerce-preview-crs": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "ui": {
-                        "Aurora B2C Store": "/wcs/shop/en/auroraesite",
-                        "Aurora B2B Store": "/wcs/shop/en/aurorab2besite"
-                    }
-                }
-            },
-            {{- end }}
-            {{- if $.Values.cacheApp.enabled }}
-            "{{ .Release.Name }}-commerce-preview-cache": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "openapiui": {
-                        "Cache Manager REST" : "/openapi/ui/#/"
-                    }
-                }
-            },
-            {{- end }}
-            {{- if $.Values.graphqlApp.enabled }}
-            "{{ .Release.Name }}-commerce-preview-graphql": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "openapiui": {
-                        "GraphQL REST" : "/graphql"
-                    }
-                }
-            },
-            {{- end }}
-            {{- if .Values.tsDb.enabled }}
-            "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authdb": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            {{- end }}
-            "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authts-app": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authquery-app": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authstore-web": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authts-web": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            {{- end -}}
             {{- if has "live" $envTypeList -}}
-            ,
-            "{{ .Release.Name }}-commerce-live": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "ui": {
-                        "Live Emerald (B2C) Store": "/Emerald?storeId=11",
-                        "Live Sapphire (B2B) Store": "/Sapphire",
-                        "Live EmeraldMP (B2C Marketplace) Store": "/Emerald?storeId=31",
-                        "Live Management Center": {
-                            "endpoint" : "/lobtools/cmc/ManagementCenterMain?locale=en_US",
-                            "DefaultLogin" : {
-                                "username" : "wcsadmin",
-                                "password" : "wcs1admin"
-                            }
-                        },
-                        "Live Customer Service Hub": {
-                            "endpoint" : "/csr",
-                            "DefaultLogin" : {
-                                "username" : "wcsadmin",
-                                "password" : "wcs1admin"
-                            }
-                        }
-                    },
-                    "openapiui": {
-                        "Live Store Query REST" : "/search/resources/swagger-ui.html#/"
-                    },
-                    "apiroot": {
-                        "Live Store Transaction Service REST API context root": "/wcs/resources/",
-                        "Live Admin REST API context root": "/rest/"
-                    }
-                }
-            },
-            {{- if $.Values.crsApp.enabled }}
-            "{{ .Release.Name }}-commerce-live-crs": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "ui": {
-                        "Live Aurora B2C Store": "/wcs/shop/en/auroraesite",
-                        "Live Aurora B2B Store": "/wcs/shop/en/aurorab2besite"
-                    }
-                }
-            },
-            {{- end }}
-            {{- if $.Values.cacheApp.enabled }}
-            "{{ .Release.Name }}-commerce-live-cache": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "openapiui": {
-                        "Live Cache Manager REST" : "/openapi/ui/#/"
-                    }
-                }
-            },
-            {{- end }}
-            {{- if $.Values.graphqlApp.enabled }}
-            "{{ .Release.Name }}-commerce-live-graphql": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "openapiui": {
-                        "Live GraphQL REST" : "/graphql"
-                    }
-                }
-            },
-            {{- end }}
             {{- if .Values.tsDb.enabled }}
             "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}livedb": {
                 "disableAccessControl" : "true",
@@ -220,99 +411,6 @@ data:
                 "disablePublicRoute": "true"
             },
             "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}livets-web": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            {{- end }}
-            "{{ .Release.Name }}-commerce-data-query": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "openapiui": {
-                        "Data Query REST" : "/search/resources/swagger-ui.html#/"
-                    }
-                }
-            }
-            {{- if $.Values.ingress.ingest.enabled -}}
-            ,
-            "{{ .Release.Name }}-commerce-data-ingest": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "openapiui": {
-                        "Data Ingest Service REST API" : "/swagger-ui.html#/​"
-                    }
-                }
-            }
-            {{- end -}}
-            {{- if $.Values.ingress.nifi.enabled -}}
-            ,
-            "{{ .Release.Name }}-commerce-data-nifi": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "ui": {
-                        "Data Ingest NiFi UI": {
-                            "endpoint" : "/nifi"
-                        }
-                    }
-                }
-            }
-            {{- end -}}
-            {{- if $.Values.ingress.registry.enabled -}}
-            ,
-            "{{ .Release.Name }}-commerce-data-registry": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute" : "true",
-                "contextRoots": {
-                    "ui": {
-                        "Data Ingest NiFi Registry UI": {
-                            "endpoint" : "/nifi-registry"
-                        }
-                    }
-                }
-            }
-            {{- end -}}
-            {{- if .Values.elasticsearch.enabled -}}
-            ,
-            "{{ .Values.elasticsearch.fullnameOverride }}": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            "{{ .Values.elasticsearch.fullnameOverride }}-headless": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            }
-            {{- end -}}
-            {{- if .Values.redis.enabled -}}
-            ,
-            "{{ .Values.redis.fullnameOverride }}-master": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            "{{ .Values.redis.fullnameOverride }}-headless": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            "{{ .Values.redis.fullnameOverride }}-metrics": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            }
-            {{- end -}}
-            {{- if .Values.zookeeper.enabled -}}
-            ,
-            "{{ .Values.zookeeper.fullnameOverride }}": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            },
-            "{{ .Values.zookeeper.fullnameOverride }}-headless": {
-                "disableAccessControl" : "true",
-                "disablePublicRoute": "true"
-            }
-            {{- end -}}
-            {{- if .Values.vaultconsul.enabled -}}
-            ,
-            "vault-consul": {
                 "disableAccessControl" : "true",
                 "disablePublicRoute": "true"
             }

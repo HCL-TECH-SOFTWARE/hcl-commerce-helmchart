@@ -155,10 +155,6 @@ spec:
         {{- end }}
         - name: "VAULT_CA"
           value: {{ $.Values.vaultCA.enabled | quote }}
-        - name: "SPIUSER_NAME"
-          value: {{ $.Values.common.spiUserName | quote}}
-        - name: "SPIUSER_PWD"
-          value: {{ $.Values.common.spiUserPwdAes | quote}}
         {{- if $.Values.common.ipv6Enabled }}
         - name: "IPV6_ENABLED"
           value: "true"
@@ -187,16 +183,30 @@ spec:
         - containerPort: 40901
           name: port40901
           protocol: TCP
+        startupProbe:
+          httpGet:
+            path: /cm/cache/health-check
+            port: 40901
+            scheme: HTTPS
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 24
+        readinessProbe:
+          httpGet:
+            path: /cm/cache/health-check
+            port: 40901
+            scheme: HTTPS
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
         livenessProbe:
           httpGet:
             path: /cm/cache/health-check
             port: 40901
             scheme: HTTPS
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          failureThreshold: 3
-          successThreshold: 1
+          periodSeconds: 10
           timeoutSeconds: 10
+          failureThreshold: 15
         securityContext:
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false

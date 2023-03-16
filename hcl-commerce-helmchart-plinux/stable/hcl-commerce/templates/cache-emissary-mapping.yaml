@@ -1,0 +1,44 @@
+{{- $cfg_ext := tpl $.Values.hclCache.configMap.cache_cfg_ext $ | fromYaml }}
+{{- if and (.Values.ingress.enabled) ($.Values.cacheApp.enabled) ($cfg_ext.redis.enabled) (eq .Values.ingress.ingressController "emissary") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.cache.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.cache.live }}
+{{- end }}
+{{- if $ingress_conf.enabled }}
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: commerce-{{ $envType }}-cache-domain-host
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  acmeProvider:
+    authority: none
+  tlsSecret:
+    name: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-cache-domain-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}cache-app:40901
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

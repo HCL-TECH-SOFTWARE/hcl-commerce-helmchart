@@ -1,0 +1,30 @@
+{{- if and .Values.common.enableIngress (eq .Values.common.ingressController "emissary")}}
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: vault-domain-host
+spec:
+  {{- if .Values.global.emissaryID }}
+  ambassador_id: [ '{{ .Values.global.emissaryID }}' ]
+  {{- end }}
+  hostname: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
+  acmeProvider:
+    authority: none
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: vault-domain-mapping
+spec:
+  {{- if .Values.global.emissaryID }}
+  ambassador_id: [ '{{ .Values.global.emissaryID }}' ]
+  {{- end }}
+  prefix: /
+  hostname: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: http://vault-consul:8200
+  bypass_auth: true
+---
+{{- end }}

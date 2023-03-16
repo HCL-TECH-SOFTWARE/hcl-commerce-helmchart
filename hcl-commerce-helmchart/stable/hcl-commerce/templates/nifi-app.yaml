@@ -280,18 +280,30 @@ spec:
         - containerPort: 30700
           name: port30700
           protocol: TCP
-        livenessProbe:
+        startupProbe:
           httpGet:
             path: /
             port: 30600
             scheme: HTTP
-          initialDelaySeconds: 600
-          timeoutSeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 120
         readinessProbe:
           httpGet:
             path: /
             port: 30600
             scheme: HTTP
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 30600
+            scheme: HTTP
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 15
         securityContext:
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false

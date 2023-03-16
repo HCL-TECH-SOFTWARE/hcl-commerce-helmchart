@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (.Values.openshiftDeployment.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (.Values.openshiftDeployment.enabled) (eq $.Values.common.searchEngine "solr") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}

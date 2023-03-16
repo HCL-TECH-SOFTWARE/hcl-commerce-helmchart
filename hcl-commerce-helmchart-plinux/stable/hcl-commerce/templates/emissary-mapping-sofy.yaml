@@ -122,24 +122,6 @@ spec:
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
-  name: commerce-{{ $envType }}-store-preview-tooling-mapping
-spec:
-  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
-  prefix: /tooling/
-  rewrite: /tooling/
-  {{- if eq $envType "auth" }}
-  hostname: commerce-preview-store.*
-  {{- else }}
-  hostname: commerce-live-store.*
-  {{- end }}
-  case_sensitive: false
-  timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
-  bypass_auth: true
----
-apiVersion: getambassador.io/v3alpha1
-kind: Mapping
-metadata:
   name: commerce-{{ $envType }}-cmc-mapping
 spec:
   ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
@@ -153,6 +135,25 @@ spec:
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- if $.Values.ingress.enableToolingForReactStore }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-store-preview-tooling-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /tooling/
+  rewrite: /tooling/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview-store.*
+  {{- else }}
+  hostname: commerce-live-store.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v3alpha1
@@ -173,6 +174,47 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
   bypass_auth: true
 ---
+{{- end }}
+{{- if $.Values.approvalApp.enabled }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-approval-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /approvals
+  rewrite: /approvals
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview.*
+  {{- else }}
+  hostname: commerce-live.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
+  bypass_auth: true
+---
+{{- if not $.Values.ingress.enableManageApprovalPage }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-manage-approval-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /approvals/manage-approval
+  rewrite: /approvals/manage-approval
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview.*
+  {{- else }}
+  hostname: commerce-live.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
@@ -427,6 +469,46 @@ spec:
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}crs-app:8443
+---
+{{- end }}
+
+{{- if $.Values.common.localStoreEnabled }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-localstore-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  bypass_auth: true
+  prefix: /webapp/
+  rewrite: /webapp/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview-localstore.*
+  {{- else }}
+  hostname: commerce-live-localstore.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 60000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:443
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-localstore-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  bypass_auth: true
+  prefix: /wcsstore/
+  rewrite: /wcsstore/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview-localstore.*
+  {{- else }}
+  hostname: commerce-live-localstore.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 60000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:443
 ---
 {{- end }}
 

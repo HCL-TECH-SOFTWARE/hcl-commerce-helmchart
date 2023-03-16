@@ -24,7 +24,7 @@
     #valid operators: In, NotIn, Exists, DoesNotExist, Gt, Lt
       nodeSelectorTerms:
       - matchExpressions:
-        - key: beta.kubernetes.io/arch
+        - key: kubernetes.io/arch
           operator: In
           values:
         {{- range $key, $val := .Values.arch }}
@@ -40,7 +40,7 @@
     - weight: {{ $val | trunc 1 | int }}
       preference:
         matchExpressions:
-        - key: beta.kubernetes.io/arch
+        - key: kubernetes.io/arch
           operator: In
           values:
           - {{ $key }}
@@ -286,5 +286,20 @@
               operator: In
               values:
               - {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{ .envType }}{{.Values.graphqlApp.name}}
+          topologyKey: kubernetes.io/hostname
+{{- end }}
+
+{{- define "approvalapp-podAntiAffinity" }}
+#https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  podAntiAffinity:
+     preferredDuringSchedulingIgnoredDuringExecution:
+     - weight: 100
+       podAffinityTerm: 
+          labelSelector:
+            matchExpressions:
+            - key: component
+              operator: In
+              values:
+              - {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.approvalApp.name}}
           topologyKey: kubernetes.io/hostname
 {{- end }}

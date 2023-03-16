@@ -12,7 +12,9 @@ global:
 
   # ambassador id and domain
   ambassadorID: 
-  domain: 
+  domain:
+  # emissary id 
+  emissaryID:
 
 ## Common configuration for all component docker 
 common:
@@ -35,10 +37,11 @@ common:
   commerceNameSpaces:
     - commerce
   
-  ## ingress controller [nginx,gke,ambassador]
+  ## ingress controller [nginx,gke,ambassador,emissary]
   ##   nginx - nginx ingress controller
   ##   gke - cloud load balancing using HTTP(S) Load Balancer in GKE
   ##   ambassador - ambassador API gateway
+  ##   emissary - emissary API gateway (Ambassador is incompatible starting with Kubernetes 1.22 and must be migrated to Emissary)
   ingressController: nginx
 
   ## use 'extensions/v1beta1' for kubernetes between 1.16 and 1.19 (exclusive)
@@ -57,16 +60,16 @@ vaultConsul:
   imageRepo: docker.io/
 
   ## plinux image repo
-  #imageRepo: docker.io/ibmcom/
+  #imageRepo: icr.io/ppc64le-oss/
 
   ## vault docker image name
   vaultImageName: vault
   ## vault docker image tag
-  vaultImageTag: 1.9.1
+  vaultImageTag: 1.9.9
 
   ## plinux vault image name and tag
   #vaultImageName: vault-ppc64le
-  #vaultImageTag: 1.5.3-ubi8
+  #vaultImageTag: v1.9.9
   
   ## Vault resources
   vaultResources:
@@ -207,6 +210,8 @@ vaultConsul:
         redisPort: 6379
         searchDataQueryBaseUrl: 'https://query.demodev.{{ include "external.domain" $ }}'
         nlpEnableLanguageCode: "en"
+        deploymentType: "development"
+        sessionKeyEncrypt: 4knZgrqtE6ukU79414EIZIBcrgyZM8SBZZIC2nugW/7ntRBCM3bS9TVwdHmIB1ZcxVj8/ROwMUFJxcEAQpFGew==
     qa:
       auth:
         dbHost: "demoqaauthdb.commerce.svc.cluster.local"
@@ -249,6 +254,8 @@ vaultConsul:
         redisPort: 6379
         searchDataQueryBaseUrl: 'https://query.demoqa.{{ include "external.domain" $ }}'
         nlpEnableLanguageCode: "en"
+        deploymentType: "development"
+        sessionKeyEncrypt: 4knZgrqtE6ukU79414EIZIBcrgyZM8SBZZIC2nugW/7ntRBCM3bS9TVwdHmIB1ZcxVj8/ROwMUFJxcEAQpFGew==
 
 ## This support container image is required when vaultConsul.externalCA.enabled
 ## and vaultConsul.externalCA.autoCreate are both enabled. Please specify the

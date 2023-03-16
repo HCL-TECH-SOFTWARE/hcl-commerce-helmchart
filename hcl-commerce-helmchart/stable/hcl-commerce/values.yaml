@@ -21,7 +21,7 @@ global:
   persistence:
     rwxStorageClass: ""
     testRWXStorageClass: ""
-  ## [SoFy] Ambassador is incompatible starting with Kubernetes 1.22 and must be migrated to a compatible version of Emissary
+  ## Ambassador is incompatible starting with Kubernetes 1.22 and must be migrated to a compatible version of Emissary
   emissaryID: ""
 
 ## [SoFy] Disable creating public routes for certain services in a Sofy solution
@@ -53,6 +53,10 @@ zookeeper:
   fullnameOverride: "hcl-commerce-zookeeper"
   replicaCount: 1
   maxClientCnxns: 120
+  ## @param nodeSelector Node labels for pod assignment
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
 
 ## The following values are used by the Redis chart.
 ## The provided configurations are for demonstration or non-production environments.
@@ -60,6 +64,10 @@ zookeeper:
 ## Review the following documents for details:
 ## https://github.com/HCL-TECH-SOFTWARE/hcl-commerce-performance/blob/main/HCL-Cache/README.md
 ## https://github.com/HCL-TECH-SOFTWARE/hcl-commerce-performance/blob/main/HCL-Cache/BitnamiRedisInstall.md
+## If you set enabled to true, redis will be deployed to the same namespace as Commerce, 
+## please make sure you update address of redis_cfg under hclCache to point to the correct redis:
+##   address: "redis://hcl-commerce-redis-master.<redis name space>.svc.cluster.local.:6379"
+##   for example:  address: "redis://hcl-commerce-redis-master.commerce.svc.cluster.local.:6379"
 redis:
   enabled: false
   architecture: standalone
@@ -69,14 +77,21 @@ redis:
   image:
     registry: docker.io
     repository: bitnami/redis
-    tag: 6.2.7-debian-10-r23
+    tag: 7.0.4-debian-11-r17
     pullPolicy: IfNotPresent
   auth:
     enabled: false
+  serviceAccount:
+    create: false
+    name: "default"
   master:
     disableCommands: []
     persistence:
       enabled: false
+    ## @param master.nodeSelector Node labels for Redis&reg; master pods assignment
+    ## ref: https://kubernetes.io/docs/user-guide/node-selection/
+    ##
+    nodeSelector: {}
     resources:
       limits:
         cpu: 2000m
@@ -94,10 +109,11 @@ redis:
 elasticsearch:
   enabled: false
   fullnameOverride: "hcl-commerce-elasticsearch"
-  imageTag: "7.17.1"
+  imageTag: "7.17.3"
   replicas: 1
   minimumMasterNodes: 1
   esJavaOpts: "-Xmx6g -Xms6g"
+  nodeSelector: {}
   resources:
     requests:
       cpu: "1000m"
@@ -109,6 +125,39 @@ elasticsearch:
     elasticsearch.yml: |
       indices.query.bool.max_clause_count: 100000
       xpack.monitoring.collection.enabled: true
+      http.max_content_length: 1000mb
+
+## Override some values for postgresql required when approval service is enabled
+postgresql:
+  enabled: false
+  image: 
+    registry: docker.io
+    repository: bitnami/postgresql
+    tag: 14.5.0-debian-11-r42
+  auth:
+    postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"
+  fullnameOverride: "hcl-commerce-postgresql"
+  ## init.sql is an sample script to initialize the postgresql database used by approval service
+  ## Please do update the sample password in the script, and also make sure the datasource password under approval server section to be the same
+  primary:
+    initdb:
+      scripts:
+        init.sql: |-
+          CREATE DATABASE comdb;
+          CREATE USER hclcom WITH ENCRYPTED PASSWORD 'passw0rd';
+          CREATE SCHEMA hclcom;
+          GRANT ALL PRIVILEGES ON DATABASE comdb TO hclcom;
+          GRANT USAGE ON SCHEMA hclcom TO hclcom;
+          GRANT CREATE ON SCHEMA hclcom TO hclcom;
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 1000m
+      requests:
+        memory: 2Gi
+        cpu: 1000m
+    containerSecurityContext:
+      runAsUser: 1001
 
 ## Override some values for vaultconsul, keep it false if not deployed with sofy
 vaultconsul:
@@ -147,7 +196,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.11.0
+  productVersion: 9.1.12.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -181,11 +230,13 @@ common:
 
   ## Default value of spiUserName is configured for Commerce Version 9 sample Db2 Docker.
   ## Please correct this value to match your spi user name configured in your environment
+  ## Note this value could also be set on Vault with the path Tenant/EnvName/EnvType/spiUserName, and vault configuration will take precedence
   spiUserName: spiuser
 
   ## The AES encrypted value of the spiuser password
   ## This value can be obtained by running wcs_encrypt.sh utility from utility container
   ## Visit https://help.hcltechsw.com/commerce/9.0.0/install/tasks/tiginstall_definespi.html to find more details
+  ## Setting this variable using Vault is recommended (vault configuration will also take precedence) instead of typing the sensitive value here, path on vault is Tenant/EnvName/EnvType/spiUserPwd
   spiUserPwdAes:
 
   ## Base64 encoded value for <spiuser>:<password>
@@ -229,7 +280,7 @@ common:
   ## By default it is not enabled as the default Aurora store comes with V9 is remote, i.e. run on it's own server
   localStoreEnabled: false
 
-  ## When disbaled, commerce apps will add java.net.preferIPv4Stack=true jvm arg
+  ## When disabled, commerce apps will add java.net.preferIPv4Stack=true jvm arg
   ipv6Enabled: false
 
 ## Default to use vault as CA to issue certificate
@@ -274,6 +325,8 @@ backwardCompatibility:
 
 ## HCL Cache is used by HCL Commerce V9 by default starting from V9.1.0.0
 ## The following detailed configuration will be used to create a config map and then be passed to each Commerce application
+## If you deploy redis to a different namespace than redis, plesae make sure you update 
+## address to "redis://hcl-commerce-redis-master.<redis name space>.svc.cluster.local.:6379" 
 ## The same configuration must be used to deploy auth, live and share. If you update this configmap, please
 ## make sure you re-deploy auth, live and share to have all commerce apps running with the same cache and redis configuration.
 ## For details see: https://github.com/HCL-TECH-SOFTWARE/hcl-commerce-performance/blob/main/HCL-Cache/Configuration.md
@@ -368,11 +421,11 @@ metrics:
 ## In addition, nginx ingress has to be used to deploy DX. HCL Commerce currently does not support deploying DX with GKE ingress.
 dx:
   enabled: false
-  # releaseName is only required if you are using DX helm chart for deployment. Leave it to be empty otherwise.
-  releaseName:
-    # Auth DX release name deployed with DX helm chart
+  # DX routing service name, it could be haproxy or ambassador based on your DX versions, get the service name with kubectl get serivce.
+  serviceName:
+    # Auth DX routing service name
     auth: ""
-     # Live DX release name deployed with DX helm chart
+     # Live DX routing service name
     live: ""
   namespace:
     # Auth DX should be deployed under the same cluster, specify its namespace here
@@ -441,16 +494,29 @@ anthosDeployment:
 ingress:
   ## ingress enablement. Make it disabled for SoFy deployment
   enabled: true
+  
+  ## this needs to be set to true when you are planning to allow sapphire store to launch B2B approval tooling
+  enableToolingForReactStore: true
+
+  ## flag to enable the manage approval page for marketplace approval service, set to false by default for security
+  enableManageApprovalPage: false
+
   ## use 'networking.k8s.io/v1beta1' for kubernetes between 1.16 and 1.19 (exclusive)
   ## use 'networking.k8s.io/v1' for kubernetes 1.19 and above
   ## see https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122 for details
   apiVersion: networking.k8s.io/v1beta1
 
-  ## ingress controller [nginx|gke|ambassador]
+  ## ingress controller [nginx|gke|ambassador|emissary]
   ##   nginx - nginx ingress controller
   ##   gke - cloud load balancing using HTTP(S) Load Balancer in GKE
   ##   ambassador - ambassador API gateway
+  ##   emissary - emissary API gateway (Ambassador 1.X template files is incompatible starting with Kubernetes 1.22 and must migrate to Emissary 2.X files instead in the Commerce Helm Chart)
   ingressController: nginx
+
+  ## ambassador ids list for the emissary listener listening on http and https ports
+  ## keep it to be empty if you are only using the default ambassador id
+  ## when you have different ambassador ids defined in the ingress configuration below for different components, then need to add them here to create listeners for different emissaries
+  emissaryIdsList: []
 
   ## IngressSecret is used to specify whether Helm needs to auto-generate the secret for ingress. For production environment, you can choose generate the secret with real CA certificate.
   ingressSecret:
@@ -463,9 +529,9 @@ ingress:
   ##   can use template language to reference other values.
   ## ingressClass:
   ##   optional.
-  ##   keep ingressClass empty to use the default ingress class, i.e. 'nginx' for nginx ingress controller, 'gce' for gke ingress controller, and empty for ambassador id
+  ##   keep ingressClass empty to use the default ingress class, i.e. 'nginx' for nginx ingress controller, 'gce' for gke ingress controller, and empty for ambassador or emissary id
   ##   otherwise, specify the custom ingress controller for each ingress.
-  ##   For ambassador, specify the ambassadorId as the ingressClass.
+  ##   For ambassador and emissary, specify the ambassadorId as the ingressClass. Keep it to be empty if you are using the default ambassador id.
   ## tlsSecret:
   ##   optional.
   ##   keep it empty to use the tls secret auto generated to match the ootb domain pattern.
@@ -694,7 +760,8 @@ tsApp:
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
-  ## Flag to enable WebSphere Application Server (WAS) Admin Console. Disabled by default
+  ## Flag to enable WebSphere Application Server (WAS) Admin Console. Disabled by default. 
+  ## If use Port Forwarding, set enabled to false.
   wasAdminConsole:
     enabled: false
 
@@ -861,10 +928,6 @@ searchAppSlave:
     storageClass: ""
     storage: "5Gi"
     accessMode: "ReadWriteOnce"
-  ## health check mode could be 'startup' or 'readiness'
-  ##  'startup' mode will cross check search repeater as well
-  ##  'readiness' mode will only check slave itself without checking repeater
-  healthCheckMode: startup
   ## the nodes must have a label with the key wc-node-select-flag
   ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
   nodeLabel: ""
@@ -1064,7 +1127,7 @@ nifiApp:
   ## The version of the bootstrap connector data bundled in the nifi image
   ## This version change will cause bootstrap data reload and any customized
   ## data will need to be applied when this version is updated
-  dataVersion: 9.1.11.0
+  dataVersion: 9.1.12.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
   ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified
@@ -1325,6 +1388,43 @@ tsUtils:
     tag: ""
     command: []
     args: []
+
+approvalApp:
+  enabled: false
+  name: approval-app
+  image: commerce/approval-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 2048Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: {}
+  ## the nodes must have a label with the key wc-node-select-flag
+  ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
+  nodeLabel: ""
+  ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
+  ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+  nodeSelector: {}
+  ## boot Configurations for approval-app, you can choose to create a secret by yourself
+  ## with the same format as app-secure.properties section and put the secret name in existingSecret
+  ## or keep the existingSecret empty and let the helm chart create it automatically
+  bootConfig:
+    ## For security purpose, we would recommend creating a secret by yourself, and paste the name here
+    ## Please do update the password in your postgresql database instead of using the sample one here
+    existingSecret: ""
+    app-secure.properties: |-
+      spring.datasource.url=jdbc:postgresql://hcl-commerce-postgresql:5432/comdb
+      spring.datasource.username=hclcom
+      spring.datasource.password=passw0rd
+      spring.datasource.hikari.schema=hclcom
+      spring.flyway.url=jdbc:postgresql://hcl-commerce-postgresql:5432/comdb
+      spring.flyway.user=hclcom
+      spring.flyway.password=passw0rd
+      spring.flyway.default-schema=hclcom
 
 supportC:
   image: commerce/supportcontainer

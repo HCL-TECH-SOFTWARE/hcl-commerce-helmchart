@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (not .Values.openshiftDeployment.enabled) -}}
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (not .Values.openshiftDeployment.enabled) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}
@@ -60,6 +60,24 @@ spec:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
           servicePort: 443
       {{- end }}
+      {{- if $.Values.approvalApp.enabled }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /approvals {{- else if eq $.Values.ingress.ingressController "gke" }} /approvals/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+          servicePort: 6643
+      {{- if not $.Values.ingress.enableManageApprovalPage }}
+      - path: /approvals/manage-approval
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      {{- if eq $.Values.ingress.ingressController "gke" }}
+      - path: /approvals/manage-approval/*
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      {{- end }}
+      {{- end }}
+      {{- end }}
       {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} / {{- else if eq $.Values.ingress.ingressController "gke" }} /* {{- end }}
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
@@ -90,6 +108,33 @@ spec:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
             port:
               number: 443
+      {{- end }}
+      {{- if $.Values.approvalApp.enabled }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /approvals {{- else if eq $.Values.ingress.ingressController "gke" }} /approvals/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+            port:
+              number: 6643
+      {{- if not $.Values.ingress.enableManageApprovalPage }}
+      - path: /approvals/manage-approval
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      {{- if eq $.Values.ingress.ingressController "gke" }}
+      - path: /approvals/manage-approval/*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      {{- end }}
+      {{- end }}
       {{- end }}
       {{- end }}
 {{- end }}

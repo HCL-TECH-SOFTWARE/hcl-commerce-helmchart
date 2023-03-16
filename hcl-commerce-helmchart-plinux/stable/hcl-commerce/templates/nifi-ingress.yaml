@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (eq $.Values.common.searchEngine "elastic") (not .Values.openshiftDeployment.enabled) (.Values.ingress.nifi.enabled) }}
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (eq $.Values.common.searchEngine "elastic") (not .Values.openshiftDeployment.enabled) (.Values.ingress.nifi.enabled) }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- if has "share" $envTypeList }}
 {{- $ingress_conf := $.Values.ingress.nifi }}

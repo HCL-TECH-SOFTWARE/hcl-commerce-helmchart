@@ -1,0 +1,297 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") ($.Values.storeWeb.enabled) (eq $.Values.common.searchEngine "elastic") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.reactstore.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.reactstore.live }}
+{{- end }}
+apiVersion: getambassador.io/v3alpha1
+kind: Host
+metadata:
+  name: commerce-{{ $envType }}-reactstore-domain-host
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  acmeProvider:
+    authority: none
+  tlsSecret:
+    name: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /
+  rewrite: /
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-wcsstore-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /wcsstore/
+  rewrite: /wcsstore/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-hclstore-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /hclstore/
+  rewrite: /hclstore/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-wcs-mapping
+spec:  
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /wcs/
+  rewrite: /wcs/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app:5443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-search-mapping
+spec:  
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /search/resources/
+  rewrite: /search/resources/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app:30901
+  bypass_auth: true
+---
+{{- if $.Values.ingress.enableToolingForReactStore }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-tooling-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /tooling/
+  rewrite: /tooling/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-cmc-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /lobtools/
+  rewrite: /lobtools/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- end }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-admin-rest-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /rest/
+  rewrite: /rest/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-wcs-preview-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /webapp/wcs/preview/
+  rewrite: /webapp/wcs/preview/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8006
+  bypass_auth: true
+---
+{{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-wps-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  bypass_auth: true
+  case_sensitive: false
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  prefix: /wps/
+  rewrite: /wps/
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+  timeout_ms: 10000
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-dx-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  bypass_auth: true
+  case_sensitive: false
+  connect_timeout_ms: 1200000
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  idle_timeout_ms: 1200000
+  prefix: /dx/
+  rewrite: /dx/
+  prefix_regex: false
+  service: http://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+  timeout_ms: 1200000
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-dx-{{ $envType }}-hcl-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  bypass_auth: true
+  case_sensitive: false
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  prefix: /hcl/
+  rewrite: /hcl/
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+  timeout_ms: 1200000
+---
+
+{{- if and (eq $envType "auth") (get $.Values.dx.namespace "live") }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-dx-auth-dam-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  bypass_auth: true
+  case_sensitive: false
+  connect_timeout_ms: 1200000
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  idle_timeout_ms: 1200000
+  prefix: /dx/api/dam
+  rewrite: /dx/api/dam
+  prefix_regex: false
+  service: http://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live-dx
+  timeout_ms: 1200000
+---
+{{- end }}
+{{- end }}
+{{- if $.Values.approvalApp.enabled }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-approval-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /approvals
+  rewrite: /approvals
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
+  bypass_auth: true
+---
+{{- if not $.Values.ingress.enableManageApprovalPage }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-manage-approval-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /approvals/manage-approval
+  rewrite: /approvals/manage-approval
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

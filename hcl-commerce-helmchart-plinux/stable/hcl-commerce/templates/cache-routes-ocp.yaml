@@ -1,5 +1,5 @@
 {{- $cfg_ext := tpl .Values.hclCache.configMap.cache_cfg_ext . | fromYaml}}
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (.Values.cacheApp.enabled) (.Values.openshiftDeployment.enabled) ($cfg_ext.redis.enabled) -}}
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (.Values.cacheApp.enabled) (.Values.openshiftDeployment.enabled) ($cfg_ext.redis.enabled) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}

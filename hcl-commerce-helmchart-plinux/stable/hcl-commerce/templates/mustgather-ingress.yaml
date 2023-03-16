@@ -1,5 +1,5 @@
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
-{{- if and (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.ingress.enabled) (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (not .Values.openshiftDeployment.enabled) (ne .Values.ingress.ingressController "ambassador") }}
+{{- if and (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.ingress.enabled) (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (not .Values.openshiftDeployment.enabled) (ne .Values.ingress.ingressController "emissary") (ne .Values.ingress.ingressController "ambassador") }}
 {{- $ingress_conf := $.Values.ingress.mustgather }}
 apiVersion: {{ $.Values.ingress.apiVersion }}
 kind: Ingress

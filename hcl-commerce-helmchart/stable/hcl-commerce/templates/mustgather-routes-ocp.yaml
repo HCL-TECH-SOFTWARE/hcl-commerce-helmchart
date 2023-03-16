@@ -1,6 +1,6 @@
 {{- if .Values.openshiftDeployment.enabled }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
-{{- if and (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.ingress.enabled) (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (ne .Values.ingress.ingressController "ambassador") }}
+{{- if and (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.ingress.enabled) (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (ne .Values.ingress.ingressController "emissary") (ne .Values.ingress.ingressController "ambassador") }}
 {{- $ingress_conf := $.Values.ingress.mustgather }}
 apiVersion: route.openshift.io/v1
 kind: Route

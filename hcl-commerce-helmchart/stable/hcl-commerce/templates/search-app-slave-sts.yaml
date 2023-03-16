@@ -196,6 +196,10 @@ spec:
         - name: "CONFIGURE_MODE"
           value: {{ $.Values.common.configureMode | quote }}  
         {{- end }}
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
         - name: "ENVIRONMENT"
           value: {{ $.Values.common.environmentName | quote }}
         - name: "TENANT"
@@ -257,21 +261,39 @@ spec:
         - containerPort: 3738
           name: port3738
           protocol: TCP
-        readinessProbe:
+        startupProbe:
           httpGet:
-            path: /search/admin/resources/health/status?type=container&mode={{ .Values.searchAppSlave.healthCheckMode }}
+            path: /search/admin/resources/health/status?type=container&mode=startup
             port: 3738
             scheme: HTTPS
             httpHeaders:
             - name: Authorization
               value: Basic {{ $.Values.common.spiUserPwdBase64 }}
-          initialDelaySeconds: 5
-          periodSeconds: 5
+          failureThreshold: 90
+          periodSeconds: 10
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /search/admin/resources/health/status?type=container&mode=readiness
+            port: 3738
+            scheme: HTTPS
+            httpHeaders:
+            - name: Authorization
+              value: Basic {{ $.Values.common.spiUserPwdBase64 }}
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 5
         livenessProbe:
-          tcpSocket:
-            port: 3737
-          initialDelaySeconds: 600
-          timeoutSeconds: 300
+          httpGet:
+            path: /search/admin/resources/health/ping
+            port: 3738
+            scheme: HTTPS
+            httpHeaders:
+            - name: Authorization
+              value: Basic {{ $.Values.common.spiUserPwdBase64 }}
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 15
         securityContext:
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false
