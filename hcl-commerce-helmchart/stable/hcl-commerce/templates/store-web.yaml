@@ -122,6 +122,8 @@ spec:
         - name: "TZ"
           value: {{ $.Values.common.timezone | quote }}
         {{- end }}
+        - name: "CONFIGURE_MODE"
+          value: {{ $.Values.common.configureMode | quote }}        
         - name: "ENVIRONMENT"
           value: {{ $.Values.common.environmentName | quote }}
         - name: "TENANT"
@@ -134,6 +136,20 @@ spec:
         {{- end }}
         - name: "DOMAIN_NAME"
           value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        {{- if $.Values.global.sofySolutionContext }}
+        - name: "EXTERNAL_DOMAIN_NAME"
+        {{- if $.Values.global.domain }}
+          value: {{ $.Values.global.domain }}
+        {{- else }}
+          valueFrom:
+              configMapKeyRef:
+                name: {{ $.Release.Name }}-domain
+                key: HOST
+        {{- end }}
+        {{- else }} # not sofy
+        - name: "EXTERNAL_DOMAIN_NAME"
+          value: "{{ trimPrefix "." $.Values.common.externalDomain }}"
+        {{- end }}
         - name: "VAULT_CA"
           value: {{ $.Values.vaultCA.enabled | quote }}
         {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
