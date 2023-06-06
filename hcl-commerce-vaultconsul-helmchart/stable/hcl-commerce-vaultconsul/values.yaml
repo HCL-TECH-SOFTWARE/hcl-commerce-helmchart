@@ -65,7 +65,7 @@ vaultConsul:
   ## vault docker image name
   vaultImageName: vault
   ## vault docker image tag
-  vaultImageTag: 1.9.9
+  vaultImageTag: 1.13.1
 
   ## plinux vault image name and tag
   #vaultImageName: vault-ppc64le
@@ -159,6 +159,8 @@ vaultConsul:
   ##       2. the default dbHost values are configured assuming using the db docker image deployed in the same K8s cluster in 'commerce' name space.
   ##       3. the following data covers 2 environments (dev and qa)
   ##       4. please modify the values based on your deployment sepcificiation
+  ##       5. if you deploy the Next.js store, please update the <reactStoreMapApiKey> with your own value. reactStoreMapApiKey is a mandatory parameter 
+  ##          for Next.js store. Please refer to https://support.google.com/googleapi/answer/6158862?hl=en&ref_topic=7013279 to create your API key for the map.
   vaultData:
     dev:
       auth:
@@ -212,6 +214,7 @@ vaultConsul:
         nlpEnableLanguageCode: "en"
         deploymentType: "development"
         sessionKeyEncrypt: 4knZgrqtE6ukU79414EIZIBcrgyZM8SBZZIC2nugW/7ntRBCM3bS9TVwdHmIB1ZcxVj8/ROwMUFJxcEAQpFGew==
+        reactStoreMapApiKey: "<reactStoreMapApiKey>"
     qa:
       auth:
         dbHost: "demoqaauthdb.commerce.svc.cluster.local"
@@ -256,6 +259,7 @@ vaultConsul:
         nlpEnableLanguageCode: "en"
         deploymentType: "development"
         sessionKeyEncrypt: 4knZgrqtE6ukU79414EIZIBcrgyZM8SBZZIC2nugW/7ntRBCM3bS9TVwdHmIB1ZcxVj8/ROwMUFJxcEAQpFGew==
+        reactStoreMapApiKey: "<reactStoreMapApiKey>"
 
 ## This support container image is required when vaultConsul.externalCA.enabled
 ## and vaultConsul.externalCA.autoCreate are both enabled. Please specify the

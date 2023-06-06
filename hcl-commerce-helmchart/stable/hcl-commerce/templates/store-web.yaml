@@ -123,7 +123,7 @@ spec:
           value: {{ $.Values.common.timezone | quote }}
         {{- end }}
         - name: "CONFIGURE_MODE"
-          value: {{ $.Values.common.configureMode | quote }}        
+          value: {{ $.Values.common.configureMode | quote }}
         - name: "ENVIRONMENT"
           value: {{ $.Values.common.environmentName | quote }}
         - name: "TENANT"

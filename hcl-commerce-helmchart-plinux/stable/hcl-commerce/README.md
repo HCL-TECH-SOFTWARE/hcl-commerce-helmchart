@@ -141,6 +141,7 @@ graphql-app | 1 | 500m | 2 | 2048Mi | 2048Mi
 mustgather-app | 1 | 500m | 1 | 4096Mi | 4096Mi
 ts-utils | 1 | 500m | 2 | 4096Mi | 4096Mi
 approval-app | 1 | 500m | 2 | 2048Mi | 2048Mi
+nextjs-app | 1 | 500m | 2 | 2048Mi | 2048Mi
 
 
 Note: Ensure that you have sufficient resources available on your worker nodes to support the HCL Commerce Version 9 deployment.
@@ -214,6 +215,7 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `tsWeb`        |  detailed configuration for tsWeb deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `toolingWeb`        |  detailed configuration for toolingWeb deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `storeWeb`        |  detailed configuration for storeWeb deployment  | see [values.yaml](./values.yaml) file for default configuration
+| `nextjsApp`        |  detailed configuration for nextjsApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `crsApp`        |  detailed configuration for crsApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `xcApp`        |  detailed configuration for xcApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `nifiApp`        |  detailed configuration for nifiApp deployment  | see [values.yaml](./values.yaml) file for default configuration
