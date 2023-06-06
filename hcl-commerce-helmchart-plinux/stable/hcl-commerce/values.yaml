@@ -207,7 +207,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.12.0
+  productVersion: 9.1.13.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -461,7 +461,7 @@ searchIndexCreation:
   txnMaxDuration: 1200
   nifiMaxDuration: 900
   ingestMaxDuration: 3600
-  storeIds: "11,12"
+  storeIds: "11,12,41"
   calculatePriceEnabled: false
   calculatePriceStoreIds: "12"
 
@@ -776,6 +776,11 @@ tsApp:
   ## Flag to enable WebSphere Application Server (WAS) Admin Console. Disabled by default
   wasAdminConsole:
     enabled: false
+  ## Flag to use quick way to start transaction server. Disabled by default.
+  ## Set to true to run all WAS admin runengine commands together to enhance ts-app startup time
+  ## Set to false to run WAS admin runengine command one by one.
+  quickStart:
+    enabled: false
 
   ## LDAP configuration. LDAP is disabled by default
   ## Set enabled flag to true to enable LDAP.
@@ -1035,6 +1040,30 @@ storeWeb:
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
 
+nextjsApp:
+  name: nextjs-app
+  enabled: true
+  replica: 1
+  image: commerce/nextjs-store-app
+  tag: v9-latest
+  resources:
+    requests:
+      memory: 2048Mi
+      cpu: 500m
+    limits:
+      memory: 2048Mi
+      cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters: 
+    auth: {}
+    live: {}
+  ## the nodes must have a label with the key wc-node-select-flag
+  ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
+  nodeLabel: ""
+  ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
+  ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+  nodeSelector: {}
+
 crsApp:
   enabled: true
   name: crs-app
@@ -1143,7 +1172,7 @@ nifiApp:
   ## The version of the bootstrap connector data bundled in the nifi image
   ## This version change will cause bootstrap data reload and any customized
   ## data will need to be applied when this version is updated
-  dataVersion: 9.1.12.0
+  dataVersion: 9.1.13.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
   ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified

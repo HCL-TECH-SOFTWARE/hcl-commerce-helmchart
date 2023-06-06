@@ -1,0 +1,33 @@
+{{- if and (eq .Values.common.searchEngine "elastic") (.Values.nextjsApp.enabled) -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.nextjsApp.name}}
+  namespace: {{ $.Release.Namespace }} 
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.nextjsApp.name}}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  annotations:
+    cloud.google.com/app-protocols: '{"https-port3343":"HTTPS","http-port3300":"HTTP"}'
+spec:
+  type: NodePort
+  ports:
+  - port: 3343
+    name: https-port3343
+  - port: 3300
+    name: http-port3300
+  selector:
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.nextjsApp.name}}
+{{- end }}
+---
+{{- end }}
+{{- end }}

@@ -1,4 +1,4 @@
-{{- if and (eq .Values.common.searchEngine "elastic") (.Values.storeWeb.enabled) -}}
+{{- if and (eq .Values.common.searchEngine "elastic") (.Values.nextjsApp.enabled) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" -}}
@@ -6,7 +6,7 @@
 ######################################################
 # Licensed Materials - Property of HCL Technologies
 #  HCL Commerce
-#  (C) Copyright HCL Technologies Limited 1996, 2020
+#  (C) Copyright HCL Technologies Limited 2023
 ######################################################
 apiVersion: apps/v1
 kind: Deployment
@@ -18,7 +18,7 @@ metadata:
     heritage: {{ $.Release.Service }}
     app.kubernetes.io/name: {{ include "name" $ }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
-  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.storeWeb.name }}
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.nextjsApp.name}}
   namespace: {{ $.Release.Namespace }}
 spec:
   selector:
@@ -26,9 +26,9 @@ spec:
       chart: {{ $.Chart.Name }}
       release: {{ $.Release.Name }}
       heritage: {{ $.Release.Service }}
-      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.storeWeb.name }}
+      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.nextjsApp.name}}
       group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
-  replicas: {{ $.Values.storeWeb.replica }}
+  replicas: {{ $.Values.nextjsApp.replica }}
   template:
     metadata:
       annotations:
@@ -39,48 +39,40 @@ spec:
         chart: {{ $.Chart.Name }}
         release: {{ $.Release.Name }}
         heritage: {{ $.Release.Service }}
-        component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{ $.Values.storeWeb.name }}
+        component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.nextjsApp.name}}
         group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
         app.kubernetes.io/name: {{ include "name" $ }}
         app.kubernetes.io/instance: {{ $.Release.Name }}
     spec:
-      {{- if $.Values.storeWeb.nodeSelector }}
+      {{- if $.Values.nextjsApp.nodeSelector }}
       nodeSelector:
-{{ toYaml $.Values.storeWeb.nodeSelector | indent 8 }}
+{{ toYaml $.Values.nextjsApp.nodeSelector | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:
-           {{- if $.Values.storeWeb.nodeLabel }}
+           {{- if $.Values.nextjsApp.nodeLabel }}
            requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
               - matchExpressions:
                 - key: wc-node-select-flag
                   operator: In
                   values:
-                  - {{ $.Values.storeWeb.nodeLabel }}
+                  - {{ $.Values.nextjsApp.nodeLabel }}
            {{- else }}
            requiredDuringSchedulingIgnoredDuringExecution:
            {{- include "nodeAffinityRequiredDuringScheduling" $ | indent 8 }}
            {{- end }}
            preferredDuringSchedulingIgnoredDuringExecution:
            {{- include "nodeAffinityPreferredDuringScheduling" $ | indent 8 }}
-      {{- include "storeweb-podAntiAffinity" $ | indent 6 }}
+      {{- include "nextjsapp-podAntiAffinity" $ | indent 6 }}
       hostNetwork: false
       hostPID: false
       hostIPC: false
       serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
-      initContainers:
-      - name: store-dependence-check
-        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
-        tty: true
-        {{- if $.Values.common.imagePullPolicy }}
-        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
-        {{- end }}
-        args: ['depcheck', '-component','store-web','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','900','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
       {{- if $.Values.vaultconsul.enabled }}
+      initContainers:
       - name: vault-dependence-check
         image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
-        tty: true
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
@@ -89,15 +81,6 @@ spec:
       volumes:
         - name: logs-sharing
           emptyDir: {}
-      {{- if $.Values.assetsPVC.enabled }}
-        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-assets-volume
-          persistentVolumeClaim:
-            {{- if get $.Values.assetsPVC.existingClaim $envType }}
-            claimName: {{ get $.Values.assetsPVC.existingClaim $envType }}
-            {{- else }}
-            claimName: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-assets-pvc
-            {{- end }}
-      {{- end }}
       {{- if $.Values.common.bindingConfigMap }}
         - name: config-volume
           configMap:
@@ -108,13 +91,13 @@ spec:
         - name: {{ include "image.pull.secret" $ }}
       {{- end }}
       containers:
-      - name: store-web
-        image: "{{ include "image.repo" $ }}{{ $.Values.storeWeb.image }}:{{ $.Values.storeWeb.tag }}"
+      - name: nextjs-app
+        image: "{{ include "image.repo" $ }}{{ $.Values.nextjsApp.image }}:{{ $.Values.nextjsApp.tag }}"
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
         resources:
-{{ toYaml $.Values.storeWeb.resources | indent 12 }}
+{{ toYaml $.Values.nextjsApp.resources | indent 12 }}
         env:
         - name: "LICENSE"
           value: {{ $.Values.license | quote }}
@@ -130,31 +113,13 @@ spec:
           value: {{ $.Values.common.tenant | quote }}
         - name: "ENVTYPE"
           value: {{ $envType | quote }}
-        {{- if $.Values.logging.jsonLogging.enabled }}
-        - name: "ENABLE_JSON_LOGGING"
-          value: "true"
-        {{- end }}
         - name: "DOMAIN_NAME"
           value: "{{ $.Release.Namespace }}.svc.cluster.local"
-        {{- if $.Values.global.sofySolutionContext }}
-        - name: "EXTERNAL_DOMAIN_NAME"
-        {{- if $.Values.global.domain }}
-          value: {{ $.Values.global.domain }}
-        {{- else }}
-          valueFrom:
-              configMapKeyRef:
-                name: {{ $.Release.Name }}-domain
-                key: HOST
-        {{- end }}
-        {{- else }} # not sofy
-        - name: "EXTERNAL_DOMAIN_NAME"
-          value: "{{ trimPrefix "." $.Values.common.externalDomain }}"
-        {{- end }}
         - name: "VAULT_CA"
           value: {{ $.Values.vaultCA.enabled | quote }}
         {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
         - name: "VAULT_URL"
-          value: {{ $.Values.common.vaultUrl | quote  }}
+          value: {{ $.Values.common.vaultUrl | quote }}
         {{- if $.Values.common.vaultTokenSecret }}
         - name: "VAULT_TOKEN"
           valueFrom:
@@ -163,33 +128,43 @@ spec:
               key: VAULT_TOKEN
         {{- end }}
         {{- end }}
-{{- if get $.Values.storeWeb.envParameters $envType }}
-     {{- range $key, $value := get $.Values.storeWeb.envParameters $envType }}
+{{- if get $.Values.nextjsApp.envParameters $envType }}
+     {{- range $key, $value := get $.Values.nextjsApp.envParameters $envType }}
         - name: {{ $key | quote }}
           value: {{ $value | quote }}
      {{- end }}
 {{- end }}
         ports:
-        - containerPort: 6443
-          name: port6443
+        - containerPort: 3300
+          name: port3300
+          protocol: TCP
+        - containerPort: 3343
+          name: port3343
           protocol: TCP
         livenessProbe:
           httpGet:
-            path: /.healthcheck
-            port: 6443
+            path: /api/healthcheck
+            port: 3343
             scheme: HTTPS
+            httpHeaders:
+            - name: Accept
+              value: text/html
           initialDelaySeconds: 240
           timeoutSeconds: 30
         readinessProbe:
           httpGet:
-            path: /.healthcheck
-            port: 6443
+            path: /api/healthcheck
+            port: 3343
             scheme: HTTPS
+            httpHeaders:
+            - name: Accept
+              value: text/html
         securityContext:
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             privileged: false
             capabilities:
               drop:
@@ -210,19 +185,13 @@ spec:
               - AUDIT_WRITE
               - SETFCAP
         volumeMounts:
-          - name: logs-sharing
-            mountPath: /opt/WebSphere/HTTPServer/logs/container
-        {{- if $.Values.assetsPVC.enabled }}
-          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-assets-volume
-            mountPath: /SETUP/app/assets
-        {{- end }}
         {{- if $.Values.common.bindingConfigMap }}
           - name: config-volume
             mountPath: /SETUP/ext-config/config.properties
             subPath: config.properties
             readOnly: false
         {{- end }}
-{{- end }}
 ---
+{{- end }}
 {{- end }}
 {{- end }}
