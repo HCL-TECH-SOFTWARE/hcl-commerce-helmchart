@@ -56,10 +56,11 @@ spec:
           {{- end }}
           args: ['createsecret', '-tenant',{{ $.Values.common.tenant | quote }},'-env',{{ $.Values.common.environmentName | quote }},'-envtype',{{ $envType | quote }},'-domain', {{ $.Values.common.externalDomain | quote }}, '-namespace',{{ $.Release.Namespace | quote }},'-replace',{{ $.Values.ingress.ingressSecret.replaceExist | quote }}]
           securityContext:
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
             privileged: false
             capabilities:
               drop:
@@ -89,10 +90,11 @@ spec:
           {{- end }}
           args: ['createsampleconf', '-tenant',{{ $.Values.common.tenant | quote}},'-env',{{ $.Values.common.environmentName | quote }},'-envtype',{{ $envType | quote }},'-namespace',{{ $.Release.Namespace | quote }},'-dbhost',{{ $.Values.createSampleConfig.dbHostName | quote }},'-name','config.properties','-dbname',{{ $.Values.createSampleConfig.dbName | quote }},'-dbuser',{{ $.Values.createSampleConfig.dbUser | quote }},'-dbpass',{{ $.Values.createSampleConfig.dbPass | quote }},'-dbport',{{ $.Values.createSampleConfig.dbPort | quote }},'-dbtype',{{ $.Values.common.dbType | quote }},'-dbauser',{{ $.Values.createSampleConfig.dbaUser | quote }},'-dbapwdencrypt',{{ $.Values.createSampleConfig.dbaPassEncrypt  | quote }},'-dbpwdencrypt',{{ $.Values.createSampleConfig.dbPassEncrypt | quote }}]
           securityContext:
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
             privileged: false
             capabilities:
               drop:

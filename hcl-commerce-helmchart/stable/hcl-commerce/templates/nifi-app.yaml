@@ -76,6 +76,8 @@ spec:
       hostPID: false
       hostIPC: false
       serviceAccountName: {{ .Values.common.serviceAccountName | default (printf "%s-commerce" .Release.Name) }}
+      securityContext:
+        fsGroup: 1000
       {{- if or .Values.vaultconsul.enabled .Values.nifiApp.persistence.enabled $.Values.zookeeper.enabled $.Values.redis.enabled $.Values.elasticsearch.enabled (or (and $.Values.global.sofySandboxContext $.Values.nifiApp.demoPack.enabled) (and (not $.Values.global.sofySandboxContext) ($.Values.nifiApp.userScripts.enabled))) }}
       initContainers:
       {{- end }}
@@ -140,7 +142,7 @@ spec:
         imagePullPolicy: {{ .Values.common.imagePullPolicy }}
         {{- end }}
         command: ["/bin/bash"]
-        args: ["-c", 'if [ ! -f /data/.data.version ] || [ $(cat .data.version) != "{{ .Values.nifiApp.dataVersion }}" ]; then rm -rf /data/*; cp -rp /opt/nifi/nifi-current/dockerdata/* /data; rc=$?; if [ "$rc" = "0" ]; then echo "Data has been loaded successfully."; echo {{ .Values.nifiApp.dataVersion }} > /data/.data.version; else echo "Failed to load data."; fi; exit $rc; else echo "Skip loading data."; exit 0; fi']
+        args: ["-c", 'if [[ ! -f /data/.data.version ]] || [[ $(cat /data/.data.version) != "{{ .Values.nifiApp.dataVersion }}" ]]; then rm -rf /data/*; cp -rp /opt/nifi/nifi-current/dockerdata/* /data; rc=$?; if [[ "$rc" = "0" ]]; then echo "Data has been loaded successfully."; echo {{ .Values.nifiApp.dataVersion }} > /data/.data.version; else echo "Failed to load data."; exit $rc; fi; else echo "Skip loading data."; fi; echo "change /data owner to comuser:comuser"; chown -R comuser:comuser /data; exit $?']
         volumeMounts:
           - name:  {{ .Values.common.tenant }}{{ .Values.common.environmentName}}-nifi-volume
             mountPath: /data
@@ -305,10 +307,17 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 15
         securityContext:
+            {{- if $.Values.common.runAsNonRoot.enabled }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            {{- else }}
             allowPrivilegeEscalation: true
-            readOnlyRootFilesystem: false
             runAsNonRoot: false
             runAsUser: 0
+            {{- end }}
+            readOnlyRootFilesystem: false
             privileged: false
             capabilities:
               drop:

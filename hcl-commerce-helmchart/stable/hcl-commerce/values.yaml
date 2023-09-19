@@ -77,7 +77,7 @@ redis:
   image:
     registry: docker.io
     repository: bitnami/redis
-    tag: 7.0.4-debian-11-r17
+    tag: 7.0.12-debian-11-r2
     pullPolicy: IfNotPresent
   auth:
     enabled: false
@@ -109,7 +109,7 @@ redis:
 elasticsearch:
   enabled: false
   fullnameOverride: "hcl-commerce-elasticsearch"
-  imageTag: "7.17.3"
+  imageTag: "7.17.10"
   replicas: 1
   minimumMasterNodes: 1
   esJavaOpts: "-Xmx6g -Xms6g"
@@ -133,7 +133,7 @@ postgresql:
   image: 
     registry: docker.io
     repository: bitnami/postgresql
-    tag: 14.5.0-debian-11-r42
+    tag: 14.8.0-debian-11-r21
   auth:
     postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"
   fullnameOverride: "hcl-commerce-postgresql"
@@ -196,7 +196,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.13.0
+  productVersion: 9.1.14.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -256,6 +256,17 @@ common:
 
   ## As default, configMode is Vault
   configureMode: Vault
+
+  ## CAUTION: MAJOR UPDATE IN COMMERCE HELM CHART VERSION 9.1.14.0
+  ## RECOMMENDED: Enable runAsNonRoot would start all the pods as the non-root user (comuser) to improve overall security
+  ## However, if you are upgrading your existing env, be sure to check your existing customizations to make them compatible with the non-root user
+  ## If you still want to use the root user to start all the pods, then set to false would start all the pods as the root user
+  runAsNonRoot: 
+    enabled: true
+    ## When upgrading your existing env from using root user to non-root user for the first time
+    ## Please enable the option below to update the ownership of the files and directories stored for assetsPVC
+    ## This option will trigger a pre-upgrade job to update the ownership when runAsNonRoot and assetsPVC are enabled
+    migrateAssetsPvcFromRootToNonroot: true
 
   ## Input the imagePull Secret Name which created by admin, in case you have image pull access control cross namespace
   ## kubectl create secret docker-registry myregistrykey --docker-server=<cluster_CA_domain>:8500 --docker-username=<user_name> --docker-password=<user_password> --docker-email=<user_email>
@@ -706,6 +717,9 @@ tsDb:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  envParameters:
+    auth: {}
+    live: {}
   persistence:
     enabled: true
     existingClaim: ""
@@ -1030,10 +1044,15 @@ nextjsApp:
   replica: 1
   image: commerce/nextjs-store-app
   tag: v9-latest
+  ## for nextjs, nodeInstanceNumber decides how many Node process can be run by Node.js cluster API on vault.
+  ## you can specify nodeInstanceNumber on vault, path: TENANT/ENVIRONMENT/nodeInstanceNumber/nextjs-app
+  ## if nodeInstanceNumber is not specified on valut, the limits cpu will be used
+  ## set proper value based on performance requirements 
+  ## sample value for 2 cpu: 2000m or 2
   resources:
     requests:
       memory: 2048Mi
-      cpu: 500m
+      cpu: 2
     limits:
       memory: 2048Mi
       cpu: 2
@@ -1156,7 +1175,7 @@ nifiApp:
   ## The version of the bootstrap connector data bundled in the nifi image
   ## This version change will cause bootstrap data reload and any customized
   ## data will need to be applied when this version is updated
-  dataVersion: 9.1.13.0
+  dataVersion: 9.1.14.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
   ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified

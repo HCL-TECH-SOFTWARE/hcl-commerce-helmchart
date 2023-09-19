@@ -20,14 +20,14 @@ Name |   Default Value | Usage
 ------------- | -------------| -------------
 vaultConsul.imageRepo | docker.io/ | container registry for vault images
 vaultConsul.vaultImageName | vault | Vault Docker Image name
-vaultConsul.vaultImageTag | xlinux: 1.13.1 plinux: 1.9.9 | Vault Docker Image tag
+vaultConsul.vaultImageTag | 1.13.4 | Vault Docker Image tag
 supportC.imageRepo | my-docker-registry.io:5000/ | container registry for commerce support container image
 supportC.image | commerce/supportcontainer | full path to the support container image
 supportC.tag | v9-latest | image tag for commerce support container image
 test.image |  docker.io/centos:latest | Helm Test command uses Centos Docker Image
 
 > **Note**
-vault:1.13.1 has been tested on xlinux; 1.9.9 has been tested on plinux.  There is no guarantee that other tags for those docker images will work as expected.
+vault:1.13.4 has been tested.  There is no guarantee that other tags for those docker images will work as expected.
 
 ### CA certificate
 This helm chart deploy vault in development mode to by pass the unseal process. In this mode the data will be stored in memory only. The configuration data is defined in helm values file so they will be re-loaded everytime when vault is re-deployed / re-started. However, the root CA certificate stored in CA can not be persisted unless it is defined and persisted in a secret. This helm chart allows either specifying CA certificate by a tls secret name, or let this helm chart auto-generate one and persist it in the tls secret during the install time. 
@@ -104,6 +104,7 @@ It is strongly recommended to not modify the default [values.yaml](./values.yaml
 #### common:
 1. Change the tenant if you want to name it differently. Note, if you change the tenant name here, you will also need to change the tenant in commerce helm chart values to match the same name.
 1. By default it does not create ingress for vault service. If you want to create an ingress to access vault ui, set `enableIngress` to `true`. Also, based on your environments, update the configurations for `ingressController` and `ingressApiVersion`.
+1. Starting from Commerce 9.1.14.0, vault is started by the non-root user (vault) by default, check `runAsNonRoot` section for more details. Set it to true would start vault as the non-root user (vault) to improve overall security, if you still want to use the root user to start vault, then set the option to false.
 1. As part of the vault deployment, it will create a vault token secret in the `commerce` namespace, so that the commerce application can get the vault token from that secret. It requires the commerce namespace existed before you can deploy this vault. If `commerce` namespace has not been created, you can create it now with `kubectl create ns commerce`. If you plan to deploy commerce in other name spaces, you need to create those names spaces now (kubectl create ns <namespace>), and list all of the namespaces in commerceNameSpaces. E.g if I want to deploy 2 commerce environments 'dev' and 'qa' in 'commerce-dev' and 'commerce-qa' name spaces, you would need to:
 	1. kubectl create ns commerce-dev
 	1. kubectl create ns commerce-qa

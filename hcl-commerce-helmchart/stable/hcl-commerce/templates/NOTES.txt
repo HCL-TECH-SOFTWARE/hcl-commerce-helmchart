@@ -91,6 +91,15 @@ https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{
 
 Authoring Sapphire (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/Sapphire
+
+{{- if $.Values.nextjsApp.enabled }}
+
+Authoring Next.js (Sample B2C) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+
+Authoring Next.js (Sample B2B) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}?storeId=42
+{{- end }}
 {{- end }}
 
 Authoring Management Center:
@@ -119,6 +128,15 @@ https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{
 
 Live Sapphire (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/Sapphire
+
+{{- if $.Values.nextjsApp.enabled }}
+
+Live Next.js (Sample B2C) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+
+Live Next.js (Sample B2B) Store Front:
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}?storeId=42
+{{- end }}
 {{- end }}
 
 Live Management Center:

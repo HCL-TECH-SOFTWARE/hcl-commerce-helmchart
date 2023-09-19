@@ -4,5 +4,5 @@ keywords:
   - HCL Commerce V9
   - Vault
 name: hcl-commerce-vaultconsul
-version: 2.1.4
-appVersion: 1.13.1
+version: 2.1.5
+appVersion: 1.13.4

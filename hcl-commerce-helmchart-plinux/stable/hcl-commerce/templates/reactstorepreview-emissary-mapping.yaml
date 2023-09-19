@@ -72,6 +72,42 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
   bypass_auth: true
 ---
+{{- if $.Values.nextjsApp.enabled }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstorepreview-api-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /api/
+  rewrite: /api/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app:3343
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstorepreview-next-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /_next/
+  rewrite: /_next/
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app:3343
+  bypass_auth: true
+---
+{{- end }}
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:

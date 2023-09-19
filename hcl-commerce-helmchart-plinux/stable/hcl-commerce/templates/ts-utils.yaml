@@ -90,6 +90,8 @@ spec:
       hostPID: false
       hostIPC: false
       serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      securityContext:
+        fsGroup: 1000
       {{- if $.Values.tsUtils.initContainer.enabled }}
       initContainers:
       - name: ts-utils-data-setup
@@ -115,7 +117,8 @@ spec:
         {{- else }}
           emptyDir: {}
         {{- end }}
-      {{- if and ($.Values.assetsPVC.enabled) (eq $envType "auth") }}
+      {{- if $.Values.assetsPVC.enabled }}
+        {{- if eq $envType "auth" }}
         - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth-assets-volume
           persistentVolumeClaim:
             {{- if get $.Values.assetsPVC.existingClaim "auth" }}
@@ -123,6 +126,7 @@ spec:
             {{- else }}
             claimName: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth-assets-pvc
             {{- end }}
+        {{- end }}
         - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}live-assets-volume
           persistentVolumeClaim:
             {{- if get $.Values.assetsPVC.existingClaim "live" }}
@@ -238,14 +242,39 @@ spec:
             - /SETUP/.ready
           periodSeconds: 30
         securityContext:
-            allowPrivilegeEscalation: true
-            readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
-            privileged: false
+            {{- if $.Values.common.runAsNonRoot.enabled }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             capabilities:
               drop:
               - all
+            {{- else }}
+            allowPrivilegeEscalation: true
+            runAsNonRoot: false
+            runAsUser: 0
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+            {{- end }}
+            readOnlyRootFilesystem: false
+            privileged: false
         volumeMounts:
           - name: logs-sharing
             mountPath: /opt/WebSphere/AppServer/profiles/default/logs/container
@@ -253,9 +282,11 @@ spec:
             mountPath: /opt/WebSphere/AppServer/profiles/default/cores/container
           - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsutils-volume
             mountPath: /data
-        {{- if and ($.Values.assetsPVC.enabled) (eq $envType "auth") }}
+        {{- if $.Values.assetsPVC.enabled }}
+          {{- if eq $envType "auth" }}
           - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth-assets-volume
             mountPath: /SETUP/assets/auth
+          {{- end }}
           - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}live-assets-volume
             mountPath: /SETUP/assets/live
         {{- end }}

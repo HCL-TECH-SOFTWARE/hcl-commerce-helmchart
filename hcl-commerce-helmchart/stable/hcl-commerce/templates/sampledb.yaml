@@ -161,6 +161,12 @@ spec:
         - name: "TZ"
           value: {{ $.Values.common.timezone | quote }}
         {{- end }}
+{{- if get $.Values.tsDb.envParameters $envType }}
+     {{- range $key, $value := get $.Values.tsDb.envParameters $envType }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+     {{- end }}
+{{- end }}
         securityContext:
             allowPrivilegeEscalation: true
             readOnlyRootFilesystem: false

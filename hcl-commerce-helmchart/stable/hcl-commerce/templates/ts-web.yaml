@@ -89,6 +89,8 @@ spec:
       hostPID: false
       hostIPC: false
       serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      securityContext:
+        fsGroup: 1000
       initContainers:
       - name: transaction-web-dependence-check
         image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
@@ -156,6 +158,20 @@ spec:
         {{- end }}
         - name: "DOMAIN_NAME"
           value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        {{- if $.Values.global.sofySolutionContext }}
+        - name: "EXTERNAL_DOMAIN_NAME"
+        {{- if $.Values.global.domain }}
+          value: {{ $.Values.global.domain }}
+        {{- else }}
+          valueFrom:
+              configMapKeyRef:
+                name: {{ $.Release.Name }}-domain
+                key: HOST
+        {{- end }}
+        {{- else }} # not sofy
+        - name: "EXTERNAL_DOMAIN_NAME"
+          value: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.common.externalDomain }}"
+        {{- end }} # end sofy context check
         - name: "VAULT_CA"
           value: {{ $.Values.vaultCA.enabled | quote }}
         {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
@@ -197,10 +213,17 @@ spec:
           tcpSocket:
             port: 8000
         securityContext:
+            {{- if $.Values.common.runAsNonRoot.enabled }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            {{- else }}
             allowPrivilegeEscalation: true
-            readOnlyRootFilesystem: false
             runAsNonRoot: false
             runAsUser: 0
+            {{- end }}
+            readOnlyRootFilesystem: false
             privileged: false
             capabilities:
               drop:

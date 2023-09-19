@@ -55,10 +55,11 @@ spec:
           {{- end }}
           args: ['deletesecret', '-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }}]
           securityContext:
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
             privileged: false
             capabilities:
               drop:
@@ -88,10 +89,11 @@ spec:
           {{- end }}
           args: ['deleteconfmap','-tenant',{{ $.Values.common.tenant | quote }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }},'-name',"config.properties"]
           securityContext:
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
             privileged: false
             capabilities:
               drop:

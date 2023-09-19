@@ -115,6 +115,8 @@ spec:
           value: {{ $envType | quote }}
         - name: "DOMAIN_NAME"
           value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        - name: "NODE_INSTANCE_NUMBER"
+          value: {{ $.Values.nextjsApp.resources.limits.cpu | quote }}
         - name: "VAULT_CA"
           value: {{ $.Values.vaultCA.enabled | quote }}
         {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}

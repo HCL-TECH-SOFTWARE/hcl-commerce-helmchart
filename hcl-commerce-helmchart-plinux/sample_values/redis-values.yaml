@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy ppc64le redis service using bitnami redis helm chart 
 # for HCL Commerce
-#   - chart version: 17.1.5
-#   - redis app version: 7.0.4
+#   - chart version: 17.13.1
+#   - redis app version: 7.0.12
 # 
 # To Deploy ppc64le redis using this sample values
 # 1. Create a namespace
@@ -10,14 +10,15 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy Redis using this override values
-#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "17.1.5"
+#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "17.13.1"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/e9081af51813fa0fc59f5a3e0d7bbc68c11ce71e/bitnami/redis/values.yaml
+#   https://github.com/bitnami/charts/blob/3ed0eb6706d5f1fd1f8b8b25b5f09c5d1a6a30e8/bitnami/redis/values.yaml
+
 #
 # To get more information related to this version of redis helm chart, please visit
-#   https://github.com/bitnami/charts/blob/e9081af51813fa0fc59f5a3e0d7bbc68c11ce71e/bitnami/redis/README.md
+#   https://github.com/bitnami/charts/blob/3ed0eb6706d5f1fd1f8b8b25b5f09c5d1a6a30e8/bitnami/redis/README.md
 ##
 architecture: standalone
 fullnameOverride: "hcl-commerce-redis"
@@ -26,7 +27,7 @@ replica:
 image:
   registry: icr.io/ppc64le-oss
   repository: redis-ppc64le
-  tag: v7.0.4-bv
+  tag: v7.0.12-bv
   pullPolicy: IfNotPresent
 auth:
   enabled: false
