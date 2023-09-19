@@ -77,10 +77,11 @@ spec:
           {{- end }}
           args: ['buildIndexES', '-tenant',{{ $.Values.common.tenant | quote }},'-env',{{ $.Values.common.environmentName | quote }}, '-namespace',{{ $.Release.Namespace | quote }}, '-spi_basic_auth', {{ $.Values.common.spiUserPwdBase64 | quote}}, '-store_ids', {{ $.Values.searchIndexCreation.storeIds | quote }}, '-interval', {{ $.Values.searchIndexCreation.interval | quote }}, '-max_index_duration', {{ $.Values.searchIndexCreation.indexMaxDuration | quote }}, '-max_txn_duration', {{ $.Values.searchIndexCreation.txnMaxDuration | quote }}, '-max_nifi_duration', {{ $.Values.searchIndexCreation.nifiMaxDuration | quote }}, '-max_ingest_duration', {{ $.Values.searchIndexCreation.ingestMaxDuration | quote }}, '-max_retry', {{ $.Values.searchIndexCreation.maxRetry | quote }}, '-push_to_live', {{- if $.Values.searchIndexCreation.pushToLiveEnabled -}} 'yes' {{- else -}} 'no' {{- end -}}, '-calculate_price', {{- if $.Values.searchIndexCreation.calculatePriceEnabled -}} 'yes' {{- else -}} 'no' {{- end -}}, '-calculate_price_store_ids', {{ $.Values.searchIndexCreation.calculatePriceStoreIds | quote }}]
           securityContext:
-            allowPrivilegeEscalation: true
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             readOnlyRootFilesystem: false
-            runAsNonRoot: false
-            runAsUser: 0
             privileged: false
             capabilities:
               drop:

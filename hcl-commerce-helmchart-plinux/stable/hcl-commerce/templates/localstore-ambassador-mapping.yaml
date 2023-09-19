@@ -26,7 +26,7 @@ spec:
   host_regex: false
   case_sensitive: false
   timeout_ms: 40000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8443
   bypass_auth: true
 ---
 {{- end }}

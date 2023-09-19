@@ -32,6 +32,8 @@ spec:
       imagePullSecrets:
       - name: {{ .Values.vaultConsul.imagePullSecret }}
       {{- end }}
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: vault
           resources:
@@ -39,10 +41,17 @@ spec:
           image: {{ .Values.vaultConsul.imageRepo }}{{ .Values.vaultConsul.vaultImageName }}:{{ .Values.vaultConsul.vaultImageTag }}
           imagePullPolicy: {{ .Values.vaultConsul.imagePullPolicy }}
           securityContext:
+            {{- if $.Values.common.runAsNonRoot }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100
+            runAsGroup: 1000
+            {{- else }}
             allowPrivilegeEscalation: true
-            readOnlyRootFilesystem: false
             runAsNonRoot: false
             runAsUser: 0
+            {{- end }}
+            readOnlyRootFilesystem: false
             privileged: false
             capabilities:
               drop:

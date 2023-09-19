@@ -59,6 +59,16 @@ spec:
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
           servicePort: 6443
+      {{- if $.Values.nextjsApp.enabled }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /api {{- else if eq $.Values.ingress.ingressController "gke" }} /api/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+          servicePort: 3343
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /_next {{- else if eq $.Values.ingress.ingressController "gke" }} /_next/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+          servicePort: 3343
+      {{- end }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
@@ -145,6 +155,22 @@ spec:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
             port:
               number: 6443
+      {{- if $.Values.nextjsApp.enabled }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /api {{- else if eq $.Values.ingress.ingressController "gke" }} /api/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+            port:
+              number: 3343
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /_next {{- else if eq $.Values.ingress.ingressController "gke" }} /_next/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+            port:
+              number: 3343
+      {{- end }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
         backend:

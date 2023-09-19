@@ -54,11 +54,11 @@ spec:
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /webapp/ {{- else if eq $.Values.ingress.ingressController "gke" }} /webapp/* {{- end }}
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
-          servicePort: 443
+          servicePort: 8443
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcsstore/ {{- else if eq $.Values.ingress.ingressController "gke" }} /wcsstore/* {{- end }}
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
-          servicePort: 443
+          servicePort: 8443
       {{- end }}
       {{- if $.Values.approvalApp.enabled }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /approvals {{- else if eq $.Values.ingress.ingressController "gke" }} /approvals/* {{- end }}
@@ -100,14 +100,14 @@ spec:
           service:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
             port:
-              number: 443
+              number: 8443
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcsstore/ {{- else if eq $.Values.ingress.ingressController "gke" }} /wcsstore/* {{- end }}
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
         backend:
           service:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
             port:
-              number: 443
+              number: 8443
       {{- end }}
       {{- if $.Values.approvalApp.enabled }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /approvals {{- else if eq $.Values.ingress.ingressController "gke" }} /approvals/* {{- end }}

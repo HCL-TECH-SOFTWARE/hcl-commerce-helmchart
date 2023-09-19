@@ -24,7 +24,7 @@ spec:
     kind: Service
     name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
   port:
-    targetPort: 443
+    targetPort: 8443
   tls:
     termination: reencrypt
     destinationCACertificate: |-

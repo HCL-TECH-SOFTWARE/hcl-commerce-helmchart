@@ -2,7 +2,7 @@
 # This values yaml file provide override values to deploy ppc64le elasticsearch service using elasticsearch helm chart 
 # for HCL Commerce
 #   - chart version: 7.17.3
-#   - elasticsearch app version: 7.17.3
+#   - elasticsearch app version: 7.17.10
 # 
 # To Deploy ppc64le elasticsearch using this sample values
 # 1. Create a namespace
@@ -21,7 +21,7 @@
 ##
 fullnameOverride: "hcl-commerce-elasticsearch"
 image: "icr.io/ppc64le-oss/elasticsearch-ppc64le"
-imageTag: "7.17.3"
+imageTag: "7.17.10"
 replicas: 1
 minimumMasterNodes: 1
 esJavaOpts: "-Xmx6g -Xms6g"

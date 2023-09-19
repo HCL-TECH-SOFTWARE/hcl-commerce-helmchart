@@ -49,6 +49,12 @@ common:
   ## see https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122 for details
   ingressApiVersion: extensions/v1beta1
 
+  ## CAUTION: MAJOR UPDATE IN COMMERCE HELM CHART VERSION 9.1.14.0
+  ## RECOMMENDED: Set to true would start vault as the non-root user (vault) to improve overall security
+  ## However, if you are upgrading your existing env, be sure to check your existing customizations to make them compatible with the non-root user
+  ## If you still want to use the root user to start vault, then set the option below to false
+  runAsNonRoot: true
+
 ## Enable this feature for deployment using openshift.
 openshiftDeployment:
   enabled: false
@@ -63,13 +69,13 @@ vaultConsul:
   #imageRepo: icr.io/ppc64le-oss/
 
   ## vault docker image name
-  vaultImageName: vault
+  vaultImageName: hashicorp/vault
   ## vault docker image tag
-  vaultImageTag: 1.13.1
+  vaultImageTag: 1.13.4
 
   ## plinux vault image name and tag
   #vaultImageName: vault-ppc64le
-  #vaultImageTag: v1.9.9
+  #vaultImageTag: v1.13.4
   
   ## Vault resources
   vaultResources:

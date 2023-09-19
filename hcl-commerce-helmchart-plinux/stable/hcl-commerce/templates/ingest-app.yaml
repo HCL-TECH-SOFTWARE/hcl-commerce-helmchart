@@ -74,6 +74,8 @@ spec:
       hostPID: false
       hostIPC: false
       serviceAccountName: {{ .Values.common.serviceAccountName | default (printf "%s-commerce" .Release.Name) }}
+      securityContext:
+        fsGroup: 1000
       {{- if or $.Values.vaultconsul.enabled $.Values.zookeeper.enabled $.Values.redis.enabled $.Values.elasticsearch.enabled (and (not $.Values.global.sofySandboxContext) ($.Values.ingestApp.userScripts.enabled)) (and $.Values.global.sofySandboxContext $.Values.ingestApp.demoPack.enabled) }}
       initContainers:
       {{- end }}
@@ -263,10 +265,17 @@ spec:
           failureThreshold: 30
           periodSeconds: 10
         securityContext:
+            {{- if $.Values.common.runAsNonRoot.enabled }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            {{- else }}
             allowPrivilegeEscalation: true
-            readOnlyRootFilesystem: false
             runAsNonRoot: false
             runAsUser: 0
+            {{- end }}
+            readOnlyRootFilesystem: false
             privileged: false
             capabilities:
               drop:

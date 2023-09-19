@@ -9,6 +9,8 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
+Note: The 9.1.14.0 Helm Chart can only be used to deploy HCL Commerce 9.1.14.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.
 1. HCL Commerce supports several ways to configure application. The default configuration mode used by this helm chart is `Vault` configuration mode. Vault is also the recommended configuration mode for HCL Commerce as it was designed to store configuration data securely. HCL Commerce also uses Vault as Certificate Authority to issue certificate to each application to communicate with each other. Therefore, make sure you have a vault service available for HCL Commerce to access. For non-production environments, you can consider to use hcl-commerce-vaultconsul-helmchart to deploy and initialize vault for HCL Commerce as it could initialize the vault and populate data for HCL Commerce. However, that chart runs vault in development and non-HA mode and doesn't handle vault token securely, therefore it should not be used for production. You can read [Vault Concepts](https://www.vaultproject.io/docs/concepts) for all considerations to run vault on production. 
@@ -170,6 +172,8 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `common.externalDomain`        | External Domain use to specify the service external domain name| `.mycompany.com`
 | `common.bindingConfigMap`        | ConfigMap name which mount into each default container to expose as environment variables. keep it as blank if not using config map to pass configuration to each application. | `nil`
 | `common.configureMode`        |  default container config mode \[Vault \| EnvVariables\] | `Vault`
+| `common.runAsNonRoot.enabled`        |  Set to true would start all the pods as the non-root user (comuser) to improve overall security. However, if you are upgrading your existing env, be sure to check your existing customizations to make them compatible with the non-root user. If you still want to use the root user to start all the pods, then set to false would start all the pods as the root user. | `true`
+| `common.runAsNonRoot.migrateAssetsPvcFromRootToNonroot`        |  When upgrading your existing env from using root user to non-root user for the first time. Enable this option to update the ownership of the files and directories stored for assetsPVC. This option will trigger a pre-upgrade job to update the ownership. | `true`
 | `common.imagePullSecrets`        |  image pull secrets if docker registry requires authentication | `nil`
 | `common.imagePullPolicy`        |  image pull policy \[IfNotPresent\|Always\] | `IfNotPresent`
 | `common.serviceAccountName`        |  serviceAccount used for helm release  | `default`
@@ -273,6 +277,12 @@ External domain used for ingress and store preview URL. For example. in hostname
 
 #### common.configureMode
 Commerce supports Vault and EnvVariables configuration mode. Default is Vault which is also recommended configuration mode.
+
+#### common.runAsNonRoot.enabled
+MAJOR UPDATE IN COMMERCE HELM CHART VERSION 9.1.14.0. Set to true would start all the pods as the non-root user (comuser) to improve overall security. However, if you are upgrading your existing env, be sure to check your existing customizations to make them compatible with the non-root user. If you still want to use the root user to start all the pods, then set to false would start all the pods as the root user. Default value is set to true.
+
+#### common.runAsNonRoot.migrateAssetsPvcFromRootToNonroot
+When upgrading your existing env from using root user to non-root user for the first time. Enable this option to update the ownership of the files and directories stored for assetsPVC. This option will trigger a pre-upgrade job to update the ownership.
 
 #### common.imagePullSecrets
 The name of the secret name which contains the credential for pulling images from docker registry. leave it empty if docker registry if there is no authentication for your private docker registry.
@@ -516,6 +526,18 @@ For new deployment, keep `backwardCompatibility.selector` as the empty map. i.e.
 backwardCompatibility:
   selector: {}
 ```
+
+#### Upgrade Commerce to 9.1.14.0+
+In 9.1.14+, HCL Commerce container images are built to be run as a non-root user by default. HCL Commerce images are generally built on top of Red Hat Universal Base Image (UBI) 8 images and have a non-root user named ‘comuser’ with UID 1000, and a user group named ‘comuser’ with GID 1000 created during image built1. HCL Commerce Containers are run by ‘comuser’ by default. HCL Commerce helm chart is also updated to run containers in Kubernetes pods as ‘comuser’ or UID 1000.
+
+By enable `common.runAsNonRoot.enabled` in the helm chart, all the pods would as the non-root user (comuser). If you still want to use the root user to start all the pods, then set to false would start all the pods as the root user. Default value is set to true. 
+
+One thing to notice is Persistent Volumes and external files at runtime. We need to make sure the files are set with the proper ownership or permissions to be accessed by comuser within the container. Otherwise, it may fail to read or write the files mounted from the host volume.  
+
+ReadWriteOnce type of persistent volumes provisioned by the cloud storage class are normally mounted with the root user as the owner user previous to 9.1.14, and fsGroup has been set to 1000 in helm chart files starting from 9.1.14. In theory any files even created by root user previously should still be readable and writeable by non-root user. 
+
+However, for readWriteMany type of persistent volumes, e.g the one required by HCL Commerce Assets tool, can be provisioned by a different provider, such as NFS Provisioner, and in this case, the fsGroup specified in helm chart won’t influence on the existing files in the volumes and it will require the file permission migration. In helm chart, a pre-upgrade job will be used to set the file ownership before deploying a new pod, you can enable this by setting `common.runAsNonRoot.migrateAssetsPvcFromRootToNonroot` to true. There is a chance that some new files are produced in the volume by the old pod during the helm upgrade and the files are not with the proper file ownership or permission. Therefore, it is recommended to manually kick off a Kubernetes job after helm upgrade is completed. The sample job yaml file `nonroot-ownership-update.yaml` can be found in the upgrade folder under stable/hcl-commerce, please update the file accordingly like the namespace, name, and presistent volume claim name fields. Use `kubectl apply -f nonroot-ownership-update.yaml` command to create the job. This manual job will not be auto deleted, if you want to trigger the same job again without any changes to the job name, then need to delete the existed job first.
+
 
 ## Use helm to deploy HCL Commerce
 Once you finish the configuration in your my-values.yaml file and meet the [prerequisite] (#Prerequisites) requirement. You are ready to deploy HCL Commerce by using helm command.

@@ -1,0 +1,62 @@
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2023
+######################################################
+
+##
+# This job is used to update the ownership of files and directories stored in the asset persistent volumes
+#
+# When upgrading existing env from using a root user to a non-root user, there would have some file permission issues
+# with the files and directories stored in the asset persistent volume if the persistent volume is created using 
+# some third-party providers such as nfs provisioner bundled with Commerce Helm Chart or Rook Ceph. We need to change 
+# the ownership of those files and directories with the non-root user.
+#
+# We have already provided an option to automate this process, check the migrateAssetsPvcFromRootToNonroot option in values.yaml.
+# However, there might have some use cases if you want to manually trigger this job. For example, if some files are added by
+# the business user at the same time of environment upgrade, then these files might still have the root user ownership. In this 
+# case, use kubectl apply to manually trigger this job to update the ownership of files and directories stored in the asset persistent volume.
+#
+# Sample codes below are going to update the ownership of files and directories of commerce-ivtcommerceauth-assets-pvc created under namespace commerce.
+# Please update accordingly based on your environment, and the codes below as your reference. 
+##
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  ## Update the name and namespace here accordingly
+  name: nonroot-ownership-update-auth-commerce-assets
+  namespace: commerce
+spec:
+  backoffLimit: 5
+  activeDeadlineSeconds: 120
+  template:
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      restartPolicy: Never
+      volumes:
+        - name: assets-volume
+          persistentVolumeClaim:
+            ## Update to the PVC name of the assets pvc you created
+            claimName: commerce-ivtcommerceauth-assets-pvc
+      containers:
+        - name: nonroot-ownership-update
+          image: registry.access.redhat.com/ubi8/ubi-micro:8.8-5
+          tty: true
+          args: ['chown','-R','1000:1000','/assets']
+          securityContext:
+            allowPrivilegeEscalation: true
+            runAsNonRoot: false
+            runAsUser: 0
+            readOnlyRootFilesystem: false
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+          volumeMounts:
+            - name: assets-volume
+              mountPath: /assets

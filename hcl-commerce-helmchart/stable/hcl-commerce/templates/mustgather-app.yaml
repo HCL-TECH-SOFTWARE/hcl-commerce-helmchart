@@ -67,6 +67,8 @@ spec:
       hostPID: false
       hostIPC: false
       serviceAccountName: {{ .Values.common.serviceAccountName | default (printf "%s-commerce" .Release.Name) }}
+      securityContext:
+        fsGroup: 1000
       {{- if $.Values.vaultconsul.enabled }}
       initContainers:
       - name: vault-dependence-check
@@ -163,10 +165,17 @@ spec:
             scheme: HTTPS
           timeoutSeconds: 30
         securityContext:
+            {{- if $.Values.common.runAsNonRoot.enabled }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            {{- else }}
             allowPrivilegeEscalation: true
-            readOnlyRootFilesystem: false
             runAsNonRoot: false
             runAsUser: 0
+            {{- end }}
+            readOnlyRootFilesystem: false
             privileged: false
             capabilities:
               drop:

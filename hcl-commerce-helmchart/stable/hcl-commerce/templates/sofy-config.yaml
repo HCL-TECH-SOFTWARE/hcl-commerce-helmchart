@@ -36,6 +36,20 @@ data:
                 "subdomain": "commerce-preview"
             },
             {
+                "displayName": "Next.js (B2C) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/",
+                "subdomain": "commerce-preview"
+            },
+            {
+                "displayName": "Next.js (B2B) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/?storeId=42",
+                "subdomain": "commerce-preview"
+            },
+            {
                 "displayName": "EmeraldMP (B2C Marketplace) Store",
                 "type": "ui",
                 "static": false,
@@ -133,10 +147,24 @@ data:
                 "subdomain": "commerce-live"
             },
             {
+                "displayName": "Live Next.js (B2C) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/",
+                "subdomain": "commerce-live"
+            },
+            {
+                "displayName": "Live Next.js (B2B) Store",
+                "type": "ui",
+                "static": false,
+                "path": "/?storeId=42",
+                "subdomain": "commerce-live"
+            },
+            {
                 "displayName": "Live EmeraldMP (B2C Marketplace) Store",
                 "type": "ui",
                 "static": false,
-                "path": "/Emerald?storeId=3",
+                "path": "/Emerald?storeId=31",
                 "subdomain": "commerce-live"
             },
             {
@@ -381,6 +409,12 @@ data:
                 "disablePublicRoute": "true"
             },
             "{{ .Values.zookeeper.fullnameOverride }}-headless": {
+                "disableAccessControl" : "true",
+                "disablePublicRoute": "true"
+            },
+            {{- end -}}
+            {{- if .Values.postgresql.enabled -}}
+            "{{ .Values.postgresql.fullnameOverride }}": {
                 "disableAccessControl" : "true",
                 "disablePublicRoute": "true"
             },
