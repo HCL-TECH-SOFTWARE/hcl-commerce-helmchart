@@ -21,7 +21,7 @@ metadata:
   namespace: {{ $.Release.Namespace }}
   annotations:
     {{- if $.Values.common.localStoreEnabled }}
-    cloud.google.com/app-protocols: '{"https-web443":"HTTPS","https-cmc8000":"HTTPS","https-acc8001":"HTTPS","https-admin8002":"HTTPS","https-org8004":"HTTPS","https-pre8006":"HTTPS","https-was9043":"HTTPS"}'
+    cloud.google.com/app-protocols: '{"https-web8443":"HTTPS","https-cmc8000":"HTTPS","https-acc8001":"HTTPS","https-admin8002":"HTTPS","https-org8004":"HTTPS","https-pre8006":"HTTPS","https-was9043":"HTTPS"}'
     {{- else }}
     cloud.google.com/app-protocols: '{"https-cmc8000":"HTTPS","https-acc8001":"HTTPS","https-admin8002":"HTTPS","https-org8004":"HTTPS","https-pre8006":"HTTPS","https-was9043":"HTTPS"}'
     {{- end }}
@@ -29,8 +29,8 @@ spec:
   type: NodePort
   ports:
   {{- if $.Values.common.localStoreEnabled }}
-  - port: 443
-    name: https-web443
+  - port: 8443
+    name: https-web8443
   {{- end }}
   - port: 8000
     name: https-cmc8000
