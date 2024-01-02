@@ -13,11 +13,6 @@ metadata:
   name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstorepreview-ingress
   namespace: {{ $.Release.Namespace }}
   annotations:
-    {{- if eq $.Values.ingress.ingressController "nginx" }}
-    kubernetes.io/ingress.class: {{ default "nginx" $ingress_conf.ingressClass | quote }}
-    {{- else if eq $.Values.ingress.ingressController "gke" }}
-    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
-    {{- end }}
     ingress.kubernetes.io/secure-backends: "true"
     ingress.kubernetes.io/backend-protocol: "HTTPS"
     {{- if eq $.Values.ingress.ingressController "nginx" }}
@@ -39,6 +34,11 @@ metadata:
     heritage: {{ $.Release.Service }}
     group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
 spec:
+  {{- if eq $.Values.ingress.ingressController "nginx" }}
+  ingressClassName: {{ default "nginx" $ingress_conf.ingressClass | quote }}
+  {{- else if eq $.Values.ingress.ingressController "gke" }}
+  ingressClassName: {{ default "gce" $ingress_conf.ingressClass | quote }}
+  {{- end }}
   tls:
   - hosts:
     - {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -69,6 +69,12 @@ spec:
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
           servicePort: 3343
+      {{- if and ($.Values.metrics.enabled) ($.Values.metrics.serviceMonitor.enabled) }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /api/metrics {{- else if eq $.Values.ingress.ingressController "gke" }} /api/metrics/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      {{- end }}
       {{- end }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
         backend:
@@ -153,6 +159,15 @@ spec:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
             port:
               number: 3343
+      {{- if and ($.Values.metrics.enabled) ($.Values.metrics.serviceMonitor.enabled) }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /api/metrics {{- else if eq $.Values.ingress.ingressController "gke" }} /api/metrics/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      {{- end }}
       {{- end }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /wcs {{- else if eq $.Values.ingress.ingressController "gke" }} /wcs/* {{- end }}
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}

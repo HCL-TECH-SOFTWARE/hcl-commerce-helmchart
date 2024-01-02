@@ -12,11 +12,6 @@ metadata:
   name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-admin-ingress
   namespace: {{ $.Release.Namespace }}
   annotations:
-    {{- if eq $.Values.ingress.ingressController "nginx" }}
-    kubernetes.io/ingress.class: {{ default "nginx" $ingress_conf.ingressClass | quote }}
-    {{- else if eq $.Values.ingress.ingressController "gke" }}
-    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
-    {{- end }}
     ingress.kubernetes.io/secure-backends: "true"
     ingress.kubernetes.io/backend-protocol: "HTTPS"
     {{- if eq $.Values.ingress.ingressController "nginx" }}
@@ -32,6 +27,11 @@ metadata:
     heritage: {{ $.Release.Service }}
     group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
 spec:
+  {{- if eq $.Values.ingress.ingressController "nginx" }}
+  ingressClassName: {{ default "nginx" $ingress_conf.ingressClass | quote }}
+  {{- else if eq $.Values.ingress.ingressController "gke" }}
+  ingressClassName: {{ default "gce" $ingress_conf.ingressClass | quote }}
+  {{- end }}
   tls:
   - hosts:
     - {{ tpl ($ingress_conf.domain | toString) $ }}

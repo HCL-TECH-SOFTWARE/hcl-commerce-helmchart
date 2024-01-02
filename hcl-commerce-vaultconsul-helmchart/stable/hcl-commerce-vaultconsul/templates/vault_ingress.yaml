@@ -4,11 +4,10 @@ kind: Ingress
 metadata:
   name: vault-{{ .Values.common.tenant }}-ingress
   namespace: {{ .Release.Namespace }}
-  annotations:
-    kubernetes.io/ingress.class: nginx
   labels:
     group: {{ .Release.Namespace }}
 spec:
+  ingressClassName: nginx
   rules:
   - host: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
     http:

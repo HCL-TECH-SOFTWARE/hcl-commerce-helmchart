@@ -412,6 +412,118 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8006
   bypass_auth: true
 ---
+{{- if $.Values.nextjsApp.enabled }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-api-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /api/
+  rewrite: /api/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview.*
+  {{- else }}
+  hostname: commerce-live.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app:3343
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-next-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /_next/
+  rewrite: /_next/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview.*
+  {{- else }}
+  hostname: commerce-live.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app:3343
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-preview-api-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /api/
+  rewrite: /api/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview-store.*
+  {{- else }}
+  hostname: commerce-live-store.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app:3343
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstore-preview-next-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /_next/
+  rewrite: /_next/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview-store.*
+  {{- else }}
+  hostname: commerce-live-store.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app:3343
+  bypass_auth: true
+---
+{{- if and ($.Values.metrics.enabled) ($.Values.metrics.serviceMonitor.enabled) }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-nextjs-servicemonitor-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /api/metrics/
+  rewrite: /api/metrics/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview.*
+  {{- else }}
+  hostname: commerce-live.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-nextjs-preview-servicemonitor-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /api/metrics/
+  rewrite: /api/metrics/
+  {{- if eq $envType "auth" }}
+  hostname: commerce-preview-store.*
+  {{- else }}
+  hostname: commerce-live-store.*
+  {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
 {{- end }}
 
 {{- if $.Values.crsApp.enabled }}

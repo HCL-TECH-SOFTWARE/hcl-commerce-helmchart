@@ -92,6 +92,23 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app:3343
   bypass_auth: true
 ---
+{{- if and ($.Values.metrics.enabled) ($.Values.metrics.serviceMonitor.enabled) }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstorepreview-nextjs-servicemonitor-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /api/metrics/
+  rewrite: /api/metrics/
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8000
+  bypass_auth: true
+---
+{{- end }}
 {{- end }}
 apiVersion: getambassador.io/v2
 kind: Mapping
@@ -189,7 +206,7 @@ spec:
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:
-  name: commerce-dx-{{ $envType }}-wps-mapping
+  name: commerce-dx-{{ $envType }}-reactstorepreview-wps-mapping
 spec:
   ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
   bypass_auth: true
@@ -204,7 +221,7 @@ spec:
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:
-  name: commerce-dx-{{ $envType }}-dx-mapping
+  name: commerce-dx-{{ $envType }}-reactstorepreview-dx-mapping
 spec:
   ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
   bypass_auth: true
@@ -222,7 +239,7 @@ spec:
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:
-  name: commerce-dx-{{ $envType }}-hcl-mapping
+  name: commerce-dx-{{ $envType }}-reactstorepreview-hcl-mapping
 spec:
   ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
   bypass_auth: true
@@ -239,7 +256,7 @@ spec:
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:
-  name: commerce-dx-auth-dam-mapping
+  name: commerce-dx-auth-reactstorepreview-dam-mapping
 spec:
   ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
   bypass_auth: true
