@@ -9,7 +9,7 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
-Note: The 9.1.14.0 Helm Chart can only be used to deploy HCL Commerce 9.1.14.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+Note: The 9.1.15.0 Helm Chart can only be used to deploy HCL Commerce 9.1.15.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
 
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.
@@ -182,6 +182,7 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `common.timezone`        |  timezone in ICANN TZ format, such as "America/Toronto", to set in all commerce containers as environment variable "TZ". If not set or empty, 'GMT' will be used in all of containers by defualt.<br>CAUTION: changing the timzone will impact on some business logics, such as marketing web activity and promotion start and end date/time, as they are set to the commerce server time and won't auto update based on this timezone setting. It is recommended to keep it empty if your commerce is already on production and never set it explicitly previously. | `nil`
 | `common.ipv6Enabled`        |  When disbaled, commerce apps will add java.net.preferIPv4Stack=true jvm arg  | `false`
 | `backwardCompatibility.selector`        |  pod selector labels defined in the existing deployment. This is required when you deployed Commerce using a different chart previously and want to use this chart to upgrade.  | `empty map`
+| `backwardCompatibility.ingressFormatUpgrade.enabled`        |  Some of the Nginx and GKE ingress names got updated since V9.1.7.0. When upgrading from a version prior to V9.1.7.0 to a newer version, enable this flag to trigger an upgrade job to clean up the old ingress definitions to avoid conflicts during upgrade.  | `false`
 | `hclCache.configMap`        |  config map for hcl cache definition  | see [values.yaml](./values.yaml) file for the default configuration
 | `ingress.enabled`        |  ingress enablement. Make it disabled for SoFy deployment | `true`
 | `ingress.ingressController`        |  ingress controller \[nginx \| gke \| emissary \| ambassador \]. Set it to "gke" when deploying on GKE with http(s) load balancing server as ingress controller. | `nginx`

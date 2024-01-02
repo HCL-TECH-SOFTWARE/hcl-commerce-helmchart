@@ -5,7 +5,11 @@ metadata:
   name: {{ .Release.Name }}-commerce
   namespace: {{ .Release.Namespace }}
   annotations:
+    {{- if .Values.backwardCompatibility.ingressFormatUpgrade.enabled }}
+    "helm.sh/hook": pre-install,pre-upgrade
+    {{- else }}
     "helm.sh/hook": pre-install
+    {{- end }}
     "helm.sh/hook-weight": "0"
   labels:
     app.kubernetes.io/name: {{ include "name" $ }}
@@ -23,7 +27,11 @@ rules:
   - apiGroups: [""]
     resources:
     - secrets
-    verbs: ["get", "watch", "list","create","delete","patch","update"]
+    verbs: ["get", "watch", "list", "create", "delete", "patch", "update"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+    - ingresses
+    verbs: ["list", "delete"]
   {{- if and (.Values.openshiftDeployment.enabled) ($.Values.openshiftDeployment.sccName) }}
   - apiGroups:
     - security.openshift.io 
@@ -41,7 +49,11 @@ metadata:
   name: {{ .Release.Name }}-commerce
   namespace: {{ .Release.Namespace }}
   annotations:
+    {{- if .Values.backwardCompatibility.ingressFormatUpgrade.enabled }}
+    "helm.sh/hook": pre-install,pre-upgrade
+    {{- else }}
     "helm.sh/hook": pre-install
+    {{- end }}
     "helm.sh/hook-weight": "0"
 roleRef:
   apiGroup: rbac.authorization.k8s.io

@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy bitnami postgresql helm chart 
 # for HCL Commerce
-#   - chart version: 11.9.13
-#   - postgresql app version: 14.6.0
+#   - chart version: 13.1.1
+#   - postgresql app version: 14.9.0
 # 
 # To Deploy postgresql using this sample values
 # 1. Create a namespace
@@ -10,19 +10,19 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy postgresql using this override values
-#    helm install my-postgresql bitnami/postgresql -n postgresql -f postgresql-values.yaml --version "11.9.13"
+#    helm install my-postgresql bitnami/postgresql -n postgresql -f postgresql-values.yaml --version "13.1.1"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/c6076945ecc47791d82e545a20ef690dd93ff662/bitnami/postgresql/values.yaml
+#   https://github.com/bitnami/charts/blob/88ae1d40c7815ff4da6e35cfdf21a57663217c07/bitnami/postgresql/values.yaml
 #
 # To get more information related to this version of postgresql helm chart, please visit
-#   https://github.com/bitnami/charts/blob/c6076945ecc47791d82e545a20ef690dd93ff662/bitnami/postgresql/README.md
+#   https://github.com/bitnami/charts/blob/88ae1d40c7815ff4da6e35cfdf21a57663217c07/bitnami/postgresql/README.md
 ##
 image:
   registry: icr.io/ppc64le-oss 
   repository: postgresql
-  tag: v14.6.0
+  tag: v14.9.0-bv
   pullPolicy: IfNotPresent
 auth:
   postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"

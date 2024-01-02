@@ -77,7 +77,7 @@ redis:
   image:
     registry: docker.io
     repository: bitnami/redis
-    tag: 7.0.12-debian-11-r2
+    tag: 7.2.1-debian-11-r24
     pullPolicy: IfNotPresent
   auth:
     enabled: false
@@ -109,7 +109,7 @@ redis:
 elasticsearch:
   enabled: false
   fullnameOverride: "hcl-commerce-elasticsearch"
-  imageTag: "7.17.10"
+  imageTag: "7.17.13"
   replicas: 1
   minimumMasterNodes: 1
   esJavaOpts: "-Xmx6g -Xms6g"
@@ -133,7 +133,7 @@ postgresql:
   image: 
     registry: docker.io
     repository: bitnami/postgresql
-    tag: 14.8.0-debian-11-r21
+    tag: 14.10.0
   auth:
     postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"
   fullnameOverride: "hcl-commerce-postgresql"
@@ -196,7 +196,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.14.0
+  productVersion: 9.1.15.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -266,6 +266,7 @@ common:
     ## When upgrading your existing env from using root user to non-root user for the first time
     ## Please enable the option below to update the ownership of the files and directories stored for assetsPVC
     ## This option will trigger a pre-upgrade job to update the ownership when runAsNonRoot and assetsPVC are enabled
+    ## If your existing env prior to the upgrade does not enable assetsPVC, then set this to false
     migrateAssetsPvcFromRootToNonroot: true
 
   ## Input the imagePull Secret Name which created by admin, in case you have image pull access control cross namespace
@@ -333,6 +334,12 @@ backwardCompatibility:
     #extraSelector:
       #label1: value1
       #label2: value2
+
+  ## Some of the Nginx and GKE ingress names got updated since V9.1.7.0
+  ## When upgrading from a version prior to V9.1.7.0 to a newer version, enable this flag to trigger an upgrade job to clean up the old ingress definitions
+  ## This will avoid conflict errors with ingress definitions during upgrade
+  ingressFormatUpgrade:
+    enabled: false
 
 ## HCL Cache is used by HCL Commerce V9 by default starting from V9.1.0.0
 ## The following detailed configuration will be used to create a config map and then be passed to each Commerce application
@@ -1175,7 +1182,7 @@ nifiApp:
   ## The version of the bootstrap connector data bundled in the nifi image
   ## This version change will cause bootstrap data reload and any customized
   ## data will need to be applied when this version is updated
-  dataVersion: 9.1.14.0
+  dataVersion: 9.1.15.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
   ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified

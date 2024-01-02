@@ -2,7 +2,7 @@
 # This values yaml file provide override values to deploy elasticsearch helm chart 
 # for HCL Commerce
 #   - chart version: 7.17.3
-#   - elasticsearch app version: 7.17.10
+#   - elasticsearch app version: 7.17.13
 # 
 # To Deploy elasticsearch using this sample values
 # 1. Create a namespace
@@ -20,7 +20,7 @@
 #   https://github.com/elastic/helm-charts/blob/v7.17.3/elasticsearch/README.md
 ##
 fullnameOverride: "hcl-commerce-elasticsearch"
-imageTag: "7.17.10"
+imageTag: "7.17.13"
 replicas: 1
 minimumMasterNodes: 1
 esJavaOpts: "-Xmx6g -Xms6g"

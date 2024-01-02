@@ -1,0 +1,67 @@
+{{- if .Values.backwardCompatibility.ingressFormatUpgrade.enabled }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+{{- $_ := set $ "envType" $envType }}
+{{- $ingressName := printf "%s%s%s-ingress" $.Values.common.tenant $.Values.common.environmentName $.Values.common.environmentType }} 
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2023
+######################################################
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+  name: {{ $.Release.Name }}-ingress-cleanup-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 10 | lower }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-delete-policy": "hook-succeeded"
+spec:
+  backoffLimit: 5
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      {{- if $.Values.anthosDeployment.enabled }}
+      annotations:
+        sidecar.istio.io/inject: "false"
+      {{- end }}
+      labels:
+        app: HCL-Commerce
+        chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+        release: {{ $.Release.Name }}
+        heritage: {{ $.Release.Service }}
+    spec:
+      affinity:
+      {{- include "nodeaffinity" $ | indent 6 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      restartPolicy: Never
+      containers:
+        - name: pre-upgrade-ingress-cleanup-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 10 | lower }}
+          image: bitnami/kubectl
+          tty: true
+          {{- if $.Values.common.imagePullPolicy }}
+          imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+          {{- end }}
+          command:
+            - "bin/bash"
+            - "-c"
+            - "kubectl delete ingress {{ $ingressName }} -n {{ $.Release.Namespace }} --ignore-not-found=true"
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop:
+              - all   
+---
+{{- end }}
+{{- end }}
+{{- end }}

@@ -34,6 +34,11 @@ spec:
       annotations:
         productName: "HCL Commerce"
         productVersion: {{ $.Values.common.productVersion | quote }}
+        {{- if and ($.Values.metrics.enabled) ($.Values.metrics.prometheusAnnotations.enabled) }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /api/metrics
+        prometheus.io/port: "3343"
+        {{- end }}
       labels:
         app: HCL-Commerce
         chart: {{ $.Chart.Name }}

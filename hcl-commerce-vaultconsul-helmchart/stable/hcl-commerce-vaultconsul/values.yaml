@@ -71,11 +71,11 @@ vaultConsul:
   ## vault docker image name
   vaultImageName: hashicorp/vault
   ## vault docker image tag
-  vaultImageTag: 1.13.4
+  vaultImageTag: 1.14.4
 
   ## plinux vault image name and tag
   #vaultImageName: vault-ppc64le
-  #vaultImageTag: v1.13.4
+  #vaultImageTag: v1.14.4
   
   ## Vault resources
   vaultResources:
