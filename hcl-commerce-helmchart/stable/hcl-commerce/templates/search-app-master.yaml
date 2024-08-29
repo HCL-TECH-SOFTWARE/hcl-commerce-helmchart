@@ -146,6 +146,33 @@ spec:
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
         args: ['depcheck', '-component','search','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',auth,'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+      {{- if $.Values.searchAppMaster.shardA.enabled }}
+      - name: search-shard-a-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{$.Values.searchAppMaster.shardA.name}}, '-container_name','search-app-shard-a','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
+      {{- end }}
+      {{- if $.Values.searchAppMaster.shardB.enabled }}
+      - name: search-shard-b-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{$.Values.searchAppMaster.shardB.name}}, '-container_name','search-app-shard-b','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
+      {{- end }}
+      {{- if $.Values.searchAppMaster.shardC.enabled }}
+      - name: search-shard-c-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{$.Values.searchAppMaster.shardC.name}}, '-container_name','search-app-shard-c','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
+      {{- end }}
       volumes:
         - name: logs-sharing
           emptyDir: {}
@@ -165,6 +192,33 @@ spec:
             claimName: {{ $.Values.searchAppMaster.persistentVolumeClaim }}
             {{- else }}
             claimName: {{ $.Release.Name }}-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-master-pvc
+            {{- end }}
+      {{- end }}
+      {{- if and ($.Values.searchAppMaster.shardA.enabled) ($.Values.searchAppMaster.shardA.persistence.enabled) }}
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-a-index-volume
+          persistentVolumeClaim:
+            {{- if $.Values.searchAppMaster.shardA.persistence.existingClaim }}
+            claimName: {{ $.Values.searchAppMaster.shardA.persistence.existingClaim }}
+            {{- else }}
+            claimName: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-search-shard-a-pvc
+            {{- end }}
+      {{- end }}
+      {{- if and ($.Values.searchAppMaster.shardB.enabled) ($.Values.searchAppMaster.shardB.persistence.enabled) }}
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-b-index-volume
+          persistentVolumeClaim:
+            {{- if $.Values.searchAppMaster.shardB.persistence.existingClaim }}
+            claimName: {{ $.Values.searchAppMaster.shardB.persistence.existingClaim }}
+            {{- else }}
+            claimName: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-search-shard-b-pvc
+            {{- end }}
+      {{- end }}
+      {{- if and ($.Values.searchAppMaster.shardC.enabled) ($.Values.searchAppMaster.shardC.persistence.enabled) }}
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-c-index-volume
+          persistentVolumeClaim:
+            {{- if $.Values.searchAppMaster.shardC.persistence.existingClaim }}
+            claimName: {{ $.Values.searchAppMaster.shardC.persistence.existingClaim }}
+            {{- else }}
+            claimName: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-search-shard-c-pvc
             {{- end }}
       {{- end }}
       {{- if $.Values.common.bindingConfigMap }}
@@ -345,6 +399,18 @@ spec:
       {{- if $.Values.searchAppMaster.persistence.enabled }}
           - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-master-index-volume
             mountPath: /search
+      {{- end }}
+      {{- if and ($.Values.searchAppMaster.shardA.enabled) ($.Values.searchAppMaster.shardA.persistence.enabled) }}
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-a-index-volume
+            mountPath: /shard_a
+      {{- end }}
+      {{- if and ($.Values.searchAppMaster.shardB.enabled) ($.Values.searchAppMaster.shardB.persistence.enabled) }}
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-b-index-volume
+            mountPath: /shard_b
+      {{- end }}
+      {{- if and ($.Values.searchAppMaster.shardC.enabled) ($.Values.searchAppMaster.shardC.persistence.enabled) }}
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-c-index-volume
+            mountPath: /shard_c
       {{- end }}
       {{- if $.Values.common.bindingConfigMap }}
           - name: config-volume

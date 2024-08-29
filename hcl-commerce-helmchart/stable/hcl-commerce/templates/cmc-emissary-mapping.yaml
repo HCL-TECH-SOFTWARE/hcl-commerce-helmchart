@@ -71,7 +71,7 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
   bypass_auth: true
 ---
-{{- if not $.Values.ingress.enableManageApprovalPage }}
+{{- if $.Values.ingress.enableManageApprovalPage }}
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:

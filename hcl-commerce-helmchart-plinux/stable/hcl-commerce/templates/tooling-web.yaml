@@ -101,10 +101,38 @@ spec:
         env:
         - name: "LICENSE"
           value: {{ .Values.license | quote }}
+        {{- if $.Values.global.sofySolutionContext }}
+        - name: "EXTERNAL_DOMAIN_NAME"
+        {{- if $.Values.global.domain }}
+          value: {{ $.Values.global.domain }}
+        {{- else }}
+          valueFrom:
+              configMapKeyRef:
+                name: {{ $.Release.Name }}-domain
+                key: HOST
+        {{- end }}
+        {{- else }} # not sofy
+        - name: "EXTERNAL_DOMAIN_NAME"
+          value: "{{ trimPrefix "." $.Values.common.externalDomain }}"
+        {{- end }}
+        {{- if eq $.Values.common.searchEngine "elastic" }}
+        - name: "ELASTICSEARCH_ENABLED"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.storeWeb.enabled }}
+        - name: "REACT_STORE_ENABLED"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.approvalApp.enabled }}
+        - name: "APPROVAL_ENABLED"
+          value: "true"
+        {{- end }}
         {{- if $.Values.common.timezone }}
         - name: "TZ"
           value: {{ $.Values.common.timezone | quote }}
         {{- end }}
+        - name: "EXTRA_CSP_SOURCE"
+          value: {{ .Values.toolingWeb.extraCspSource | quote }}
         - name: "CONFIGURE_MODE"
           value: {{ .Values.common.configureMode | quote }}
         - name: "ENVIRONMENT"

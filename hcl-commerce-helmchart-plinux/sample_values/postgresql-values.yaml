@@ -22,7 +22,7 @@
 image:
   registry: icr.io/ppc64le-oss 
   repository: postgresql
-  tag: v14.9.0-bv
+  tag: v14.12.0-bv
   pullPolicy: IfNotPresent
 auth:
   postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"

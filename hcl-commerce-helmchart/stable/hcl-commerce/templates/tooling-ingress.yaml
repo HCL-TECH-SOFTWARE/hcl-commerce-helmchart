@@ -1,0 +1,74 @@
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (not .Values.openshiftDeployment.enabled) }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if has "share" $envTypeList }}
+{{- $ingress_conf := $.Values.ingress.tooling }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    ingress.kubernetes.io/secure-backends: "true"
+    ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- if eq $.Values.ingress.ingressController "gke" }}
+    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
+    {{- end }}
+    {{- if eq $.Values.ingress.ingressController "nginx" }}
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web"
+    {{- end }}
+    {{- if $.Values.ingress.tooling.customAnnotations }}
+{{ toYaml $.Values.ingress.tooling.customAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}
+spec:
+  {{- if eq $.Values.ingress.ingressController "nginx" }}
+  ingressClassName: {{ default "nginx" $ingress_conf.ingressClass | quote }}
+  {{- end }}
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%sshare-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /tooling {{- else if eq $.Values.ingress.ingressController "gke" }} /tooling/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}
+          servicePort: 7443
+      {{- if $.Values.approvalApp.enabled }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /approvals {{- else if eq $.Values.ingress.ingressController "gke" }} /approvals/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+          servicePort: 6643
+      {{- end }}
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /tooling {{- else if eq $.Values.ingress.ingressController "gke" }} /tooling/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}
+            port:
+              number: 7443
+      {{- if $.Values.approvalApp.enabled }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /approvals {{- else if eq $.Values.ingress.ingressController "gke" }} /approvals/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+            port:
+              number: 6643
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+---

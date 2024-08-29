@@ -15,11 +15,17 @@ metadata:
   annotations:
     ingress.kubernetes.io/secure-backends: "true"
     ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- if eq $.Values.ingress.ingressController "gke" }}
+    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
+    {{- end }}
     {{- if eq $.Values.ingress.ingressController "nginx" }}
     nginx.ingress.kubernetes.io/secure-backends: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
     nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app"
+    {{- end }}
+    {{- if $.Values.ingress.query.customAnnotations }}
+{{ toYaml $.Values.ingress.query.customAnnotations | indent 4 }}
     {{- end }}
   labels:
     app: HCL-Commerce
@@ -30,8 +36,6 @@ metadata:
 spec:
   {{- if eq $.Values.ingress.ingressController "nginx" }}
   ingressClassName: {{ default "nginx" $ingress_conf.ingressClass | quote }}
-  {{- else if eq $.Values.ingress.ingressController "gke" }}
-  ingressClassName: {{ default "gce" $ingress_conf.ingressClass | quote }}
   {{- end }}
   tls:
   - hosts:

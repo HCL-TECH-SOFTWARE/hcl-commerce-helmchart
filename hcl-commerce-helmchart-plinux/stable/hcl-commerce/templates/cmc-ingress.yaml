@@ -15,11 +15,17 @@ metadata:
   annotations:
     ingress.kubernetes.io/secure-backends: "true"
     ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- if eq $.Values.ingress.ingressController "gke" }}
+    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
+    {{- end }}
     {{- if eq $.Values.ingress.ingressController "nginx" }}
     nginx.ingress.kubernetes.io/secure-backends: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
     nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web"
+    {{- end }}
+    {{- if $.Values.ingress.cmc.customAnnotations }}
+{{ toYaml $.Values.ingress.cmc.customAnnotations | indent 4 }}
     {{- end }}
   labels:
     app: HCL-Commerce
@@ -30,8 +36,6 @@ metadata:
 spec:
   {{- if eq $.Values.ingress.ingressController "nginx" }}
   ingressClassName: {{ default "nginx" $ingress_conf.ingressClass | quote }}
-  {{- else if eq $.Values.ingress.ingressController "gke" }}
-  ingressClassName: {{ default "gce" $ingress_conf.ingressClass | quote }}
   {{- end }}
   tls:
   - hosts:
@@ -65,7 +69,7 @@ spec:
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
           servicePort: 6643
-      {{- if not $.Values.ingress.enableManageApprovalPage }}
+      {{- if $.Values.ingress.enableManageApprovalPage }}
       - path: /approvals/manage-approval
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
@@ -117,7 +121,7 @@ spec:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
             port:
               number: 6643
-      {{- if not $.Values.ingress.enableManageApprovalPage }}
+      {{- if $.Values.ingress.enableManageApprovalPage }}
       - path: /approvals/manage-approval
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
         backend:

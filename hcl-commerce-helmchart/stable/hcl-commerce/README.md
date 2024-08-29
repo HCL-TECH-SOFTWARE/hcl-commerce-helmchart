@@ -9,7 +9,7 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
-Note: The 9.1.15.0 Helm Chart can only be used to deploy HCL Commerce 9.1.15.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+Note: The 9.1.16.0 Helm Chart can only be used to deploy HCL Commerce 9.1.16.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
 
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.
@@ -500,6 +500,12 @@ To mount a volume
     ```
     2. Use `kubectl apply -f pvc.yaml` to create pvc
 1. configure `persistentVolumeClaim` with the PVC name under `searchAppMaster`, `searchAppRepeater` or `nifiApp`
+
+#### Enable solr parallel indexing with shards
+You can index large catalog data into the search server with parallel preprocessing and distributed indexing by sharding and merging. Check the knowledge center for more details on [Parallel preprocessing and distributed indexing](https://help.hcltechsw.com/commerce/9.1.0/search/concepts/csdsearchparallel.html)
+
+By enabling shardA, shardB and shardC in the helm chart under the searchAppMaster section, multiple search servers will be deployed to achieve parallel indexing. Note a `ReadWriteMany` type of persistent volume for searchAppMaster, shardA, shardB and shardC would be required after enabling any of the shards.
+
 
 #### Upgrade Commerce from 9.0.x to 9.1+
 In previous helmchart for Commerce 9.0.x.x, the deployment matches the following labels to select pods

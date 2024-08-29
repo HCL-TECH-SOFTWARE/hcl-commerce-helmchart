@@ -18,6 +18,9 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
   annotations:
     cloud.google.com/app-protocols: '{"https-port3443":"HTTPS","http-port3100":"HTTP"}'
+    {{- if and $.Values.ingress.enabled (eq $.Values.ingress.ingressController "gke") }}
+    cloud.google.com/backend-config: '{"default": "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}-graphql-backend-config"}'
+    {{- end }}
 spec:
   type: NodePort
   ports:

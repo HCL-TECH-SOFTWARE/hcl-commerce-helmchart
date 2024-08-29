@@ -64,3 +64,63 @@ RWX StorageClass name
 {{- default .Values.assetsPVC.storageClass .Values.global.persistence.rwxStorageClass -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+RWX shardA StorageClass name
+*/}}
+{{- define "rwx.shardA.storageclass.name" -}}
+{{- if .Values.searchAppMaster.shardA.persistence.storageClass -}}
+{{- default .Values.searchAppMaster.shardA.persistence.storageClass -}}
+{{- else if .Values.commercenfs.enabled -}}
+{{- printf "%s-%s" .Release.Namespace .Values.commercenfs.storageClass.name | trunc 63 }}
+{{- else if .Values.global.sofySandboxContext -}}
+{{- default .Values.global.persistence.rwxStorageClass .Values.global.persistence.testRWXStorageClass -}}
+{{- else -}}
+{{- default .Values.global.persistence.rwxStorageClass -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+RWX shardB StorageClass name
+*/}}
+{{- define "rwx.shardB.storageclass.name" -}}
+{{- if .Values.searchAppMaster.shardB.persistence.storageClass -}}
+{{- default .Values.searchAppMaster.shardB.persistence.storageClass -}}
+{{- else if .Values.commercenfs.enabled -}}
+{{- printf "%s-%s" .Release.Namespace .Values.commercenfs.storageClass.name | trunc 63 }}
+{{- else if .Values.global.sofySandboxContext -}}
+{{- default .Values.global.persistence.rwxStorageClass .Values.global.persistence.testRWXStorageClass -}}
+{{- else -}}
+{{- default .Values.global.persistence.rwxStorageClass -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+RWX shardC StorageClass name
+*/}}
+{{- define "rwx.shardC.storageclass.name" -}}
+{{- if .Values.searchAppMaster.shardC.persistence.storageClass -}}
+{{- default .Values.searchAppMaster.shardC.persistence.storageClass -}}
+{{- else if .Values.commercenfs.enabled -}}
+{{- printf "%s-%s" .Release.Namespace .Values.commercenfs.storageClass.name | trunc 63 }}
+{{- else if .Values.global.sofySandboxContext -}}
+{{- default .Values.global.persistence.rwxStorageClass .Values.global.persistence.testRWXStorageClass -}}
+{{- else -}}
+{{- default .Values.global.persistence.rwxStorageClass -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+RWX search StorageClass name
+*/}}
+{{- define "rwx.search.storageclass.name" -}}
+{{- if .Values.searchAppMaster.persistence.storageClass -}}
+{{- default .Values.searchAppMaster.persistence.storageClass -}}
+{{- else if .Values.commercenfs.enabled -}}
+{{- printf "%s-%s" .Release.Namespace .Values.commercenfs.storageClass.name | trunc 63 }}
+{{- else if .Values.global.sofySandboxContext -}}
+{{- default .Values.global.persistence.rwxStorageClass .Values.global.persistence.testRWXStorageClass -}}
+{{- else -}}
+{{- default .Values.global.persistence.rwxStorageClass -}}
+{{- end -}}
+{{- end -}}

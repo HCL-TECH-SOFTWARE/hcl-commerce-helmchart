@@ -20,14 +20,14 @@ Name |   Default Value | Usage
 ------------- | -------------| -------------
 vaultConsul.imageRepo | docker.io/ | container registry for vault images
 vaultConsul.vaultImageName | vault | Vault Docker Image name
-vaultConsul.vaultImageTag | 1.14.4 | Vault Docker Image tag
+vaultConsul.vaultImageTag | 1.14.8 | Vault Docker Image tag
 supportC.imageRepo | my-docker-registry.io:5000/ | container registry for commerce support container image
 supportC.image | commerce/supportcontainer | full path to the support container image
 supportC.tag | v9-latest | image tag for commerce support container image
 test.image |  docker.io/centos:latest | Helm Test command uses Centos Docker Image
 
 > **Note**
-vault: 1.14.4 has been tested on xlinux and plinux.  There is no guarantee that other tags for those docker images will work as expected.
+vault: 1.14.8 has been tested on xlinux and plinux.  There is no guarantee that other tags for those docker images will work as expected.
 
 ### CA certificate
 This helm chart deploy vault in development mode to by pass the unseal process. In this mode the data will be stored in memory only. The configuration data is defined in helm values file so they will be re-loaded everytime when vault is re-deployed / re-started. However, the root CA certificate stored in CA can not be persisted unless it is defined and persisted in a secret. This helm chart allows either specifying CA certificate by a tls secret name, or let this helm chart auto-generate one and persist it in the tls secret during the install time. 

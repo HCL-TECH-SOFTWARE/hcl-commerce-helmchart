@@ -1,0 +1,22 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "gke") (.Values.graphqlApp.enabled) -}}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}-graphql-backend-config
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}
+spec:
+  healthCheck:
+    checkIntervalSec: 30
+    timeoutSec: 10
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+    type: HTTPS
+    requestPath: /graphql?query={__typename}
+    port: 3443
+{{- end }}

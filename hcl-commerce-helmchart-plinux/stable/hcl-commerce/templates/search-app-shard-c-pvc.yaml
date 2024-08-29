@@ -1,0 +1,23 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{ if and (has "auth" $envTypeList) (eq .Values.common.searchEngine "solr") (.Values.searchAppMaster.shardC.enabled) (.Values.searchAppMaster.shardC.persistence.enabled) (not .Values.searchAppMaster.shardC.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-search-shard-c-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  accessModes:
+  - {{ .Values.searchAppMaster.shardC.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.searchAppMaster.shardC.persistence.storage }}
+  {{- if include "rwx.shardC.storageclass.name" $ }}
+  storageClassName: {{ include "rwx.shardC.storageclass.name" $ }}
+  {{- end }}
+{{- end }}
