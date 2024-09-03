@@ -77,15 +77,20 @@ redis:
   image:
     registry: docker.io
     repository: bitnami/redis
-    tag: 7.2.1-debian-11-r24
+    tag: 7.2.5-debian-12-r0
     pullPolicy: IfNotPresent
   auth:
+    enabled: false
+  networkPolicy:
     enabled: false
   serviceAccount:
     create: false
     name: "default"
   master:
     disableCommands: []
+    serviceAccount:
+      create: false
+      name: "default"
     persistence:
       enabled: false
     ## @param master.nodeSelector Node labels for Redis&reg; master pods assignment
@@ -109,7 +114,7 @@ redis:
 elasticsearch:
   enabled: false
   fullnameOverride: "hcl-commerce-elasticsearch"
-  imageTag: "7.17.13"
+  imageTag: "7.17.20"
   replicas: 1
   minimumMasterNodes: 1
   esJavaOpts: "-Xmx6g -Xms6g"
@@ -133,7 +138,7 @@ postgresql:
   image: 
     registry: docker.io
     repository: bitnami/postgresql
-    tag: 14.10.0
+    tag: 14.12.0-debian-12-r13
   auth:
     postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"
   fullnameOverride: "hcl-commerce-postgresql"
@@ -196,7 +201,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.15.0
+  productVersion: 9.1.16.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -554,6 +559,9 @@ ingress:
   ##   optional.
   ##   keep it empty to use the tls secret auto generated to match the ootb domain pattern.
   ##   Otherwise specify the tls secret for each ingress to match the domain name.
+  ## customAnnotations:
+  ##  optional.
+  ##  only applicable to gke and nginx ingress to add custom annotations to the ingress definitions 
   cmc:
     auth:
       domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -563,6 +571,12 @@ ingress:
       domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
+  tooling:
+    domain: tooling.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    ingressClass:
+    tlsSecret:
+    customAnnotations: {}
   accelerator:
     auth:
       domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -572,6 +586,7 @@ ingress:
       domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   admin:
     auth:
       domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -581,6 +596,7 @@ ingress:
       domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   org:
     auth:
       domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -590,6 +606,7 @@ ingress:
       domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   crs:
     auth:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -599,6 +616,7 @@ ingress:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   localstore:
     auth:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -608,6 +626,7 @@ ingress:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   reactstore:
     auth:
       domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -617,6 +636,7 @@ ingress:
       domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   reactstorepreview:
     auth:
       domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -626,6 +646,7 @@ ingress:
       domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   query:
     auth:
       domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -639,6 +660,7 @@ ingress:
       domain: query.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   solrsearch:
     auth:
       domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -648,6 +670,7 @@ ingress:
       domain: searchrepeater.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   transaction:
     auth:
       domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -657,6 +680,7 @@ ingress:
       domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   graphql:
     auth:
       domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -666,6 +690,7 @@ ingress:
       domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   cache:
     auth:
       enabled: false
@@ -677,26 +702,31 @@ ingress:
       domain: cache.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
       ingressClass:
       tlsSecret:
+    customAnnotations: {}
   nifi:
     enabled: false
     domain: nifi.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
     ingressClass:
     tlsSecret:
+    customAnnotations: {}
   ingest:
     enabled: false
     domain: ingest.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
     ingressClass:
     tlsSecret:
+    customAnnotations: {}
   registry:
     enabled: false
     domain: registry.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
     ingressClass:
     tlsSecret:
+    customAnnotations: {}
   mustgather:
     enabled: false
     domain: mustgather.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
     ingressClass:
     tlsSecret:
+    customAnnotations: {}
 
 
 #######################################################
@@ -770,6 +800,8 @@ tsApp:
   envParameters:
     auth: {}
     live: {}
+  startupProbe:
+    initialDelaySeconds: 200
   livenessProbe:
     initialDelaySeconds: 600
   ## the nodes must have a label with the key wc-node-select-flag
@@ -861,6 +893,7 @@ searchAppMaster:
     # keep storageClass empty to use the cluster default storageClass
     storageClass: ""
     storage: "5Gi"
+    # NOTE if any of the shards are enabled, then ReadWriteMany accessMode is required
     accessMode: "ReadWriteOnce"
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
@@ -883,7 +916,64 @@ searchAppMaster:
       command: []
       args: []
       env: {}
-
+  ## Enable parallel preprocessing and distributed indexing by enabling shards below
+  ## Multiple search servers will be deployed with the same configurations as searchAppMaster to speed up the indexing (except persistence, nodeLabel, nodeSelector and coresSharingPersistentVolumeClaim)
+  ## Ensure persistence is enabled and using ReadWriteMany accessMode is required
+  shardA:
+    enabled: false
+    name: search-app-shard-a
+    persistence:
+      enabled: true
+      existingClaim: ""
+      # keep storageClass empty to use the cluster default storageClass
+      storageClass: ""
+      storage: "5Gi"
+      # NOTE ReadWriteMany accessMode is required
+      accessMode: "ReadWriteMany"
+    ## the nodes must have a label with the key wc-node-select-flag
+    ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
+    nodeLabel: ""
+    ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
+    ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+    nodeSelector: {}
+    coresSharingPersistentVolumeClaim: ""
+  shardB:
+    enabled: false
+    name: search-app-shard-b
+    persistence:
+      enabled: true
+      existingClaim: ""
+      # keep storageClass empty to use the cluster default storageClass
+      storageClass: ""
+      storage: "5Gi"
+      # NOTE ReadWriteMany accessMode is required
+      accessMode: "ReadWriteMany"
+    ## the nodes must have a label with the key wc-node-select-flag
+    ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
+    nodeLabel: ""
+    ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
+    ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+    nodeSelector: {}
+    coresSharingPersistentVolumeClaim: ""
+  shardC:
+    enabled: false
+    name: search-app-shard-c
+    persistence:
+      enabled: true
+      existingClaim: ""
+      # keep storageClass empty to use the cluster default storageClass
+      storageClass: ""
+      storage: "5Gi"
+      # NOTE ReadWriteMany accessMode is required
+      accessMode: "ReadWriteMany"
+    ## the nodes must have a label with the key wc-node-select-flag
+    ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
+    nodeLabel: ""
+    ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
+    ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+    nodeSelector: {}
+    coresSharingPersistentVolumeClaim: ""
+    
 searchAppRepeater:
   name: search-app-repeater
   image: commerce/search-app
@@ -1020,6 +1110,8 @@ toolingWeb:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## extra csp source
+  extraCspSource: ""
 
 storeWeb:
   enabled: true
@@ -1182,7 +1274,7 @@ nifiApp:
   ## The version of the bootstrap connector data bundled in the nifi image
   ## This version change will cause bootstrap data reload and any customized
   ## data will need to be applied when this version is updated
-  dataVersion: 9.1.15.0
+  dataVersion: 9.1.16.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
   ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified

@@ -116,7 +116,21 @@ spec:
   {{- end }}
   case_sensitive: false
   timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-tooling-standalone-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /tooling
+  rewrite: /tooling
+  hostname: commerce-tooling.*
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v3alpha1
@@ -153,7 +167,7 @@ spec:
   {{- end }}
   case_sensitive: false
   timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v3alpha1
@@ -189,6 +203,20 @@ spec:
   {{- else }}
   hostname: commerce-live.*
   {{- end }}
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
+  bypass_auth: true
+---
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-tooling-approval-mapping
+spec:
+  ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
+  prefix: /approvals
+  rewrite: /approvals
+  hostname: commerce-tooling.*
   case_sensitive: false
   timeout_ms: 10000
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
@@ -320,7 +348,7 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8004
   bypass_auth: true
 ---
-{{- if $.Values.storeWeb.enabled }}
+{{- if and ($.Values.storeWeb.enabled) (eq $.Values.common.searchEngine "elastic") }}
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping

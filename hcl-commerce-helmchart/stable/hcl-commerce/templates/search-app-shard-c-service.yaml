@@ -1,0 +1,37 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (has "auth" $envTypeList) (eq .Values.common.searchEngine "solr") (.Values.searchAppMaster.shardC.enabled) }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 2024
+######################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{$.Values.searchAppMaster.shardC.name}}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{$.Values.searchAppMaster.shardC.name}}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    cloud.google.com/app-protocols: '{"https-port3738":"HTTPS","http-port3737":"HTTP"}'
+spec:
+  type: NodePort
+  ports:
+  - port: 3737
+    name: http-port3737
+  - port: 3738
+    name: https-port3738
+  {{- if $.Values.metrics.enabled }}
+  - port: 3280
+    name: http-metrics
+  {{- end }}
+  selector:
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{$.Values.searchAppMaster.shardC.name}}
+{{- end -}}

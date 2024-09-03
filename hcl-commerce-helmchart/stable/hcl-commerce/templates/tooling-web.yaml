@@ -101,10 +101,56 @@ spec:
         env:
         - name: "LICENSE"
           value: {{ .Values.license | quote }}
+        {{- if $.Values.global.sofySolutionContext }}
+        - name: "EXTERNAL_DOMAIN_NAME"
+        {{- if $.Values.global.domain }}
+          value: {{ $.Values.global.domain }}
+        {{- else }}
+          valueFrom:
+              configMapKeyRef:
+                name: {{ $.Release.Name }}-domain
+                key: HOST
+        {{- end }}
+        - name: "AUTH_SEARCH_QUERY_BASE_URL"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "LIVE_SEARCH_QUERY_BASE_URL"
+          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "SEARCH_DATA_QUERY_BASE_URL"
+          value: "https://commerce-data-query.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "AUTH_REACT_STORE_BASE_URL"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "LIVE_REACT_STORE_BASE_URL"
+          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "REACT_STORE_PREVIEW_BASE_URL"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "APPROVAL_BASE_URL"
+          value: "https://commerce-tooling.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "AUTH_TRANSACTION_BASE_URL"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+        - name: "LIVE_TRANSACTION_BASE_URL"
+          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+        {{- else }} # not sofy
+        - name: "EXTERNAL_DOMAIN_NAME"
+          value: "{{ trimPrefix "." $.Values.common.externalDomain }}"
+        {{- end }}
+        {{- if eq $.Values.common.searchEngine "elastic" }}
+        - name: "ELASTICSEARCH_ENABLED"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.storeWeb.enabled }}
+        - name: "REACT_STORE_ENABLED"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.approvalApp.enabled }}
+        - name: "APPROVAL_ENABLED"
+          value: "true"
+        {{- end }}
         {{- if $.Values.common.timezone }}
         - name: "TZ"
           value: {{ $.Values.common.timezone | quote }}
         {{- end }}
+        - name: "EXTRA_CSP_SOURCE"
+          value: {{ .Values.toolingWeb.extraCspSource | quote }}
         - name: "CONFIGURE_MODE"
           value: {{ .Values.common.configureMode | quote }}
         - name: "ENVIRONMENT"

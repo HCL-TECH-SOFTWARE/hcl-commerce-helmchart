@@ -17,7 +17,9 @@ spec:
   resources:
     requests:
       storage: {{ .Values.searchAppMaster.persistence.storage }}
-  {{- if .Values.searchAppMaster.persistence.storageClass }}
+  {{- if and (eq .Values.searchAppMaster.persistence.accessMode "ReadWriteOnce") (.Values.searchAppMaster.persistence.storageClass) }}
   storageClassName: {{ .Values.searchAppMaster.persistence.storageClass }}
+  {{- else if include "rwx.search.storageclass.name" $ }}
+  storageClassName: {{ include "rwx.search.storageclass.name" $ }}
   {{- end }}
 {{- end }}

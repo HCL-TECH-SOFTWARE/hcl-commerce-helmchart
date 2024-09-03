@@ -320,7 +320,7 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web:8004
   bypass_auth: true
 ---
-{{- if $.Values.storeWeb.enabled }}
+{{- if and ($.Values.storeWeb.enabled) (eq $.Values.common.searchEngine "elastic") }}
 ---
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping

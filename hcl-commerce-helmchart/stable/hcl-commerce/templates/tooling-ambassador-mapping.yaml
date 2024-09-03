@@ -1,0 +1,46 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if has "share" $envTypeList }}
+{{- $ingress_conf := $.Values.ingress.tooling }}
+apiVersion: getambassador.io/v2
+kind: TLSContext
+metadata:
+  name: ssl-context-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}-tooling
+spec:
+  hosts:
+  - {{ tpl ($ingress_conf.domain | toString) $ }}
+  secret: {{ default (printf "%s%sshare-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-tooling-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /tooling
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
+  bypass_auth: true
+---
+{{- if $.Values.approvalApp.enabled }}
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-tooling-approval-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /approvals
+  rewrite: /approvals
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
+{{- end }}

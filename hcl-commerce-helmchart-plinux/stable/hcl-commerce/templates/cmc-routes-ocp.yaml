@@ -129,7 +129,7 @@ spec:
     destinationCACertificate: |-
 {{ $.Values.openshiftDeployment.destinationCACertificate | indent 6 }}
 ---
-{{- if not $.Values.ingress.enableManageApprovalPage }}
+{{- if $.Values.ingress.enableManageApprovalPage }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:

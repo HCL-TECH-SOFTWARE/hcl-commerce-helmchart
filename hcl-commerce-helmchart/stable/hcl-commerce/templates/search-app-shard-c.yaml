@@ -1,0 +1,345 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if and (has "auth" $envTypeList) (eq .Values.common.searchEngine "solr") (.Values.searchAppMaster.shardC.enabled) }}
+{{- $_ := set $ "envType" "auth" }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 2024
+######################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{$.Values.searchAppMaster.shardC.name}}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      chart: {{ $.Chart.Name }}
+      release: {{ $.Release.Name }}
+      heritage: {{ $.Release.Service }}
+      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{ $.Values.searchAppMaster.shardC.name }}
+      group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth
+      {{- range $key, $value := $.Values.backwardCompatibility.selector.extraSelector }}
+      {{ $key }}: {{ $value | quote }}
+      {{- end }}
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        productName: "HCL Commerce"
+        productVersion: {{ $.Values.common.productVersion | quote }}
+        {{- if and ($.Values.metrics.enabled) ($.Values.metrics.prometheusAnnotations.enabled) }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /monitor/metrics
+        prometheus.io/port: "3280"
+        {{- end }}
+      labels:
+        app: HCL-Commerce
+        chart: {{ $.Chart.Name }}
+        release: {{ $.Release.Name }}
+        heritage: {{ $.Release.Service }}
+        component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth{{ $.Values.searchAppMaster.shardC.name }}
+        group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}auth
+        {{- range $key, $value := $.Values.backwardCompatibility.selector.extraSelector }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      {{- if $.Values.searchAppMaster.shardC.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.searchAppMaster.shardC.nodeSelector | indent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+           {{- if $.Values.searchAppMaster.shardC.nodeLabel }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: wc-node-select-flag
+                  operator: In
+                  values:
+                  - {{ $.Values.searchAppMaster.shardC.nodeLabel }}
+           {{- else }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityRequiredDuringScheduling" $ | indent 8 }}
+           {{- end }}
+           preferredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityPreferredDuringScheduling" $ | indent 8 }}
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.searchAppMaster.userScripts.enabled) }}
+      - name: user-script-transfer
+        image: "{{ include "image.repo" $ }}{{ $.Values.searchAppMaster.userScripts.initContainer.image }}:{{ $.Values.searchAppMaster.userScripts.initContainer.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: 
+{{ toYaml $.Values.searchAppMaster.userScripts.initContainer.command | indent 10 }}
+        args:
+{{ toYaml $.Values.searchAppMaster.userScripts.initContainer.args | indent 10 }}
+        {{- if $.Values.searchAppMaster.userScripts.initContainer.env }}
+        env:
+          {{- range $key, $value := $.Values.searchAppMaster.userScripts.initContainer.env }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote}}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+          - name:  user-scripts
+            mountPath: /data
+      {{- end }}
+      {{- if and $.Values.global.sofySandboxContext $.Values.searchAppMaster.demoPack.enabled }}
+      - name: demo-pack-transfer
+        image: "{{ $.Values.global.hclPreviewImageRegistry }}/{{ $.Values.searchAppMaster.demoPack.initContainer.image }}:{{ $.Values.searchAppMaster.demoPack.initContainer.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: 
+{{ toYaml $.Values.searchAppMaster.demoPack.initContainer.command | indent 10 }}
+        args:
+{{ toYaml $.Values.searchAppMaster.demoPack.initContainer.args | indent 10 }}
+        {{- if $.Values.searchAppMaster.demoPack.initContainer.env }}
+        env:
+          {{- range $key, $value := $.Values.searchAppMaster.demoPack.initContainer.env }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote}}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+          - name:  demopack
+            mountPath: /data
+      {{- end }}
+      - name: search-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['depcheck', '-component','search','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',auth,'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+      volumes:
+        - name: logs-sharing
+          emptyDir: {}
+        - name: cores-sharing
+        {{- if $.Values.searchAppMaster.shardC.coresSharingPersistentVolumeClaim }}
+          persistentVolumeClaim:
+            claimName: {{ $.Values.searchAppMaster.shardC.coresSharingPersistentVolumeClaim }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+      {{- if $.Values.searchAppMaster.shardC.persistence.enabled }}
+        - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-c-index-volume
+          persistentVolumeClaim:
+            {{- if $.Values.searchAppMaster.shardC.persistence.existingClaim }}
+            claimName: {{ $.Values.searchAppMaster.shardC.persistence.existingClaim }}
+            {{- else }}
+            claimName: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-search-shard-c-pvc
+            {{- end }}
+      {{- end }}
+      {{- if $.Values.common.bindingConfigMap }}
+        - name: config-volume
+          configMap:
+            name: {{ $.Values.common.bindingConfigMap }}
+      {{- end }}
+      {{- if $.Values.hclCache.configMap }}
+        - name: hcl-cache-config
+          configMap:
+            name: {{ include "hcl.cache.configmap.name" $ | quote }}
+      {{- end }}
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.searchAppMaster.userScripts.enabled) }}
+        - name: user-scripts
+          emptyDir: {}
+      {{- end }}
+      {{- if and $.Values.global.sofySandboxContext $.Values.searchAppMaster.demoPack.enabled }}
+        - name: demopack
+          emptyDir: {}
+      {{- end }}
+      {{- if include "image.pull.secret" $ }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" $ }}
+      {{- end }}
+      containers:
+      - name: search-app-shard-c
+        image: "{{ include "image.repo" $ }}{{$.Values.searchAppMaster.image}}:{{ $.Values.searchAppMaster.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        resources:
+{{ toYaml $.Values.searchAppMaster.resources | indent 12 }}
+        env:
+        - name: "LICENSE"
+          value: {{ $.Values.license | quote }}
+        - name: "CONFIGURE_MODE"
+          value: {{ $.Values.common.configureMode | quote }}
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
+        - name: "ENVIRONMENT"
+          value: {{ $.Values.common.environmentName | quote }}
+        - name: "TENANT"
+          value: {{$.Values.common.tenant | quote}}
+        - name: "ENVTYPE"
+          value: "auth"
+        {{- if $.Values.logging.jsonLogging.enabled }}
+        - name: "ENABLE_JSON_LOGGING"
+          value: "true"
+        {{- end }}
+        - name: "DOMAIN_NAME"
+          value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        {{- if $.Values.metrics.enabled }}
+        - name: "EXPOSE_METRICS"
+          value: "true"
+        {{- end }}
+        - name: "DBTYPE"
+          value: {{ $.Values.common.dbType | quote }}
+        - name: "VAULT_CA"
+          value: {{ $.Values.vaultCA.enabled | quote }}
+        - name: "WORKAREA"
+          value: "/shard_c"
+        - name: "SOLR_MASTER"
+          value: "true"
+        - name: "SOLR_SLAVE"
+          value: "false"
+        - name: "SPIUSER_NAME"
+          value: {{ $.Values.common.spiUserName | quote }}
+        - name: "SPIUSER_PWD"
+          value: {{ $.Values.common.spiUserPwdAes | quote }}
+        {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
+        - name: "VAULT_URL"
+          value: {{ $.Values.common.vaultUrl | quote }}
+        {{- if $.Values.common.vaultTokenSecret }}
+        - name: "VAULT_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.common.vaultTokenSecret }}
+              key: VAULT_TOKEN
+        {{- end }}
+        {{- end }}
+        {{- if $.Values.common.ipv6Enabled }}
+        - name: "IPV6_ENABLED"
+          value: "true"
+        {{- end }}
+{{- if $.Values.searchAppMaster.envParameters }}
+     {{- range $key, $value := $.Values.searchAppMaster.envParameters }}
+        - name: {{ $key | quote}}
+          value: {{ $value | quote }}
+     {{- end }}
+{{- end }}
+        ports:
+        - containerPort: 3737
+          name: port3737
+        - containerPort: 3738
+          name: port3738
+          protocol: TCP
+        startupProbe:
+          httpGet:
+            path: /search/admin/resources/health/ping
+            port: 3738
+            scheme: HTTPS
+            httpHeaders:
+            - name: Authorization
+              value: Basic {{ $.Values.common.spiUserPwdBase64 }}
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 100 
+        readinessProbe:
+          httpGet:
+            path: /search/admin/resources/health/status?type=container
+            port: 3738
+            scheme: HTTPS
+            httpHeaders:
+            - name: Authorization
+              value: Basic {{ $.Values.common.spiUserPwdBase64 }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 20
+          failureThreshold: 4
+        livenessProbe:
+          httpGet:
+            path: /search/admin/resources/health/ping
+            port: 3738
+            scheme: HTTPS
+            httpHeaders:
+            - name: Authorization
+              value: Basic {{ $.Values.common.spiUserPwdBase64 }}
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 15
+        securityContext:
+            {{- if $.Values.common.runAsNonRoot.enabled }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            {{- else }}
+            allowPrivilegeEscalation: true
+            runAsNonRoot: false
+            runAsUser: 0
+            {{- end }}
+            readOnlyRootFilesystem: false
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+        volumeMounts:
+          - name: logs-sharing
+            mountPath: /opt/WebSphere/Liberty/usr/servers/default/logs/container
+          - name: cores-sharing
+            mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+      {{- if $.Values.searchAppMaster.shardC.persistence.enabled }}
+          - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-c-index-volume
+            mountPath: /shard_c
+      {{- end }}
+      {{- if $.Values.common.bindingConfigMap }}
+          - name: config-volume
+            mountPath: /SETUP/ext-config/config.properties
+            subPath: config.properties
+            readOnly: false
+      {{- end }}
+      {{- if $.Values.hclCache.configMap }}
+          - name: hcl-cache-config
+            mountPath: /SETUP/hcl-cache/cache_cfg-ext.yaml
+            subPath: cache_cfg-ext.yaml
+          - name: hcl-cache-config
+            mountPath: /SETUP/hcl-cache/redis_cfg.yaml
+            subPath: redis_cfg.yaml
+      {{- end }}
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.searchAppMaster.userScripts.enabled) }}
+          - name:  user-scripts
+            mountPath: /SETUP/user_scripts
+      {{- end }}
+      {{- if and $.Values.global.sofySandboxContext $.Values.searchAppMaster.demoPack.enabled }}
+          - name:  demopack
+            mountPath: /SETUP/user_scripts
+      {{- end }}
+{{- end -}}
