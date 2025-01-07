@@ -1,7 +1,7 @@
 ######################################################
 # Licensed Materials - Property of HCL Technologies
 #  HCL Commerce
-#  (C) Copyright HCL Technologies Limited 1996, 2020
+#  (C) Copyright HCL Technologies Limited 1996, 2024
 ######################################################
 
 #####################################################
@@ -212,7 +212,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.16.0
+  productVersion: 9.1.17.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -684,6 +684,15 @@ ingress:
       ingressClass:
       tlsSecret:
     customAnnotations: {}
+  orchestration:
+    auth:
+      domain: orchestration.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
+    live:
+      domain: orchestration.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      ingressClass:
+      tlsSecret:
   transaction:
     auth:
       domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
@@ -1085,6 +1094,51 @@ searchAppSlave:
       args: []
       env: {}
 
+  
+orchestrationApp:
+  enabled: false
+  name: orchestration-app
+  image: commerce/orchestration-app
+  tag: v9-latest
+  replica:
+    auth: 1
+    live: 1
+  resources:
+    auth:
+      requests:
+        memory: 4096Mi
+        cpu: 500m
+      limits:
+        memory: 4096Mi
+        cpu: 2
+    live:
+      requests:
+        memory: 4096Mi
+        cpu: 500m
+      limits:
+        memory: 4096Mi
+        cpu: 2
+  ## when using custom envParameters, use key: value format
+  envParameters:
+    auth: {}
+    live: {}
+  ## the nodes must have a label with the key wc-node-select-flag
+  ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
+  nodeLabel: ""
+  ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
+  ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+  nodeSelector:
+    auth: {}
+    live: {}
+  userScripts:
+    enabled: false
+    initContainer:
+      image: ''
+      tag: ''
+      command: []
+      args: []
+      env: {}
+
 tsWeb:
   name: ts-web
   replica: 1
@@ -1129,6 +1183,7 @@ toolingWeb:
   ## extra csp source
   extraCspSource: ""
 
+  
 storeWeb:
   enabled: true
   name: store-web
@@ -1282,10 +1337,6 @@ nifiApp:
   ## the nodes must have a label with the key wc-node-select-flag
   ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
   nodeLabel: ""
-  ## The version of the bootstrap connector data bundled in the nifi image
-  ## This version change will cause bootstrap data reload and any customized
-  ## data will need to be applied when this version is updated
-  dataVersion: 9.1.16.0
   ## persistentVolumeClaim is deprecated and will be removed in future version
   ## Please specify the existing pvc in nifiApp.persistence.existingClaim instead
   ## nifiApp.persistence.existingClaim will take precedence if specified
@@ -1340,6 +1391,13 @@ registryApp:
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
   coresSharingPersistentVolumeClaim: ""
+  persistence:
+    enabled: true
+    existingClaim: ""
+    # keep storageClass empty to use the cluster default storageClass
+    storageClass: ""
+    storage: "100Mi"
+    accessMode: "ReadWriteOnce"
 
 ingestApp:
   name: ingest-app

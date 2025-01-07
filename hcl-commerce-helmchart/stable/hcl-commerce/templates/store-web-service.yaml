@@ -1,4 +1,4 @@
-{{- if and (eq .Values.common.searchEngine "elastic") (.Values.storeWeb.enabled) -}}
+{{- if and (.Values.storeWeb.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}

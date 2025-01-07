@@ -144,6 +144,8 @@ vaultConsul:
   ##       2. the default dbHost values are configured assuming using the db docker image deployed in the same K8s cluster in 'commerce' name space.
   ##       3. the sample data property file covers 2 environments (dev and qa)
   ##       4. please modify the values based on your deployment sepcificiation
+  ##       5. optional: to update GA (Google Analytics) service account information with vault, please use jq -c '@json' <GA_JSON_FILE> to convert json to string,
+  ##          and then pass the string value with key gaServiceAccount for auth and live environments
   vaultLoadDataWithSecret: 
     enabled: false
     secretName: "vault-sample-secret"
@@ -167,6 +169,8 @@ vaultConsul:
   ##       4. please modify the values based on your deployment sepcificiation
   ##       5. if you deploy the Next.js store, please update the <reactStoreMapApiKey> with your own value. reactStoreMapApiKey is a mandatory parameter 
   ##          for Next.js store. Please refer to https://support.google.com/googleapi/answer/6158862?hl=en&ref_topic=7013279 to create your API key for the map.
+  ##       6. optional: to update GA (Google Analytics) service account information with vault, please use jq -c '@json' <GA_JSON_FILE> to convert json to string,
+  ##          and then pass the string value with key gaServiceAccount under auth and live, for example gaServiceAccount: '<GA_JSON_STRING_VALUE>' (single quote requried here)
   vaultData:
     dev:
       auth:

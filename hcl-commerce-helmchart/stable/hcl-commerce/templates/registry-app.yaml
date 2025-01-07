@@ -88,6 +88,17 @@ spec:
         {{- else }}
           emptyDir: {}
         {{- end }}
+      {{- if .Values.registryApp.persistence.enabled }}
+        - name: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}-registry-volume
+          persistentVolumeClaim:
+            {{- if .Values.registryApp.persistence.existingClaim }}
+            claimName: {{ .Values.registryApp.persistence.existingClaim }}
+            {{- else if .Values.registryApp.persistentVolumeClaim }}
+            claimName: {{ .Values.registryApp.persistentVolumeClaim }}
+            {{- else }}
+            claimName: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-registry-pvc
+            {{- end }}
+      {{- end }}
       {{- if .Values.common.bindingConfigMap }}
         - name: config-volume
           configMap:
@@ -208,9 +219,13 @@ spec:
               - SETFCAP
         volumeMounts:
           - name: logs-sharing
-            mountPath: /opt/nifi-registry/nifi-registry-0.5.0/logs
+            mountPath: /opt/nifi-registry/nifi-registry-current/data/logs
           - name: cores-sharing
             mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+        {{- if .Values.registryApp.persistence.enabled }}
+          - name:  {{ .Values.common.tenant }}{{ .Values.common.environmentName}}-registry-volume
+            mountPath: /opt/nifi-registry/nifi-registry-current/data
+        {{- end }}
         {{- if .Values.common.bindingConfigMap }}
           - name: config-volume
             mountPath: /SETUP/ext-config/config.properties

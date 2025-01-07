@@ -25,6 +25,7 @@ spec:
   ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
   {{- end }}
   prefix: /tooling
+  rewrite: /tooling
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false
   case_sensitive: false

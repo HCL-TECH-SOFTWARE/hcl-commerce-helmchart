@@ -1,4 +1,4 @@
-{{- if and (eq .Values.common.searchEngine "elastic") (.Values.storeWeb.enabled) -}}
+{{- if and (.Values.storeWeb.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" -}}
@@ -78,7 +78,12 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
+        {{- if (eq $.Values.common.searchEngine "elastic") }}
         args: ['depcheck', '-component','store-web','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','900','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        {{- end }}
+        {{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") }}
+        args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.orchestrationApp.name}}, '-container_name','orchestration-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
+        {{- end }}
       {{- if $.Values.vaultconsul.enabled }}
       - name: vault-dependence-check
         image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
@@ -134,6 +139,10 @@ spec:
           value: {{ $envType | quote }}
         {{- if $.Values.logging.jsonLogging.enabled }}
         - name: "ENABLE_JSON_LOGGING"
+          value: "true"
+        {{- end }}
+        {{- if $.Values.orchestrationApp.enabled }}
+        - name: "ORCHESTRATION_ENABLED"
           value: "true"
         {{- end }}
         - name: "DOMAIN_NAME"

@@ -270,6 +270,8 @@ spec:
           {{- else }}
           value: "commerce-live-crs.$(EXTERNAL_DOMAIN_NAME)"
           {{- end }}
+        - name: "EXTRA_CSP_SOURCE"
+          value: "*.$(EXTERNAL_DOMAIN_NAME)"
         - name: "REACT_STORE_HOST"
           {{- if eq $envType "auth" }}
           value: "commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
@@ -365,6 +367,10 @@ spec:
         {{- end }}
         - name: "TX_QUICK_START"
           value: {{ $.Values.tsApp.quickStart.enabled | quote }}
+        {{- if $.Values.orchestrationApp.enabled }}
+        - name: "ORCHESTRATION_ENABLED"
+          value: "true"
+        {{- end }}
         {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
         - name: "VAULT_URL"
           value: {{ $.Values.common.vaultUrl | quote }}

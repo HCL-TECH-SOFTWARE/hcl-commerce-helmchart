@@ -1,0 +1,41 @@
+{{- if and (.Values.metrics.enabled) (.Values.metrics.serviceMonitor.enabled) (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{$.Values.orchestrationApp.name}}
+  {{- if $.Values.metrics.serviceMonitor.namespace }}
+  namespace: {{ $.Values.metrics.serviceMonitor.namespace }}
+  {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{$.Values.orchestrationApp.name}}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    {{- range $key, $value := $.Values.metrics.serviceMonitor.selector }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  endpoints:
+  - port: https-port19443
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+    interval: {{ $.Values.metrics.serviceMonitor.interval }}
+    path: /actuator/prometheus
+  selector:
+    matchLabels:
+      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{$.Values.orchestrationApp.name}}
+  namespaceSelector:
+    matchNames:
+    - {{ $.Release.Namespace }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

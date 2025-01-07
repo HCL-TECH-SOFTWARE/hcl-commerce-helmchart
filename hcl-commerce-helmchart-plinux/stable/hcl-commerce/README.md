@@ -9,7 +9,7 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
-Note: The 9.1.16.0 Helm Chart can only be used to deploy HCL Commerce 9.1.16.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+Note: The 9.1.17.0 Helm Chart can only be used to deploy HCL Commerce 9.1.17.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
 
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.
@@ -217,6 +217,7 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `searchAppMaster`        |  detailed configuration for searchAppMaster deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `searchAppRepeater`        |  detailed configuration for searchAppRepeater deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `searchAppSlave`        |  detailed configuration for searchAppSlave deployment  | see [values.yaml](./values.yaml) file for default configuration
+| `orchestrationApp`        |  detailed configuration for orchestrationApp deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `tsWeb`        |  detailed configuration for tsWeb deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `toolingWeb`        |  detailed configuration for toolingWeb deployment  | see [values.yaml](./values.yaml) file for default configuration
 | `storeWeb`        |  detailed configuration for storeWeb deployment  | see [values.yaml](./values.yaml) file for default configuration

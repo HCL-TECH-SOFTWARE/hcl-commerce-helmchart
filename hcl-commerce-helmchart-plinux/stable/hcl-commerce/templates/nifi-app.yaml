@@ -132,21 +132,6 @@ spec:
         {{- end }}
         args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
       {{- end }}
-      {{- if .Values.nifiApp.persistence.enabled }}
-      - name: bootstrap-nifi-data
-        securityContext:
-          runAsUser: 0
-          runAsGroup: 0
-        image: "{{ include "image.repo" . }}{{ .Values.nifiApp.image }}:{{ .Values.nifiApp.tag }}"
-        {{- if .Values.common.imagePullPolicy }}
-        imagePullPolicy: {{ .Values.common.imagePullPolicy }}
-        {{- end }}
-        command: ["/bin/bash"]
-        args: ["-c", 'if [[ ! -f /data/.data.version ]] || [[ $(cat /data/.data.version) != "{{ .Values.nifiApp.dataVersion }}" ]]; then rm -rf /data/*; cp -rp /opt/nifi/nifi-current/dockerdata/* /data; rc=$?; if [[ "$rc" = "0" ]]; then echo "Data has been loaded successfully."; echo {{ .Values.nifiApp.dataVersion }} > /data/.data.version; else echo "Failed to load data."; exit $rc; fi; else echo "Skip loading data."; fi; echo "change /data owner to comuser:comuser"; chown -R comuser:comuser /data; exit $?']
-        volumeMounts:
-          - name:  {{ .Values.common.tenant }}{{ .Values.common.environmentName}}-nifi-volume
-            mountPath: /data
-      {{- end }}
       {{- if $.Values.zookeeper.enabled }}
       - name: zookeeper-readiness-check
         image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
@@ -339,12 +324,12 @@ spec:
               - SETFCAP
         volumeMounts:
           - name: logs-sharing
-            mountPath: /opt/nifi/nifi-current/dockerdata/logs
+            mountPath: /opt/nifi/nifi-current/data/logs
           - name: cores-sharing
             mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
         {{- if .Values.nifiApp.persistence.enabled }}
           - name:  {{ .Values.common.tenant }}{{ .Values.common.environmentName}}-nifi-volume
-            mountPath: /opt/nifi/nifi-current/dockerdata
+            mountPath: /opt/nifi/nifi-current/data
         {{- end }}
         {{- if .Values.common.bindingConfigMap }}
           - name: config-volume

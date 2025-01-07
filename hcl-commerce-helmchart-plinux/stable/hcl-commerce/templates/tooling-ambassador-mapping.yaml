@@ -18,6 +18,7 @@ metadata:
 spec:
   ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
   prefix: /tooling
+  rewrite: /tooling
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false
   case_sensitive: false
