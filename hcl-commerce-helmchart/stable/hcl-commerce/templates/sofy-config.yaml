@@ -74,7 +74,7 @@ data:
                 "type": "ui",
                 "static": false,
                 "path": "/tooling",
-                "subdomain": "commerce-tooling",
+                "subdomain": "commerce-preview",
                 "credentials": [
                     {
                         "username": "wcsadmin",
@@ -198,7 +198,7 @@ data:
                 "type": "ui",
                 "static": false,
                 "path": "/tooling",
-                "subdomain": "commerce-tooling",
+                "subdomain": "commerce-live",
                 "credentials": [
                     {
                         "username": "wcsadmin",

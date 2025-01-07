@@ -367,6 +367,10 @@ spec:
         {{- end }}
         - name: "TX_QUICK_START"
           value: {{ $.Values.tsApp.quickStart.enabled | quote }}
+        {{- if $.Values.orchestrationApp.enabled }}
+        - name: "ORCHESTRATION_ENABLED"
+          value: "true"
+        {{- end }}
         {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
         - name: "VAULT_URL"
           value: {{ $.Values.common.vaultUrl | quote }}

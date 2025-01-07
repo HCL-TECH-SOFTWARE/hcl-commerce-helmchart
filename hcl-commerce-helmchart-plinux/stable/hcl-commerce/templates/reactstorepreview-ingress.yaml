@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (not .Values.openshiftDeployment.enabled) ($.Values.storeWeb.enabled) (eq $.Values.common.searchEngine "elastic") -}}
+{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (not .Values.openshiftDeployment.enabled) ($.Values.storeWeb.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}
@@ -84,10 +84,18 @@ spec:
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
           servicePort: 5443
+      {{- if eq $.Values.common.searchEngine "elastic" }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search/resources {{- else if eq $.Values.ingress.ingressController "gke" }} /search/resources/* {{- end }}
         backend:
           serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
           servicePort: 30901
+      {{- end }}
+      {{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search/resources {{- else if eq $.Values.ingress.ingressController "gke" }} /search/resources/* {{- end }}
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app
+          servicePort: 19443
+      {{- end }}
       {{- if $.Values.ingress.enableToolingForReactStore }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /lobtools {{- else if eq $.Values.ingress.ingressController "gke" }} /lobtools/* {{- end }}
         backend:
@@ -180,6 +188,7 @@ spec:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
             port:
               number: 5443
+      {{- if eq $.Values.common.searchEngine "elastic" }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search/resources {{- else if eq $.Values.ingress.ingressController "gke" }} /search/resources/* {{- end }}
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
         backend:
@@ -187,6 +196,16 @@ spec:
             name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
             port:
               number: 30901
+      {{- end }}
+      {{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") }}
+      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /search/resources {{- else if eq $.Values.ingress.ingressController "gke" }} /search/resources/* {{- end }}
+        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app
+            port:
+              number: 19443
+      {{- end }}
       {{- if $.Values.ingress.enableToolingForReactStore }}
       - path: {{- if eq $.Values.ingress.ingressController "nginx" }} /lobtools {{- else if eq $.Values.ingress.ingressController "gke" }} /lobtools/* {{- end }}
         pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}

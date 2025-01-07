@@ -123,7 +123,7 @@ spec:
   host_regex: true
   case_sensitive: false
   timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v2
@@ -162,7 +162,7 @@ spec:
   host_regex: true
   case_sensitive: false
   timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v2

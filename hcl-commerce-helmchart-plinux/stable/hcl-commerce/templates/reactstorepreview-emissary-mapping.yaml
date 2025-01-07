@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") ($.Values.storeWeb.enabled) (eq $.Values.common.searchEngine "elastic") -}}
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") ($.Values.storeWeb.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -72,6 +72,25 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web:6443
   bypass_auth: true
 ---
+{{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") }}
+apiVersion: getambassador.io/v3alpha1
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-reactstorepreview-orchestration-mapping
+spec:
+  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- end }}
+  prefix: /search/resources
+  rewrite: /search/resources
+  hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app:19443
+  bypass_auth: true
+---
+{{- end }}
 {{- if $.Values.nextjsApp.enabled }}
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
@@ -144,6 +163,7 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app:5443
   bypass_auth: true
 ---
+{{- if eq $.Values.common.searchEngine "elastic" }}
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping
 metadata:
@@ -161,6 +181,7 @@ spec:
   service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app:30901
   bypass_auth: true
 ---
+{{- end }}
 {{- if $.Values.ingress.enableToolingForReactStore }}
 apiVersion: getambassador.io/v3alpha1
 kind: Mapping

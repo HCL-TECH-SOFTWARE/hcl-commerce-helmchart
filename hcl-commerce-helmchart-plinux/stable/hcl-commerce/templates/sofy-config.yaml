@@ -70,6 +70,19 @@ data:
                 ]
             },
             {
+                "displayName": "Commerce Tooling",
+                "type": "ui",
+                "static": false,
+                "path": "/tooling",
+                "subdomain": "commerce-preview",
+                "credentials": [
+                    {
+                        "username": "wcsadmin",
+                        "password": "wcs1admin"
+                    }
+                ]
+            },
+            {
                 "displayName": "Customer Service Hub",
                 "type": "ui",
                 "static": false,
@@ -172,6 +185,19 @@ data:
                 "type": "ui",
                 "static": false,
                 "path": "/lobtools/cmc/ManagementCenterMain?locale=en_US",
+                "subdomain": "commerce-live",
+                "credentials": [
+                    {
+                        "username": "wcsadmin",
+                        "password": "wcs1admin"
+                    }
+                ]
+            },
+            {
+                "displayName": "Live Commerce Tooling",
+                "type": "ui",
+                "static": false,
+                "path": "/tooling",
                 "subdomain": "commerce-live",
                 "credentials": [
                     {
@@ -332,7 +358,7 @@ data:
             "{{ .Release.Name }}-commerce-data-registry": {
               "disableAccessControl" : "true",
               "disablePublicRoute" : "true"
-            },      
+            },
           {{- if has "auth" $envTypeList -}}
           {{- if .Values.tsDb.enabled }}
           "{{ .Values.common.tenant }}{{ .Values.common.environmentName }}authdb": {

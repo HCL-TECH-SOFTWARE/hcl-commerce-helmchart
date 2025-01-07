@@ -114,21 +114,21 @@ spec:
         - name: "AUTH_SEARCH_QUERY_BASE_URL"
           value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
         - name: "LIVE_SEARCH_QUERY_BASE_URL"
-          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+          value: ""
         - name: "SEARCH_DATA_QUERY_BASE_URL"
           value: "https://commerce-data-query.$(EXTERNAL_DOMAIN_NAME)"
         - name: "AUTH_REACT_STORE_BASE_URL"
           value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
         - name: "LIVE_REACT_STORE_BASE_URL"
-          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+          value: ""
         - name: "REACT_STORE_PREVIEW_BASE_URL"
-          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
+          value: "https://commerce-preview-store.$(EXTERNAL_DOMAIN_NAME)"
         - name: "APPROVAL_BASE_URL"
-          value: "https://commerce-tooling.$(EXTERNAL_DOMAIN_NAME)"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
         - name: "AUTH_TRANSACTION_BASE_URL"
           value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
         - name: "LIVE_TRANSACTION_BASE_URL"
-          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
+          value: ""
         {{- else }} # not sofy
         - name: "EXTERNAL_DOMAIN_NAME"
           value: "{{ trimPrefix "." $.Values.common.externalDomain }}"
@@ -165,6 +165,10 @@ spec:
         {{- end }}
         - name: "DOMAIN_NAME"
           value: "{{ .Release.Namespace }}.svc.cluster.local"
+        {{- if $.Values.orchestrationApp.enabled }}
+        - name: "ORCHESTRATION_ENABLED"
+          value: "true"
+        {{- end }}
         - name: "VAULT_CA"
           value: {{ .Values.vaultCA.enabled | quote }}
         {{- if (or (eq .Values.common.configureMode "Vault") .Values.vaultCA.enabled) }}

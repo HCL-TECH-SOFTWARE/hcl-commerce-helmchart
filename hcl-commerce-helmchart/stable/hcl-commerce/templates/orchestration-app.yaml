@@ -1,0 +1,245 @@
+{{- if and (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" -}}
+{{- $_ := set $ "envType" $envType }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 2024
+######################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.orchestrationApp.name}}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selector: 
+    matchLabels:
+      chart: {{ $.Chart.Name }}
+      release: {{ $.Release.Name }}
+      heritage: {{ $.Release.Service }}
+      component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.orchestrationApp.name}}
+      group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+  replicas: {{ get $.Values.orchestrationApp.replica $envType }}
+  template:
+    metadata:
+      annotations:
+        productName: "HCL Commerce"
+        productVersion: {{ $.Values.common.productVersion | quote }}
+        {{- if and ($.Values.metrics.enabled) ($.Values.metrics.prometheusAnnotations.enabled) }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: actuator/prometheus
+        prometheus.io/port: "19443"
+        {{- end }}
+      labels:
+        app: HCL-Commerce
+        chart: {{ $.Chart.Name }}
+        release: {{ $.Release.Name }}
+        heritage: {{ $.Release.Service }}
+        component: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.orchestrationApp.name}}
+        group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+        app.kubernetes.io/name: {{ include "name" $ }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+    spec:
+      {{- if $.Values.orchestrationApp.nodeSelector }}
+      nodeSelector:
+{{ get $.Values.orchestrationApp.nodeSelector $envType | toYaml | indent 8 }}
+      {{- end }}
+      affinity:
+        nodeAffinity:
+           {{- if $.Values.orchestrationApp.nodeLabel }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: wc-node-select-flag
+                  operator: In
+                  values: 
+                  - {{ $.Values.orchestrationApp.nodeLabel }}
+           {{- else }}
+           requiredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityRequiredDuringScheduling" $ | indent 8 }}
+           {{- end }}   
+           preferredDuringSchedulingIgnoredDuringExecution:
+           {{- include "nodeAffinityPreferredDuringScheduling" $ | indent 8 }}
+      {{- include "orchestrationapp-podAntiAffinity" $ | indent 6 }}   
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.orchestrationApp.userScripts.enabled) }}
+      - name: user-script-transfer
+        image: "{{ include "image.repo" $ }}{{ $.Values.orchestrationApp.userScripts.initContainer.image }}:{{ $.Values.orchestrationApp.userScripts.initContainer.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        command: 
+{{ toYaml $.Values.orchestrationApp.userScripts.initContainer.command | indent 10 }}
+        args:
+{{ toYaml $.Values.orchestrationApp.userScripts.initContainer.args | indent 10 }}
+        {{- if $.Values.orchestrationApp.userScripts.initContainer.env }}
+        env:
+          {{- range $key, $value := $.Values.orchestrationApp.userScripts.initContainer.env }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote}}
+          {{- end }}
+        {{- end }}
+        volumeMounts:
+          - name:  user-scripts
+            mountPath: /data
+      {{- end }}
+      - name: orchestration-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        tty: true
+        {{- end }}
+        {{- if eq $envType "auth" }}
+        args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.searchAppMaster.name}}, '-container_name','search-app-master','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
+        {{- end }}
+        {{- if eq $envType "live" }}
+        args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.searchAppSlave.name}}, '-container_name','search-app-slave','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
+        {{- end }}
+      volumes:
+      {{- if and (not $.Values.global.sofySandboxContext) ($.Values.orchestrationApp.userScripts.enabled) }}
+        - name: user-scripts
+          emptyDir: {}
+      {{- end }}
+      {{- if include "image.pull.secret" $ }}
+      imagePullSecrets:
+        - name: {{ include "image.pull.secret" $ }}
+      {{- end }}
+      containers:
+      - name: orchestration-app
+        image: "{{ include "image.repo" $ }}{{ $.Values.orchestrationApp.image }}:{{ $.Values.orchestrationApp.tag }}"
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        resources:
+{{ get $.Values.orchestrationApp.resources $envType | toYaml | indent 12 }}
+        env:
+        - name: "LICENSE"
+          value: {{ $.Values.license | quote }}
+        - name: "CONFIGURE_MODE"
+          value: {{ $.Values.common.configureMode | quote }}
+        - name: "ENVIRONMENT"
+          value: {{ $.Values.common.environmentName | quote }}
+        - name: "TENANT"
+          value: {{ $.Values.common.tenant | quote }}
+        - name: "ENVTYPE"
+          value: {{ $envType | quote }}
+        - name: "SPIUSER_NAME"
+          value: {{ $.Values.common.spiUserName | quote}}
+        - name: "SPIUSER_PWD"
+          value: {{ $.Values.common.spiUserPwdAes | quote}}
+        {{- if $.Values.common.timezone }}
+        - name: "TZ"
+          value: {{ $.Values.common.timezone | quote }}
+        {{- end }}
+        - name: "DOMAIN_NAME"
+          value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        {{- if $.Values.metrics.enabled }}
+        - name: "EXPOSE_METRICS"
+          value: "true"
+        {{- end }}
+        - name: "VAULT_CA"
+          value: {{ $.Values.vaultCA.enabled | quote }}
+        {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
+        - name: "VAULT_URL"
+          value: {{ $.Values.common.vaultUrl | quote  }}
+        {{- if $.Values.common.vaultTokenSecret }}
+        - name: "VAULT_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.common.vaultTokenSecret }}
+              key: VAULT_TOKEN
+        {{- end }}
+        {{- end }}
+        {{- if $.Values.common.ipv6Enabled }}
+        - name: "IPV6_ENABLED"
+          value: "true"
+        {{- end }}
+{{- if get $.Values.orchestrationApp.envParameters $envType }}
+     {{- range $key, $value := get $.Values.orchestrationApp.envParameters $envType }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+     {{- end }} 
+{{- end }}
+        ports: 
+        - containerPort: 19443
+          name: port19443
+          protocol: TCP
+        startupProbe:
+          httpGet:
+            path: /actuator
+            port: 19443
+            scheme: HTTPS
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 48
+        readinessProbe:
+          httpGet:
+            path: /actuator
+            port: 19443
+            scheme: HTTPS
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /actuator
+            port: 19443
+            scheme: HTTPS
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 15
+        securityContext:
+            {{- if $.Values.common.runAsNonRoot.enabled }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            {{- else }}
+            allowPrivilegeEscalation: true
+            runAsNonRoot: false
+            runAsUser: 0
+            {{- end }}
+            readOnlyRootFilesystem: false
+            privileged: false
+            capabilities:
+              drop:
+              - all
+              add:
+              - CHOWN
+              - DAC_OVERRIDE
+              - FOWNER
+              - FSETID
+              - KILL
+              - SETGID
+              - SETUID
+              - SETPCAP
+              - NET_BIND_SERVICE
+              - NET_RAW
+              - SYS_CHROOT
+              - MKNOD
+              - AUDIT_WRITE
+              - SETFCAP
+        volumeMounts:
+        {{- if and (not $.Values.global.sofySandboxContext) ($.Values.orchestrationApp.userScripts.enabled) }}
+          - name:  user-scripts
+            mountPath: /SETUP/user_scripts
+        {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

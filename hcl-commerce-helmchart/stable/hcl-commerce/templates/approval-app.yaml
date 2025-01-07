@@ -141,11 +141,11 @@ spec:
         - name: "AUTH_STORE_ORIGIN"
           value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME):443"
         - name: "AUTH_TOOLING_ORIGIN"
-          value: "https://commerce-tooling.$(EXTERNAL_DOMAIN_NAME)"
+          value: "https://commerce-preview.$(EXTERNAL_DOMAIN_NAME)"
         - name: "LIVE_STORE_ORIGIN"
           value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME):443"
         - name: "LIVE_TOOLING_ORIGIN"
-          value: "https://commerce-tooling.$(EXTERNAL_DOMAIN_NAME)"
+          value: "https://commerce-live.$(EXTERNAL_DOMAIN_NAME)"
         {{- else }} # not sofy
         - name: "EXTERNAL_DOMAIN_NAME"
           value: "{{ $.Values.common.externalDomain }}"

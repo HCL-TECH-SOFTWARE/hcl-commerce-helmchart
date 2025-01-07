@@ -129,21 +129,6 @@ spec:
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:
-  name: commerce-{{ $envType }}-tooling-standalone-mapping
-spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
-  prefix: /tooling
-  rewrite: /tooling
-  host: commerce-tooling\..*
-  host_regex: true
-  case_sensitive: false
-  timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
-  bypass_auth: true
----
-apiVersion: getambassador.io/v2
-kind: Mapping
-metadata:
   name: commerce-{{ $envType }}-cmc-mapping
 spec:
   ambassador_id: {{ $.Values.global.ambassadorID }}
@@ -214,21 +199,6 @@ spec:
   {{- else }}
   host: commerce-live\..*
   {{- end }}
-  host_regex: true
-  case_sensitive: false
-  timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app:6643
-  bypass_auth: true
----
-apiVersion: getambassador.io/v2
-kind: Mapping
-metadata:
-  name: commerce-{{ $envType }}-tooling-approval-mapping
-spec:
-  ambassador_id: {{ $.Values.global.ambassadorID }}
-  prefix: /approvals
-  rewrite: /approvals
-  host: commerce-tooling\..*
   host_regex: true
   case_sensitive: false
   timeout_ms: 10000

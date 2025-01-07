@@ -60,6 +60,9 @@ kubectl get ingress -n {{ .Release.Namespace }}
 <Ingress_IP> www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
 <Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
 {{- end }}
+{{- if and (.Values.orchestrationApp.enabled) (eq .Values.common.searchEngine "solr") }}
+<Ingress_IP> orchestration.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+{{- end }}
 <Ingress_IP> search.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
 {{- end }}
 
@@ -75,6 +78,9 @@ kubectl get ingress -n {{ .Release.Namespace }}
 {{- if and (.Values.storeWeb.enabled) (eq .Values.common.searchEngine "elastic") }}
 <Ingress_IP> www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
 <Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+{{- end }}
+{{- if and (.Values.orchestrationApp.enabled) (eq .Values.common.searchEngine "solr") }}
+<Ingress_IP> orchestration.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
 {{- end }}
 <Ingress_IP> search.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
 {{- if eq .Values.common.searchEngine "solr" }}
@@ -101,15 +107,15 @@ https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{
 
 Authoring Sapphire (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}/Sapphire
+{{- end }}
 
-{{- if $.Values.nextjsApp.enabled }}
+{{- if and $.Values.nextjsApp.enabled (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) }}
 
 Authoring Next.js (Sample B2C) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
 
 Authoring Next.js (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}?storeId=42
-{{- end }}
 {{- end }}
 
 Authoring Management Center:
@@ -138,15 +144,15 @@ https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{
 
 Live Sapphire (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}/Sapphire
+{{- end }}
 
-{{- if $.Values.nextjsApp.enabled }}
+{{- if and $.Values.nextjsApp.enabled (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) }}
 
 Live Next.js (Sample B2C) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
 
 Live Next.js (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}?storeId=42
-{{- end }}
 {{- end }}
 
 Live Management Center:

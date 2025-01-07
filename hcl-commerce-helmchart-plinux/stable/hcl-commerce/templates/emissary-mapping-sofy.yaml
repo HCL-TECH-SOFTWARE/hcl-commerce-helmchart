@@ -116,7 +116,7 @@ spec:
   {{- end }}
   case_sensitive: false
   timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v3alpha1
@@ -153,7 +153,7 @@ spec:
   {{- end }}
   case_sensitive: false
   timeout_ms: 10000
-  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web:7443
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}:7443
   bypass_auth: true
 ---
 apiVersion: getambassador.io/v3alpha1

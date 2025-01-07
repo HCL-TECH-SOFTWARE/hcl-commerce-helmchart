@@ -1,0 +1,23 @@
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{ if and (has "share" $envTypeList) (eq .Values.common.searchEngine "elastic") (.Values.registryApp.persistence.enabled) (not .Values.registryApp.persistence.existingClaim) (not .Values.registryApp.persistentVolumeClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.common.tenant }}{{ .Values.common.environmentName}}-registry-pvc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "-" }}
+    release: {{ .Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  accessModes:
+  - {{ .Values.registryApp.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.registryApp.persistence.storage }}
+  {{- if .Values.registryApp.persistence.storageClass }}
+  storageClassName: {{ .Values.registryApp.persistence.storageClass }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,34 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.orchestration.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.orchestration.live }}
+{{- end }}
+apiVersion: getambassador.io/v2
+kind: TLSContext
+metadata:
+  name: ssl-context-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-orchestration
+spec:
+  hosts:
+  - {{ tpl ($ingress_conf.domain | toString) $ }}
+  secret: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+---
+apiVersion: getambassador.io/v2
+kind: Mapping
+metadata:
+  name: commerce-{{ $envType }}-orchestration-domain-mapping
+spec:
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  prefix: /search/resources
+  host: {{ tpl ($ingress_conf.domain | toString) $ }}
+  host_regex: false
+  case_sensitive: false
+  timeout_ms: 10000
+  service: https://{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app:19443
+  bypass_auth: true
+---
+{{- end }}
+{{- end }}
+{{- end }}

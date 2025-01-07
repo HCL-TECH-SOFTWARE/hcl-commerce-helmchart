@@ -1,4 +1,4 @@
-{{- if and (eq .Values.common.searchEngine "elastic") (.Values.nextjsApp.enabled) -}}
+{{- if and (.Values.nextjsApp.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}

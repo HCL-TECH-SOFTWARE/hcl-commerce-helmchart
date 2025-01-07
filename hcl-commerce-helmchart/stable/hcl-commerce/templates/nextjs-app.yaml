@@ -1,4 +1,4 @@
-{{- if and (eq .Values.common.searchEngine "elastic") (.Values.nextjsApp.enabled) -}}
+{{- if and (.Values.nextjsApp.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" -}}
@@ -122,6 +122,10 @@ spec:
           value: "{{ $.Release.Namespace }}.svc.cluster.local"
         - name: "NODE_INSTANCE_NUMBER"
           value: {{ $.Values.nextjsApp.resources.limits.cpu | quote }}
+        {{- if $.Values.orchestrationApp.enabled }}
+        - name: "ORCHESTRATION_ENABLED"
+          value: "true"
+        {{- end }}
         - name: "VAULT_CA"
           value: {{ $.Values.vaultCA.enabled | quote }}
         {{- if (or (eq $.Values.common.configureMode "Vault") $.Values.vaultCA.enabled) }}
