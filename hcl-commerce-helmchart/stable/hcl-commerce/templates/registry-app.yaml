@@ -25,7 +25,9 @@ spec:
       heritage: {{ .Release.Service }}
       component: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}{{.Values.registryApp.name}}
       group: {{ .Values.common.tenant }}{{ .Values.common.environmentName}}
-  replicas: {{ .Values.registryApp.replica }}
+  replicas: 1
+  strategy:
+    type: Recreate
   template:
     metadata:
       annotations:
@@ -221,7 +223,7 @@ spec:
           - name: logs-sharing
             mountPath: /opt/nifi-registry/nifi-registry-current/data/logs
           - name: cores-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+            mountPath: /opt/nifi-registry/nifi-registry-current/data/cores/container
         {{- if .Values.registryApp.persistence.enabled }}
           - name:  {{ .Values.common.tenant }}{{ .Values.common.environmentName}}-registry-volume
             mountPath: /opt/nifi-registry/nifi-registry-current/data

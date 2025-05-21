@@ -9,7 +9,7 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
-Note: The 9.1.17.0 Helm Chart can only be used to deploy HCL Commerce 9.1.17.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+Note: The 9.1.18.0 Helm Chart can only be used to deploy HCL Commerce 9.1.18.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
 
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.

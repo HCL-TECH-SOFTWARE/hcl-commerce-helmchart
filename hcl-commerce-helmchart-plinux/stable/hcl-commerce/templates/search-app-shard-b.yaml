@@ -313,9 +313,9 @@ spec:
               - SETFCAP
         volumeMounts:
           - name: logs-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/logs/container
+            mountPath: /profile/logs/container
           - name: cores-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+            mountPath: /profile/cores/container
       {{- if $.Values.searchAppMaster.shardB.persistence.enabled }}
           - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}-search-shard-b-index-volume
             mountPath: /shard_b

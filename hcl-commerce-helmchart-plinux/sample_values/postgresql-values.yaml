@@ -2,7 +2,7 @@
 # This values yaml file provide override values to deploy bitnami postgresql helm chart 
 # for HCL Commerce
 #   - chart version: 13.1.1
-#   - postgresql app version: 14.9.0
+#   - postgresql app version: 14.13.0
 # 
 # To Deploy postgresql using this sample values
 # 1. Create a namespace
@@ -22,7 +22,7 @@
 image:
   registry: icr.io/ppc64le-oss 
   repository: postgresql
-  tag: v14.12.0-bv
+  tag: v14.13.0-bv
   pullPolicy: IfNotPresent
 auth:
   postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"

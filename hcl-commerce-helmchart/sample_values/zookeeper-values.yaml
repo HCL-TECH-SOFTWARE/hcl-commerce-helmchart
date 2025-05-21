@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy bitnami zookeeper helm chart 
 # for HCL Commerce
-#   - chart version: 9.2.2
-#   - zookeeper app version: 3.8.0
+#   - chart version: 13.7.5
+#   - zookeeper app version: 3.9.3
 # 
 # To Deploy zookeeper using this sample values
 # 1. Create a namespace
@@ -10,19 +10,19 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy zookeeper using this override values
-#    helm install my-zookeeper bitnami/zookeeper -n zookeeper -f zookeeper-values.yaml --version "9.2.2"
+#    helm install my-zookeeper bitnami/zookeeper -n zookeeper -f zookeeper-values.yaml --version "13.7.5"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/2cada87ed4967d5cb578b0409a0bb1edee79029a/bitnami/zookeeper/values.yaml
+#   https://github.com/bitnami/charts/blob/zookeeper/13.7.5/bitnami/zookeeper/values.yaml
 #
 # To get more information related to this version of zookeeper helm chart, please visit
-#   https://github.com/bitnami/charts/blob/2cada87ed4967d5cb578b0409a0bb1edee79029a/bitnami/zookeeper/README.md
+#   https://github.com/bitnami/charts/blob/zookeeper/13.7.5/bitnami/zookeeper/README.md
 ##
 image:
   registry: docker.io
   repository: bitnami/zookeeper
-  tag: 3.8.0-debian-10-r64
+  tag: 3.9.3-debian-12-r10
 fullnameOverride: "hcl-commerce-zookeeper"
 replicaCount: 1
 maxClientCnxns: 120

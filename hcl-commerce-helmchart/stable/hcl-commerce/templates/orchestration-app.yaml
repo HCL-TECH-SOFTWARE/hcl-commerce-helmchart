@@ -111,6 +111,13 @@ spec:
         args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.searchAppSlave.name}}, '-container_name','search-app-slave','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
         {{- end }}
       volumes:
+        - name: cores-sharing
+        {{- if get $.Values.orchestrationApp.coresSharingPersistentVolumeClaim $envType }}
+          persistentVolumeClaim:
+            claimName: {{ get $.Values.orchestrationApp.coresSharingPersistentVolumeClaim $envType }}
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
       {{- if and (not $.Values.global.sofySandboxContext) ($.Values.orchestrationApp.userScripts.enabled) }}
         - name: user-scripts
           emptyDir: {}
@@ -239,6 +246,8 @@ spec:
           - name:  user-scripts
             mountPath: /SETUP/user_scripts
         {{- end }}
+          - name: cores-sharing
+            mountPath: /SETUP/dumps/container
 {{- end }}
 ---
 {{- end }}

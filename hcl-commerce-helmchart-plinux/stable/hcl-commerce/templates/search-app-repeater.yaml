@@ -339,9 +339,9 @@ spec:
               - SETFCAP
         volumeMounts:
           - name: logs-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/logs/container
+            mountPath: /profile/logs/container
           - name: cores-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+            mountPath: /profile/cores/container
       {{- if $.Values.searchAppRepeater.persistence.enabled }}
           - name:  {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}-search-repeater-index-volume
             mountPath: /search

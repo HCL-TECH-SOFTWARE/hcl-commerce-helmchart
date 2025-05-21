@@ -326,7 +326,7 @@ spec:
           - name: logs-sharing
             mountPath: /opt/nifi/nifi-current/data/logs
           - name: cores-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+            mountPath: /opt/nifi/nifi-current/data/cores/container
         {{- if .Values.nifiApp.persistence.enabled }}
           - name:  {{ .Values.common.tenant }}{{ .Values.common.environmentName}}-nifi-volume
             mountPath: /opt/nifi/nifi-current/data

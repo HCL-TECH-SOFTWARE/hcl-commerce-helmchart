@@ -85,8 +85,12 @@ redis:
   image:
     registry: icr.io/ppc64le-oss
     repository: redis-ppc64le
-    tag: v7.2.5-bv
+    tag: v7.4.2-bv
     pullPolicy: IfNotPresent
+  ## Allow insecure image needs to set to true to use IBM built image
+  global:
+    security:
+      allowInsecureImages: true
   auth:
     enabled: false
   networkPolicy:
@@ -148,7 +152,7 @@ postgresql:
   image: 
     registry: icr.io/ppc64le-oss
     repository: postgresql
-    tag: v14.12.0-bv
+    tag: v14.13.0-bv
   auth:
     postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"
   fullnameOverride: "hcl-commerce-postgresql"
@@ -212,7 +216,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.17.0
+  productVersion: 9.1.18.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -762,7 +766,7 @@ tsDb:
   enabled: true
   name: ts-db
   image: commerce/ts-db
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 6144Mi
@@ -808,7 +812,7 @@ tsApp:
   name: ts-app
   replica: 1
   image: commerce/ts-app
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 5120Mi
@@ -891,7 +895,25 @@ tsApp:
 searchAppMaster:
   name: search-app-master
   image: commerce/search-app
-  tag: v9-latest
+  ## CAUTION: MAJOR UPDATE IN COMMERCE 9.1.18.0 SOLR-BASED SEARCH
+  ## In version 9.1.18.0, Solr-based search updates the Solr version from 7.3.0 to 9.7.0
+  ## This introduces significant changes, please check below "Upgrading Solr version 7.3.0 to 9.7.0" link for details
+  ## https://help.hcl-software.com/commerce/9.1.0/search/concepts/c970_solrupgrade.html
+  ## 
+  ## Deployment Options for Solr-based Search in 9.1.18.0
+  ## Option 1: Use 9.1.18.0 Solr-based search
+  ##   - Please review "Upgrading Solr version 7.3.0 to 9.7.0" page carefully
+  ##   - Ensure you set ${VAULT_URL}/${TENANT}/${ENVIRONMENT}/softwareStack to open in Vault
+  ##     The corresponding environment variable is SOFTWARE_STACK
+  ##   - Update tag to 9.1.18.0
+  ## 
+  ## Option 2: Use 9.1.17.0 Solr-based search + 9.1.18.0 Commerce others
+  ##   - This approach lets you upgrade to HCL Commerce 9.1.18.0 without adopting the Solr 9.7.0 update
+  ##   - If you are using Oracle
+  ##     Open a case with HCL Customer Support to request patch HC-60507
+  ##     Build customized 9.1.17.0 search-app docker image with patch HC-60507
+  ##   - Update tag to your 9.1.17.0 search-app
+  tag: 
   resources:
     requests:
       memory: 4096Mi
@@ -998,7 +1020,25 @@ searchAppMaster:
 searchAppRepeater:
   name: search-app-repeater
   image: commerce/search-app
-  tag: v9-latest
+  ## CAUTION: MAJOR UPDATE IN COMMERCE 9.1.18.0 SOLR-BASED SEARCH
+  ## In version 9.1.18.0, Solr-based search updates the Solr version from 7.3.0 to 9.7.0
+  ## This introduces significant changes, please check below "Upgrading Solr version 7.3.0 to 9.7.0" link for details
+  ## https://help.hcl-software.com/commerce/9.1.0/search/concepts/c970_solrupgrade.html
+  ## 
+  ## Deployment Options for Solr-based Search in 9.1.18.0
+  ## Option 1: Use 9.1.18.0 Solr-based search
+  ##   - Please review "Upgrading Solr version 7.3.0 to 9.7.0" page carefully
+  ##   - Ensure you set ${VAULT_URL}/${TENANT}/${ENVIRONMENT}/softwareStack to open in Vault.
+  ##     The corresponding environment variable is SOFTWARE_STACK.
+  ##   - Update tag to 9.1.18.0
+  ## 
+  ## Option 2: Use 9.1.17.0 Solr-based search + 9.1.18.0 Commerce others
+  ##   - This approach lets you upgrade to HCL Commerce 9.1.18.0 without adopting the Solr 9.7.0 update
+  ##   - If you are using Oracle
+  ##     Open a case with HCL Customer Support to request patch HC-60507
+  ##     Build customized 9.1.17.0 search-app docker image with patch HC-60507
+  ##   - Update tag to your 9.1.17.0 search-app
+  tag: 
   resources:
     requests:
       memory: 4096Mi
@@ -1048,7 +1088,25 @@ searchAppSlave:
   name: search-app-slave
   replica: 1
   image: commerce/search-app
-  tag: v9-latest
+  ## CAUTION: MAJOR UPDATE IN COMMERCE 9.1.18.0 SOLR-BASED SEARCH
+  ## In version 9.1.18.0, Solr-based search updates the Solr version from 7.3.0 to 9.7.0
+  ## This introduces significant changes, please check below "Upgrading Solr version 7.3.0 to 9.7.0" link for details
+  ## https://help.hcl-software.com/commerce/9.1.0/search/concepts/c970_solrupgrade.html
+  ## 
+  ## Deployment Options for Solr-based Search in 9.1.18.0
+  ## Option 1: Use 9.1.18.0 Solr-based search
+  ##   - Please review "Upgrading Solr version 7.3.0 to 9.7.0" page carefully
+  ##   - Ensure you set ${VAULT_URL}/${TENANT}/${ENVIRONMENT}/softwareStack to open in Vault.
+  ##     The corresponding environment variable is SOFTWARE_STACK
+  ##   - Update tag to 9.1.18.0
+  ## 
+  ## Option 2: Use 9.1.17.0 Solr-based search + 9.1.18.0 Commerce others
+  ##   - This approach lets you upgrade to HCL Commerce 9.1.18.0 without adopting the Solr 9.7.0 update
+  ##   - If you are using Oracle
+  ##     Open a case with HCL Customer Support to request patch HC-60507
+  ##     Build customized 9.1.17.0 search-app docker image with patch HC-60507
+  ##   - Update tag to your 9.1.17.0 search-app
+  tag: 
   resources:
     requests:
       memory: 4096Mi
@@ -1099,7 +1157,7 @@ orchestrationApp:
   enabled: false
   name: orchestration-app
   image: commerce/orchestration-app
-  tag: v9-latest
+  tag: 9.1.18.0
   replica:
     auth: 1
     live: 1
@@ -1130,6 +1188,10 @@ orchestrationApp:
   nodeSelector:
     auth: {}
     live: {}
+  ## Persistent volume claim for Orchestration app cores dump
+  coresSharingPersistentVolumeClaim:
+    auth: ""
+    live: ""
   userScripts:
     enabled: false
     initContainer:
@@ -1143,7 +1205,7 @@ tsWeb:
   name: ts-web
   replica: 1
   image: commerce/ts-web
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1164,7 +1226,7 @@ toolingWeb:
   name: tooling-web
   replica: 1
   image: commerce/tooling-web
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1189,7 +1251,7 @@ storeWeb:
   name: store-web
   replica: 1
   image: commerce/store-web
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1213,7 +1275,7 @@ nextjsApp:
   enabled: true
   replica: 1
   image: commerce/nextjs-store-app
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1236,7 +1298,7 @@ crsApp:
   enabled: true
   name: crs-app
   image: commerce/crs-app
-  tag: v9-latest
+  tag: 9.1.18.0
   replica: 1
   resources:
     requests:
@@ -1280,7 +1342,7 @@ xcApp:
   enabled: true
   name: xc-app
   image: commerce/xc-app
-  tag: v9-latest
+  tag: 9.1.18.0
   replica: 1
   resources:
     requests:
@@ -1323,7 +1385,7 @@ xcApp:
 nifiApp:
   name: nifi-app
   image: commerce/search-nifi-app
-  tag: v9-latest
+  tag: 9.1.18.0
   replica: 1
   resources:
     requests:
@@ -1373,8 +1435,7 @@ nifiApp:
 registryApp:
   name: registry-app
   image: commerce/search-registry-app
-  tag: v9-latest
-  replica: 1
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1402,7 +1463,7 @@ registryApp:
 ingestApp:
   name: ingest-app
   image: commerce/search-ingest-app
-  tag: v9-latest
+  tag: 9.1.18.0
   replica: 1
   resources:
     requests:
@@ -1441,7 +1502,7 @@ ingestApp:
 queryApp:
   name: query-app
   image: commerce/search-query-app
-  tag: v9-latest
+  tag: 9.1.18.0
   replica:
     auth: 1
     live: 1
@@ -1509,7 +1570,7 @@ cacheApp:
   enabled: false
   replica: 1
   image: commerce/cache-app
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1533,7 +1594,7 @@ graphqlApp:
   enabled: true
   replica: 1
   image: commerce/graphql-app
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1556,7 +1617,7 @@ mustgatherApp:
   enabled: false
   replica: 1
   image: commerce/mustgather-app
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 4096Mi
@@ -1577,7 +1638,7 @@ tsUtils:
   enabled: false
   name: ts-utils
   image: commerce/ts-utils
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 4096Mi
@@ -1609,7 +1670,7 @@ approvalApp:
   enabled: false
   name: approval-app
   image: commerce/approval-app
-  tag: v9-latest
+  tag: 9.1.18.0
   resources:
     requests:
       memory: 2048Mi
@@ -1644,7 +1705,7 @@ approvalApp:
 
 supportC:
   image: commerce/supportcontainer
-  tag: v9-latest
+  tag: 9.1.18.0
 
 ## Specify the Docker image for Helm test. centos:latest is the default Docker image that is used for Helm test.
 test:
