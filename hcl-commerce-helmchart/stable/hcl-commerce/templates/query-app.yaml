@@ -294,9 +294,9 @@ spec:
               - SETFCAP
         volumeMounts:
           - name: logs-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/logs/container
+            mountPath: /profile/logs/container
           - name: cores-sharing
-            mountPath: /opt/WebSphere/Liberty/usr/servers/default/cores/container
+            mountPath: /profile/cores/container
         {{- if $.Values.common.bindingConfigMap }}
           - name: config-volume
             mountPath: /SETUP/ext-config/config.properties

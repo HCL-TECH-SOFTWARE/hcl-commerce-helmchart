@@ -8,20 +8,20 @@ description: HCL Commerce Version 9 Helm Chart
 keywords:
   - HCL Commerce V9
 name: hcl-commerce
-version: 91.17.0
+version: 91.18.0
 kubeVersion: ">=1.16.0-0"
-appVersion: "9.1.17.0"
+appVersion: "9.1.18.0"
 dependencies:
   - name: elasticsearch
     version: 7.17.3
     repository: https://helm.elastic.co
     condition: elasticsearch.enabled
   - name: zookeeper
-    version: 9.2.2
+    version: 13.7.5
     repository: https://charts.bitnami.com/bitnami
     condition: zookeeper.enabled
   - name: redis
-    version: 20.1.7
+    version: 20.11.4
     repository: https://charts.bitnami.com/bitnami
     condition: redis.enabled
     INDEX_LIMIT: 10

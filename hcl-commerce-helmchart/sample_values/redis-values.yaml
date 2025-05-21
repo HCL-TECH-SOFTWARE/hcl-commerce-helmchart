@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy bitnami redis helm chart 
 # for HCL Commerce
-#   - chart version: 20.1.7
-#   - redis app version: 7.4.1
+#   - chart version: 20.11.4
+#   - redis app version: 7.4.2
 # 
 # To Deploy redis using this sample values
 # 1. Create a namespace
@@ -10,15 +10,15 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy Redis using this override values
-#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "20.1.7"
+#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "20.11.4"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/bc01e03cea20cd93fdd43a4fece348aabb3f1ea4/bitnami/redis/values.yaml
+#   https://github.com/bitnami/charts/blob/redis/20.11.4/bitnami/redis/values.yaml
 
 #
 # To get more information related to this version of redis helm chart, please visit
-#   https://github.com/bitnami/charts/blob/bc01e03cea20cd93fdd43a4fece348aabb3f1ea4/bitnami/redis/README.md
+#   https://github.com/bitnami/charts/blob/redis/20.11.4/bitnami/redis/README.md
 ##
 architecture: standalone
 fullnameOverride: "hcl-commerce-redis"
@@ -27,7 +27,7 @@ replica:
 image:
   registry: docker.io
   repository: bitnami/redis
-  tag: 7.4.1-debian-12-r1
+  tag: 7.4.2-debian-12-r6
   pullPolicy: IfNotPresent
 auth:
   enabled: false

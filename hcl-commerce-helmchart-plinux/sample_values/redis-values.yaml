@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy ppc64le redis service using bitnami redis helm chart 
 # for HCL Commerce
-#   - chart version: 19.3.4
-#   - redis app version: 7.2.5
+#   - chart version: 20.11.4
+#   - redis app version: 7.4.2
 # 
 # To Deploy ppc64le redis using this sample values
 # 1. Create a namespace
@@ -10,15 +10,15 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy Redis using this override values
-#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "19.3.4"
+#    helm install my-redis bitnami/redis -n redis -f redis-values.yaml --version "20.11.4"
 # 4. Monitor deployment until all pods are healthy
 # 
 # To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/e3e4772475bc0f05edd6b8cdf3d8727b961cee24/bitnami/redis/values.yaml
+#   https://github.com/bitnami/charts/blob/redis/20.11.4/bitnami/redis/values.yaml
 
 #
 # To get more information related to this version of redis helm chart, please visit
-#   https://github.com/bitnami/charts/blob/e3e4772475bc0f05edd6b8cdf3d8727b961cee24/bitnami/redis/README.md
+#   https://github.com/bitnami/charts/blob/redis/20.11.4/bitnami/redis/README.md
 ##
 architecture: standalone
 fullnameOverride: "hcl-commerce-redis"
@@ -27,8 +27,12 @@ replica:
 image:
   registry: icr.io/ppc64le-oss
   repository: redis-ppc64le
-  tag: v7.2.5-bv
+  tag: v7.4.2-bv
   pullPolicy: IfNotPresent
+## Allow insecure image needs to set to true to use IBM built image
+global:
+  security:
+    allowInsecureImages: true
 auth:
   enabled: false
 networkPolicy:
