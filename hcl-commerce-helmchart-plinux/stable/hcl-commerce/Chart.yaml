@@ -8,7 +8,7 @@ description: HCL Commerce Version 9 Helm Chart
 keywords:
   - HCL Commerce V9
 name: hcl-commerce
-version: 91.18.0
+version: 91.18.1
 kubeVersion: ">=1.16.0-0"
 appVersion: "9.1.18.0"
 dependencies:
