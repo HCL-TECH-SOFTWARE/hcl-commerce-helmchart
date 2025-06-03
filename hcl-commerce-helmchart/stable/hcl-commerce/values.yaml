@@ -1621,7 +1621,7 @@ tsUtils:
   enabled: false
   name: ts-utils
   image: commerce/ts-utils
-  tag: 9.1.18.0
+  tag: 9.1.18.1
   resources:
     requests:
       memory: 4096Mi
