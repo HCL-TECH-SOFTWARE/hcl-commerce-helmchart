@@ -9,7 +9,7 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
-Note: The 9.1.18.0 Helm Chart can only be used to deploy HCL Commerce 9.1.18.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+Note: The 9.1.19.0 Helm Chart can only be used to deploy HCL Commerce 9.1.19.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
 
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.
@@ -393,8 +393,8 @@ Ingress is generally used to allow external access to the apps deployed in kuber
 A flag to enable the ingress creation. Please note in case you use ambassador as ingress solution, you will need to set it to false, and the ambassador mappings will be created directly instead of ingress in kubernetes.
 
 #### ingress.apiVersion
-use `networking.k8s.io/v1beta1` for kubernetes between 1.16 and 1.19 (exclusive).
 use `networking.k8s.io/v1` for kubernetes 1.19 and above to avoid the api deprecation warning messages. see https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122 for details.
+Deprecated use `networking.k8s.io/v1beta1` for kubernetes between 1.16 and 1.19 (exclusive).
 
 #### ingress.ingressController
 The ingress controller to take the ingress requests. The supported ingress controllers are `nginx`, `gke`, and `ambassador`. When deploying on GKE and use the default GCE ingress, please specify it as `gke` for this value. In EKS, the only supported ingress controller is `nginx`.

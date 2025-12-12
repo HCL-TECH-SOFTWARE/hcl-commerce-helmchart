@@ -112,7 +112,7 @@ https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{
 {{- if and $.Values.nextjsApp.enabled (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) }}
 
 Authoring Next.js (Sample B2C) Store Front:
-https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}?storeId=41
 
 Authoring Next.js (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}?storeId=42
@@ -149,7 +149,7 @@ https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{
 {{- if and $.Values.nextjsApp.enabled (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) }}
 
 Live Next.js (Sample B2C) Store Front:
-https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}?storeId=41
 
 Live Next.js (Sample B2B) Store Front:
 https://www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}?storeId=42

@@ -107,8 +107,8 @@ metadata:
   name: commerce-{{ $envType }}-tooling-mapping
 spec:
   ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
-  prefix: /tooling/
-  rewrite: /tooling/
+  prefix: /tooling
+  rewrite: /tooling
   {{- if eq $envType "auth" }}
   hostname: commerce-preview.*
   {{- else }}
@@ -144,8 +144,8 @@ metadata:
   name: commerce-{{ $envType }}-store-preview-tooling-mapping
 spec:
   ambassador_id: [ '{{ $.Values.global.emissaryID }}' ]
-  prefix: /tooling/
-  rewrite: /tooling/
+  prefix: /tooling
+  rewrite: /tooling
   {{- if eq $envType "auth" }}
   hostname: commerce-preview-store.*
   {{- else }}

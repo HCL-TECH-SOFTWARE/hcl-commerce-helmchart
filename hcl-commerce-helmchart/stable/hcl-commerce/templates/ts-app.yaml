@@ -270,8 +270,6 @@ spec:
           {{- else }}
           value: "commerce-live-crs.$(EXTERNAL_DOMAIN_NAME)"
           {{- end }}
-        - name: "EXTRA_CSP_SOURCE"
-          value: "*.$(EXTERNAL_DOMAIN_NAME)"
         - name: "REACT_STORE_HOST"
           {{- if eq $envType "auth" }}
           value: "commerce-preview.$(EXTERNAL_DOMAIN_NAME)"

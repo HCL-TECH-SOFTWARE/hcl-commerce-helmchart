@@ -168,6 +168,8 @@ spec:
                 name: {{ $.Release.Name }}-domain
                 key: HOST
         {{- end }}
+        - name: "EXTRA_CSP_SOURCE"
+          value: "*.$(EXTERNAL_DOMAIN_NAME)"
         {{- else }} # not sofy
         - name: "EXTERNAL_DOMAIN_NAME"
           value: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.common.externalDomain }}"

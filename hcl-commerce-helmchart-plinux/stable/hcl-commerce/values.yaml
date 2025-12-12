@@ -50,7 +50,10 @@ zookeeper:
   image:
     registry: icr.io
     repository: ppc64le-oss/zookeeper-ppc64le
-    tag: v3.8.0-bv
+    tag: v3.9.3-debian-12-r19-bv
+  global:
+    security:
+      allowInsecureImages: true
   fullnameOverride: "hcl-commerce-zookeeper"
   replicaCount: 1
   maxClientCnxns: 120
@@ -87,6 +90,9 @@ redis:
     repository: redis-ppc64le
     tag: v7.4.2-bv
     pullPolicy: IfNotPresent
+  global:
+    security:
+      allowInsecureImages: true
   ## Allow insecure image needs to set to true to use IBM built image
   global:
     security:
@@ -127,7 +133,7 @@ elasticsearch:
   enabled: false
   fullnameOverride: "hcl-commerce-elasticsearch"
   image: "icr.io/ppc64le-oss/elasticsearch-ppc64le"
-  imageTag: "7.17.20"
+  imageTag: "7.17.28"
   replicas: 1
   minimumMasterNodes: 1
   esJavaOpts: "-Xmx6g -Xms6g"
@@ -153,6 +159,9 @@ postgresql:
     registry: icr.io/ppc64le-oss
     repository: postgresql
     tag: v14.13.0-bv
+  global:
+    security:
+      allowInsecureImages: true
   auth:
     postgresPassword: "Hvr9TJ86Rb4DwJTaBJnuPeD2DSJypQxs"
   fullnameOverride: "hcl-commerce-postgresql"
@@ -216,7 +225,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.18.0
+  productVersion: 9.1.19.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -541,10 +550,10 @@ ingress:
   ## flag to enable the manage approval page for marketplace approval service, set to false by default for security
   enableManageApprovalPage: false
 
-  ## use 'networking.k8s.io/v1beta1' for kubernetes between 1.16 and 1.19 (exclusive)
   ## use 'networking.k8s.io/v1' for kubernetes 1.19 and above
+  ## Deprecated use 'networking.k8s.io/v1beta1' for kubernetes between 1.16 and 1.19 (exclusive)
   ## see https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122 for details
-  apiVersion: networking.k8s.io/v1beta1
+  apiVersion: networking.k8s.io/v1
 
   ## ingress controller [nginx|gke|ambassador|emissary]
   ##   nginx - nginx ingress controller
@@ -766,7 +775,7 @@ tsDb:
   enabled: true
   name: ts-db
   image: commerce/ts-db
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 6144Mi
@@ -812,7 +821,7 @@ tsApp:
   name: ts-app
   replica: 1
   image: commerce/ts-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 5120Mi
@@ -895,20 +904,20 @@ tsApp:
 searchAppMaster:
   name: search-app-master
   image: commerce/search-app
-  ## CAUTION: MAJOR UPDATE IN COMMERCE 9.1.18.0 SOLR-BASED SEARCH
-  ## In version 9.1.18.0, Solr-based search updates the Solr version from 7.3.0 to 9.7.0
+  ## CAUTION: MAJOR UPDATE IN COMMERCE 9.1.18.0+ SOLR-BASED SEARCH
+  ## Starting from version 9.1.18.0, Solr-based search updates the Solr version from 7.3.0 to 9.7.0
   ## This introduces significant changes, please check below "Upgrading Solr version 7.3.0 to 9.7.0" link for details
   ## https://help.hcl-software.com/commerce/9.1.0/search/concepts/c970_solrupgrade.html
   ## 
-  ## Deployment Options for Solr-based Search in 9.1.18.0
-  ## Option 1: Use 9.1.18.0 Solr-based search
+  ## Deployment Options for Solr-based Search in 9.1.18.0+
+  ## Option 1: Use 9.1.18.0+ Solr-based search
   ##   - Please review "Upgrading Solr version 7.3.0 to 9.7.0" page carefully
   ##   - Ensure you set ${VAULT_URL}/${TENANT}/${ENVIRONMENT}/softwareStack to open in Vault
   ##     The corresponding environment variable is SOFTWARE_STACK
-  ##   - Update tag to 9.1.18.0
+  ##   - Update tag to 9.1.18.0+
   ## 
-  ## Option 2: Use 9.1.17.0 Solr-based search + 9.1.18.0 Commerce others
-  ##   - This approach lets you upgrade to HCL Commerce 9.1.18.0 without adopting the Solr 9.7.0 update
+  ## Option 2: Use 9.1.17.0 Solr-based search + 9.1.18.0+ Commerce others
+  ##   - This approach lets you upgrade to HCL Commerce 9.1.18.0+ without adopting the Solr 9.7.0 update
   ##   - If you are using Oracle
   ##     Open a case with HCL Customer Support to request patch HC-60507
   ##     Build customized 9.1.17.0 search-app docker image with patch HC-60507
@@ -1157,7 +1166,7 @@ orchestrationApp:
   enabled: false
   name: orchestration-app
   image: commerce/orchestration-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   replica:
     auth: 1
     live: 1
@@ -1205,7 +1214,7 @@ tsWeb:
   name: ts-web
   replica: 1
   image: commerce/ts-web
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1226,7 +1235,7 @@ toolingWeb:
   name: tooling-web
   replica: 1
   image: commerce/tooling-web
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1251,7 +1260,7 @@ storeWeb:
   name: store-web
   replica: 1
   image: commerce/store-web
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1275,7 +1284,7 @@ nextjsApp:
   enabled: true
   replica: 1
   image: commerce/nextjs-store-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1298,7 +1307,7 @@ crsApp:
   enabled: true
   name: crs-app
   image: commerce/crs-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   replica: 1
   resources:
     requests:
@@ -1342,7 +1351,7 @@ xcApp:
   enabled: true
   name: xc-app
   image: commerce/xc-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   replica: 1
   resources:
     requests:
@@ -1385,7 +1394,7 @@ xcApp:
 nifiApp:
   name: nifi-app
   image: commerce/search-nifi-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   replica: 1
   resources:
     requests:
@@ -1435,7 +1444,7 @@ nifiApp:
 registryApp:
   name: registry-app
   image: commerce/search-registry-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1463,7 +1472,7 @@ registryApp:
 ingestApp:
   name: ingest-app
   image: commerce/search-ingest-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   replica: 1
   resources:
     requests:
@@ -1502,7 +1511,7 @@ ingestApp:
 queryApp:
   name: query-app
   image: commerce/search-query-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   replica:
     auth: 1
     live: 1
@@ -1570,7 +1579,7 @@ cacheApp:
   enabled: false
   replica: 1
   image: commerce/cache-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1594,7 +1603,7 @@ graphqlApp:
   enabled: true
   replica: 1
   image: commerce/graphql-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1617,7 +1626,7 @@ mustgatherApp:
   enabled: false
   replica: 1
   image: commerce/mustgather-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 4096Mi
@@ -1638,7 +1647,7 @@ tsUtils:
   enabled: false
   name: ts-utils
   image: commerce/ts-utils
-  tag: 9.1.18.1
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 4096Mi
@@ -1670,7 +1679,7 @@ approvalApp:
   enabled: false
   name: approval-app
   image: commerce/approval-app
-  tag: 9.1.18.0
+  tag: 9.1.19.0
   resources:
     requests:
       memory: 2048Mi
@@ -1705,7 +1714,7 @@ approvalApp:
 
 supportC:
   image: commerce/supportcontainer
-  tag: 9.1.18.0
+  tag: 9.1.19.0
 
 ## Specify the Docker image for Helm test. centos:latest is the default Docker image that is used for Helm test.
 test:
