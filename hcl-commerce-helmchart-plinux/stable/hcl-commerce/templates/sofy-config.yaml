@@ -18,7 +18,6 @@ data:
             "useEmissary": true
           }
         },
-        "flexnetFeatures": [ "Comm_orderlines" ],
         "links":[
             {{- if has "auth" $envTypeList -}}
             {

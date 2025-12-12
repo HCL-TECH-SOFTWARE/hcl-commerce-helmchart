@@ -75,13 +75,19 @@ spec:
           - containerPort: 8200
             name: port8200
           livenessProbe:
-            tcpSocket:
-              port: 8200
-            initialDelaySeconds: 600
-            timeoutSeconds: 300
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  [ -f /vault/ready ] && nc -z 127.0.0.1 8200
+            initialDelaySeconds: 240
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /ui/
+              path: /v1/sys/health?standbyok=true
               port: 8200
           {{ if .Values.vaultConsul.externalCA.enabled }}
           volumeMounts:
@@ -97,6 +103,8 @@ spec:
             - "/bin/sh"
             - "-ec"
             - |
+              # Remove old ready marker if it exists
+              rm -f /vault/ready
               vault server -dev -dev-root-token-id={{ .Values.vaultConsul.vaultToken }} -dev-listen-address="0.0.0.0:8200"
           {{- if .Values.vaultConsul.vaultLoadData }}
           lifecycle:
@@ -106,6 +114,9 @@ spec:
                   - "/bin/sh"
                   - "-ec"
                   - |
+                    LOG_FILE=/vault/config/vault_load.log
+                    READY_FILE=/vault/ready
+                    echo "[$(date)] Vault postStart initialization begins..." > $LOG_FILE
                     export VAULT_ADDR=http://127.0.0.1:8200
                     export VAULT_TOKEN={{ .Values.vaultConsul.vaultToken }}
                     TIMEOUT=$(( `date +%s` + 60 )); until vault status || [ `date +%s` -gt $TIMEOUT ]; do sleep 1; done
@@ -122,12 +133,15 @@ spec:
                     {{- if and (.Values.vaultConsul.vaultData) (not .Values.vaultConsul.vaultLoadDataWithSecret.enabled) }}
                     {{- range $environmentName, $environmentValues := .Values.vaultConsul.vaultData }}
                     {{- range $key, $value := $environmentValues.auth }}
+                    echo "[$(date)] Writing key: {{ $root.Values.common.tenant }}/{{ $environmentName }}/auth/{{ $key }}" >> $LOG_FILE
                     vault kv put {{ $root.Values.common.tenant }}/{{ $environmentName }}/auth/{{ $key }} value="{{ tpl ($value | toString) $ }}"
                     {{- end }}
                     {{- range $key, $value := $environmentValues.live }}
+                    echo "[$(date)] Writing key: {{ $root.Values.common.tenant }}/{{ $environmentName }}/live/{{ $key }}" >> $LOG_FILE
                     vault kv put {{ $root.Values.common.tenant }}/{{ $environmentName }}/live/{{ $key }} value="{{ tpl ($value | toString) $ }}"
                     {{- end }}
                     {{- range $key, $value := $environmentValues.both }}
+                    echo "[$(date)] Writing key: {{ $root.Values.common.tenant }}/{{ $environmentName }}/{{ $key }}" >> $LOG_FILE
                     vault kv put {{ $root.Values.common.tenant }}/{{ $environmentName }}/{{ $key }} value="{{ tpl ($value | toString) $ }}"
                     {{- end }}
                     {{- end }}
@@ -136,9 +150,13 @@ spec:
                     while read property; do
                       entireKey=$(echo "${property}" | cut -d '=' -f1)
                       value=$(echo "${property}" | cut -d '=' -f2-)
+                      echo "[$(date)] Writing secret key: {{ $root.Values.common.tenant }}/${entireKey}" >> $LOG_FILE
                       vault kv put {{ $root.Values.common.tenant }}/${entireKey} value="${value}"
                     done </vault/config/secret/vault-data.properties
                     {{- end }}
+                    echo "[$(date)] All initialization commands completed successfully." >> $LOG_FILE
+                    touch $READY_FILE
+                    echo "[$(date)] Vault ready marker created at $READY_FILE" >> $LOG_FILE
           {{- end }}
         {{ if .Values.vaultConsul.externalCA.enabled }}
       volumes:
