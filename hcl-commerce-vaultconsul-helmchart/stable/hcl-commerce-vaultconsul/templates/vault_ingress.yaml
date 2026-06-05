@@ -1,13 +1,13 @@
-{{- if and .Values.common.enableIngress (eq .Values.common.ingressController "nginx") (not .Values.openshiftDeployment.enabled) }}
+{{- if and .Values.common.enableIngress (eq (include "vault.hasIngressController" (list "nginx" .)) "true") (not .Values.openshiftDeployment.enabled) }}
 apiVersion: {{ .Values.common.ingressApiVersion }}
 kind: Ingress
 metadata:
-  name: vault-{{ .Values.common.tenant }}-ingress
+  name: vault-{{ .Values.common.tenant }}-community-nginx-ingress
   namespace: {{ .Release.Namespace }}
   labels:
     group: {{ .Release.Namespace }}
 spec:
-  ingressClassName: nginx
+  ingressClassName: {{ default "nginx" .Values.common.communityNginxClass | quote }}
   rules:
   - host: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
     http:

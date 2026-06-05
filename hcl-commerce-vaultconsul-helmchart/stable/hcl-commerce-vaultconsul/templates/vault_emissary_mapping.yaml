@@ -1,4 +1,4 @@
-{{- if and .Values.common.enableIngress (eq .Values.common.ingressController "emissary")}}
+{{- if and .Values.common.enableIngress (eq (include "vault.hasIngressController" (list "emissary" .)) "true")}}
 apiVersion: getambassador.io/v3alpha1
 kind: Host
 metadata:

@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") (eq $.Values.common.searchEngine "elastic") (.Values.ingress.registry.enabled) -}}
+{{- if and ($.Values.ingress.enabled) (eq $.Values.common.searchEngine "elastic") ($.Values.ingress.registry.enabled) (eq (include "hcl-commerce.hasIngressController" (list "ambassador" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- if has "share" $envTypeList }}
 {{- $ingress_conf := $.Values.ingress.registry }}
@@ -16,7 +16,7 @@ kind: Mapping
 metadata:
   name: commerce-registry-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false

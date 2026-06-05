@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") $.Values.crsApp.enabled -}}
+{{- if and (.Values.ingress.enabled) ($.Values.crsApp.enabled) (eq (include "hcl-commerce.hasIngressController" (list "ambassador" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -20,7 +20,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-domain-crs-wcs-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /wcs/
   rewrite: /wcs/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -35,7 +35,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-domain-crs-wcsstore-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /wcsstore/
   rewrite: /wcsstore/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -50,7 +50,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-domain-crs-preview-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /webapp/remote/preview/
   rewrite: /webapp/remote/preview/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}

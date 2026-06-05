@@ -1,13 +1,13 @@
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
-{{- if and (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.ingress.enabled) (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (eq .Values.ingress.ingressController "emissary") }}
+{{- if and (.Values.ingress.enabled) (has "share" $envTypeList) (eq $.Values.common.searchEngine "elastic") (.Values.mustgatherApp.enabled) (.Values.ingress.mustgather.enabled) (eq (include "hcl-commerce.hasIngressController" (list "emissary" .)) "true") -}}
 {{- $ingress_conf := $.Values.ingress.mustgather }}
 apiVersion: getambassador.io/v3alpha1
 kind: Host
 metadata:
   name: commerce-mustgather-host
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
   acmeProvider:
@@ -20,8 +20,8 @@ kind: Mapping
 metadata:
   name: commerce-mustgather-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}

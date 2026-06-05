@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- if and (.Values.ingress.enabled) (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") (eq (include "hcl-commerce.hasIngressController" (list "ambassador" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -20,7 +20,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-orchestration-domain-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /search/resources
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false

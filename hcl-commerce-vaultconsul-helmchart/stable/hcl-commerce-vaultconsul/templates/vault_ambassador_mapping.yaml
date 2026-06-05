@@ -1,4 +1,4 @@
-{{- if and .Values.common.enableIngress (eq .Values.common.ingressController "ambassador")}}
+{{- if and .Values.common.enableIngress (eq (include "vault.hasIngressController" (list "ambassador" .)) "true")}}
 apiVersion: getambassador.io/v2
 kind: Mapping
 metadata:

@@ -225,7 +225,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.19.0
+  productVersion: 9.1.20.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -246,6 +246,24 @@ common:
   environmentType: auth
 
   ## Search type [solr|elastic]
+  ## CAUTION: MAJOR UPDATE IN COMMERCE 9.1.18.0+ SOLR-BASED SEARCH
+  ## Starting from version 9.1.18.0, Solr-based search updates the Solr version from 7.3.0 to 9.7.0
+  ## This introduces significant changes, please check below "Upgrading Solr version 7.3.0 to 9.7.0" link for details
+  ## https://help.hcl-software.com/commerce/9.1.0/search/concepts/c970_solrupgrade.html
+  ## 
+  ## Deployment Options for Solr-based Search in 9.1.18.0+
+  ## Option 1: Use 9.1.18.0+ Solr-based search
+  ##   - Please review "Upgrading Solr version 7.3.0 to 9.7.0" page carefully
+  ##   - Ensure you set ${VAULT_URL}/${TENANT}/${ENVIRONMENT}/softwareStack to open in Vault
+  ##     The corresponding environment variable is SOFTWARE_STACK
+  ##   - Update tag to 9.1.18.0+
+  ## 
+  ## Option 2: Use 9.1.17.0 Solr-based search + 9.1.18.0+ Commerce others
+  ##   - This approach lets you upgrade to HCL Commerce 9.1.18.0+ without adopting the Solr 9.7.0 update
+  ##   - If you are using Oracle
+  ##     Open a case with HCL Customer Support to request patch HC-60507
+  ##     Build customized 9.1.17.0 search-app docker image with patch HC-60507
+  ##   - Update tag to your 9.1.17.0 search-app
   searchEngine: elastic
 
   ## The name of the secret which contains the vault token
@@ -324,6 +342,14 @@ common:
   ## When disabled, commerce apps will add java.net.preferIPv4Stack=true jvm arg
   ipv6Enabled: false
 
+  ## Node selector applied to all commerce pods. Per-app nodeSelector will be merged with this.
+  ## reference: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+  nodeSelector: {}
+
+  ## Tolerations applied to all commerce pods. Per-app tolerations can override this.
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
+
 ## Default to use vault as CA to issue certificate
 vaultCA:
   enabled: true
@@ -400,36 +426,63 @@ hclCache:
     # content for redis_cfg.yaml
     redis_cfg: |-
       singleServerConfig:
+        address: "redis://hcl-commerce-redis-master.commerce.svc.cluster.local.:6379"
         idleConnectionTimeout: 10000
-        connectTimeout: 3000
+        connectTimeout: 10000
         timeout: 1000
-        retryAttempts: 3
-        retryInterval: 500
+        subscriptionTimeout: 7500
+        retryAttempts: 3  
+        retryDelay: !<org.redisson.config.EqualJitterDelay> {
+          maxDelay: PT1S,
+          baseDelay: PT0.5S
+        }
+        reconnectionDelay: !<org.redisson.config.EqualJitterDelay> {
+          maxDelay: PT10S,
+          baseDelay: PT0.1S
+        }
         subscriptionsPerConnection: 5
-        sslEnableEndpointIdentification: true
-        sslProvider: "JDK"
+        clientName: "commerce"
         pingConnectionInterval: 30000
-        keepAlive: true
-        tcpNoDelay: true
-        address: "redis://hcl-commerce-redis-master.redis.svc.cluster.local.:6379"
         subscriptionConnectionMinimumIdleSize: 1
         subscriptionConnectionPoolSize: 50
         connectionMinimumIdleSize: 24
         connectionPoolSize: 64
         database: 0
         dnsMonitoringInterval: 5000
-        password: "${JNDI/ENCRYPTED:REDIS_PASSWORD_ENCRYPT:-}"
-      threads: 16
       nettyThreads: 32
+      codec: !<org.redisson.codec.JsonJacksonCodec> {}
       referenceEnabled: true
       transportMode: "NIO"
       lockWatchdogTimeout: 30000
+      lockWatchdogBatchSize: 100
+      fairLockWaitTimeout: 300000
+      checkLockSyncedSlaves: true
+      slavesSyncTimeout: 1000
+      reliableTopicWatchdogTimeout: 600000
       keepPubSubOrder: true
-      useScriptCache: false
+      useScriptCache: true
       minCleanUpDelay: 5
       maxCleanUpDelay: 1800
-      addressResolverGroupFactory: !<org.redisson.connection.DnsAddressResolverGroupFactory> {}
-
+      cleanUpKeysAmount: 100
+      nettyHook: !<org.redisson.client.DefaultNettyHook> {}
+      useThreadClassLoader: true
+      addressResolverGroupFactory: !<org.redisson.connection.SequentialDnsAddressResolverFactory> {}
+      lazyInitialization: false
+      protocol: "RESP2"
+      valkeyCapabilities: []
+      sslVerificationMode: "STRICT"
+      sslProvider: "JDK"
+      tcpKeepAliveCount: 0
+      tcpKeepAliveIdle: 0
+      tcpKeepAliveInterval: 0
+      commandMapper: !<org.redisson.config.DefaultCommandMapper> {}
+      tcpUserTimeout: 0
+      nameMapper: !<org.redisson.config.DefaultNameMapper> {}
+      tcpNoDelay: true
+      tcpKeepAlive: true
+      threads: 16
+      credentialsResolver: !<org.redisson.client.DefaultCredentialsResolver> {}
+      password: "${ENCRYPTED:REDIS_PASSWORD_ENCRYPT:-}"
 ## CreateSampleConfig supports quick deploy with the HCL Commerce sample Db2 Docker image, which can be used with your authoring environments, If you deploy on different tenant and env, update the DBHOSTNAME.
 createSampleConfig:
   enabled: false
@@ -497,7 +550,7 @@ searchIndexCreation:
   txnMaxDuration: 1200
   nifiMaxDuration: 900
   ingestMaxDuration: 3600
-  storeIds: "11,12,41"
+  storeIds: "11,12,41,42"
   calculatePriceEnabled: false
   calculatePriceStoreIds: "12"
 
@@ -519,7 +572,13 @@ assetsPVC:
     auth: ""
     live: ""
 
-## Enable this feature for deployment using openshift.
+## Not supported for plinux
+## Enable this feature for deployment when Google Anthos is enabled.
+## This will disable istio sidecar injection for pre-install, pre-delete, create-index, nifi and ingest to avoid failures
+anthosDeployment:
+  enabled: false
+
+## Enable this feature for deployment using openshift, and also ensure ingress is enabled in the next section.
 ## Ingress rules would be implemented using openshift routes.
 openshiftDeployment:
   enabled: false
@@ -532,18 +591,11 @@ openshiftDeployment:
   ##   [......]
   ##   -----END CERTIFICATE-----
   destinationCACertificate: |-
-
-## Not supported for plinux
-## Enable this feature for deployment when Google Anthos is enabled.
-## This will disable istio sidecar injection for pre-install, pre-delete, create-index, nifi and ingest to avoid failures
-anthosDeployment:
-  enabled: false
-
 ## Ingress configuration
 ingress:
   ## ingress enablement. Make it disabled for SoFy deployment
   enabled: true
-
+  
   ## this needs to be set to true when you are planning to allow sapphire store to launch B2B approval tooling
   enableToolingForReactStore: true
 
@@ -555,12 +607,20 @@ ingress:
   ## see https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122 for details
   apiVersion: networking.k8s.io/v1
 
-  ## ingress controller [nginx|gke|ambassador|emissary]
-  ##   nginx - nginx ingress controller
+  ## ingress controller list [nginx|f5-nginx|gke|ambassador|emissary]
+  ## Supports a single controller or multiple controllers to deploy simultaneously.
+  ## Examples:
+  ##   Multiple controllers (e.g. migration from nginx to f5-nginx):
+  ##     ingressController:
+  ##       - nginx
+  ##       - f5-nginx
+  ##   nginx - community nginx ingress controller (deprecated because out of support starting March 2026)
+  ##   f5-nginx - f5 nginx ingress controller
   ##   gke - cloud load balancing using HTTP(S) Load Balancer in GKE
   ##   ambassador - ambassador API gateway
   ##   emissary - emissary API gateway (Ambassador 1.X template files is incompatible starting with Kubernetes 1.22 and must migrate to Emissary 2.X files instead in the Commerce Helm Chart)
-  ingressController: nginx
+  ingressController:
+    - f5-nginx
 
   ## ambassador ids list for the emissary listener listening on http and https ports
   ## keep it to be empty if you are only using the default ambassador id
@@ -576,192 +636,524 @@ ingress:
   ## domain:
   ##   required.
   ##   can use template language to reference other values.
-  ## ingressClass:
-  ##   optional.
-  ##   keep ingressClass empty to use the default ingress class, i.e. 'nginx' for nginx ingress controller, 'gce' for gke ingress controller, and empty for ambassador or emissary id
-  ##   otherwise, specify the custom ingress controller for each ingress.
-  ##   For ambassador and emissary, specify the ambassadorId as the ingressClass. Keep it to be empty if you are using the default ambassador id.
+  ## gkeClass / communityNginxClass / f5NginxClass / emissaryClass / ambassadorClass:
+  ##   optional. Per-controller ingress class overrides.
+  ##   keep empty to use the default ingress class for each controller:
+  ##     gkeClass defaults to 'gce'
+  ##     communityNginxClass defaults to 'nginx'
+  ##     f5NginxClass defaults to 'f5-nginx'
+  ##     emissaryClass defaults to global.emissaryID (empty uses default ambassador id)
+  ##     ambassadorClass defaults to global.ambassadorID (empty uses default ambassador id)
+  ##   These per-controller fields ensure no conflicts when multiple controllers are active simultaneously.
   ## tlsSecret:
   ##   optional.
   ##   keep it empty to use the tls secret auto generated to match the ootb domain pattern.
   ##   Otherwise specify the tls secret for each ingress to match the domain name.
-  ## customAnnotations:
-  ##  optional.
-  ##  only applicable to gke and nginx ingress to add custom annotations to the ingress definitions
+  ## gkeCustomAnnotations / communityNginxCustomAnnotations / f5NginxCustomAnnotations:
+  ##   optional. Per-controller custom annotations for Kubernetes Ingress definitions.
+  ##   These per-controller fields ensure no conflicts when multiple controllers are active simultaneously.
   cmc:
     auth:
       domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   tooling:
     domain: tooling.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
-    ingressClass:
+    gkeClass:
+    communityNginxClass:
+    f5NginxClass:
+    emissaryClass:
+    ambassadorClass:
     tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   accelerator:
     auth:
       domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   admin:
     auth:
       domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   org:
     auth:
       domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   crs:
     auth:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   localstore:
     auth:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   reactstore:
     auth:
       domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   reactstorepreview:
     auth:
       domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   query:
     auth:
       domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     data:
       domain: query.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   solrsearch:
     auth:
       domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: searchrepeater.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   orchestration:
     auth:
       domain: orchestration.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: orchestration.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
   transaction:
     auth:
       domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   graphql:
     auth:
       domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   cache:
     auth:
       enabled: false
       domain: cache.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
     live:
       enabled: false
       domain: cache.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
-      ingressClass:
+      gkeClass:
+      communityNginxClass:
+      f5NginxClass:
+      emissaryClass:
+      ambassadorClass:
       tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   nifi:
     enabled: false
     domain: nifi.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
-    ingressClass:
+    gkeClass:
+    communityNginxClass:
+    f5NginxClass:
+    emissaryClass:
+    ambassadorClass:
     tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   ingest:
     enabled: false
     domain: ingest.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
-    ingressClass:
+    gkeClass:
+    communityNginxClass:
+    f5NginxClass:
+    emissaryClass:
+    ambassadorClass:
     tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   registry:
     enabled: false
     domain: registry.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
-    ingressClass:
+    gkeClass:
+    communityNginxClass:
+    f5NginxClass:
+    emissaryClass:
+    ambassadorClass:
     tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
   mustgather:
     enabled: false
     domain: mustgather.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
-    ingressClass:
+    gkeClass:
+    communityNginxClass:
+    f5NginxClass:
+    emissaryClass:
+    ambassadorClass:
     tlsSecret:
-    customAnnotations: {}
+    gkeCustomAnnotations: {}
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
+
+## Gateway API configuration (Kubernetes Gateway API - gateway.networking.k8s.io/v1)
+## Use this section to deploy Envoy Gateway or any Gateway API compliant implementation
+## This is separate from the ingress section above and can be used independently or alongside ingress controllers
+gateway:
+  enabled: false
+
+  ## The gatewayClassName to use for the Gateway resource (e.g. "eg" for Envoy Gateway)
+  gatewayClassName: eg
+
+  ## The Kubernetes Secret containing the backend CA certificate for BackendTLSPolicy
+  ## If empty, defaults to vault-backend-ca-{envType} which is auto-created by vault-fetch-ca-job
+  backendTLSCASecret: ""
+
+  ## this needs to be set to true when you are planning to allow sapphire store to launch B2B approval tooling
+  enableToolingForReactStore: true
+
+  ## flag to enable the manage approval page for marketplace approval service, set to false by default for security
+  enableManageApprovalPage: false
+
+  ## GatewaySecret is used to specify whether Helm needs to auto-generate the secret for TLS termination.
+  ## For production environment, you can choose to generate the secret with a real CA certificate.
+  gatewaySecret:
+    autoCreate: true
+    replaceExist: true
+
+  ## Per-component domain and TLS configuration for Gateway HTTPRoutes
+  ## domain:
+  ##   required.
+  ##   can use template language to reference other values.
+  ## tlsSecret:
+  ##   optional.
+  ##   keep it empty to use the tls secret auto generated to match the ootb domain pattern.
+  ##   Otherwise specify the tls secret for each listener to match the domain name.
+  cmc:
+    auth:
+      domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: cmc.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  tooling:
+    domain: tooling.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    tlsSecret:
+  accelerator:
+    auth:
+      domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: accelerator.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  admin:
+    auth:
+      domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: admin.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  org:
+    auth:
+      domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: org.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  localstore:
+    auth:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  crs:
+    auth:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: store.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  reactstore:
+    auth:
+      domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: www.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  reactstorepreview:
+    auth:
+      domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  query:
+    auth:
+      domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    data:
+      domain: query.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  solrsearch:
+    auth:
+      domain: search.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: searchrepeater.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  orchestration:
+    auth:
+      domain: orchestration.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: orchestration.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  transaction:
+    auth:
+      domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: tsapp.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  graphql:
+    auth:
+      domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      domain: graphql.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  cache:
+    auth:
+      enabled: false
+      domain: cache.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
+      tlsSecret:
+    live:
+      enabled: false
+      domain: cache.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
+      tlsSecret:
+  nifi:
+    enabled: false
+    domain: nifi.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    tlsSecret:
+  ingest:
+    enabled: false
+    domain: ingest.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    tlsSecret:
+  registry:
+    enabled: false
+    domain: registry.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    tlsSecret:
+  mustgather:
+    enabled: false
+    domain: mustgather.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.common.externalDomain }}
+    tlsSecret:
 
 
 #######################################################
@@ -775,7 +1167,7 @@ tsDb:
   enabled: true
   name: ts-db
   image: commerce/ts-db
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 6144Mi
@@ -783,12 +1175,23 @@ tsDb:
     limits:
       memory: 6144Mi
       cpu: 2
+  ## Enable ssl connection on db2 database by default
+  ## If vault is used as CA to issue certificates, then the certificates will be handled automatically by one of the init containers
+  ## You can also store your own certificates to be comsumed by the db2 server with the existingSecret option below
+  ## Please ensure the server certificate is named server.pem, key file to be key.pem, and ca file to be ca.pem respectively with the existingSecret option
+  ## Sample command would be kubectl create secret generic my-tls-secret --from-file=server.pem --from-file=key.pem --from-file=ca.pem
+  ssl:
+    enabled: false
+    existingSecret: ""
   ## the nodes must have a label with the key wc-node-select-flag
   ## then put the value of the label here to constrain which nodes your Pod can be scheduled on based on node labels
   nodeLabel: ""
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   envParameters:
     auth: {}
     live: {}
@@ -821,7 +1224,7 @@ tsApp:
   name: ts-app
   replica: 1
   image: commerce/ts-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 5120Mi
@@ -845,6 +1248,9 @@ tsApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
@@ -988,6 +1394,9 @@ searchAppMaster:
     ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
     ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
     nodeSelector: {}
+    ## use tolerations to allow pods to be scheduled on nodes with matching taints
+    ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+    tolerations: []
     coresSharingPersistentVolumeClaim: ""
   shardB:
     enabled: false
@@ -1006,6 +1415,9 @@ searchAppMaster:
     ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
     ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
     nodeSelector: {}
+    ## use tolerations to allow pods to be scheduled on nodes with matching taints
+    ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+    tolerations: []
     coresSharingPersistentVolumeClaim: ""
   shardC:
     enabled: false
@@ -1024,6 +1436,9 @@ searchAppMaster:
     ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
     ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
     nodeSelector: {}
+    ## use tolerations to allow pods to be scheduled on nodes with matching taints
+    ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+    tolerations: []
     coresSharingPersistentVolumeClaim: ""
 
 searchAppRepeater:
@@ -1142,6 +1557,9 @@ searchAppSlave:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim: ""
   userScripts:
     enabled: false
@@ -1166,7 +1584,7 @@ orchestrationApp:
   enabled: false
   name: orchestration-app
   image: commerce/orchestration-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   replica:
     auth: 1
     live: 1
@@ -1197,6 +1615,9 @@ orchestrationApp:
   nodeSelector:
     auth: {}
     live: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   ## Persistent volume claim for Orchestration app cores dump
   coresSharingPersistentVolumeClaim:
     auth: ""
@@ -1214,7 +1635,7 @@ tsWeb:
   name: ts-web
   replica: 1
   image: commerce/ts-web
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1230,12 +1651,15 @@ tsWeb:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
 
 toolingWeb:
   name: tooling-web
   replica: 1
   image: commerce/tooling-web
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1251,6 +1675,9 @@ toolingWeb:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   ## extra csp source
   extraCspSource: ""
 
@@ -1260,7 +1687,7 @@ storeWeb:
   name: store-web
   replica: 1
   image: commerce/store-web
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1278,13 +1705,16 @@ storeWeb:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
 
 nextjsApp:
   name: nextjs-app
   enabled: true
   replica: 1
   image: commerce/nextjs-store-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1302,12 +1732,15 @@ nextjsApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
 
 crsApp:
   enabled: true
   name: crs-app
   image: commerce/crs-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   replica: 1
   resources:
     requests:
@@ -1326,6 +1759,9 @@ crsApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
@@ -1351,7 +1787,7 @@ xcApp:
   enabled: true
   name: xc-app
   image: commerce/xc-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   replica: 1
   resources:
     requests:
@@ -1370,6 +1806,9 @@ xcApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
@@ -1394,7 +1833,7 @@ xcApp:
 nifiApp:
   name: nifi-app
   image: commerce/search-nifi-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   replica: 1
   resources:
     requests:
@@ -1422,6 +1861,9 @@ nifiApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim: ""
   userScripts:
     enabled: false
@@ -1444,7 +1886,7 @@ nifiApp:
 registryApp:
   name: registry-app
   image: commerce/search-registry-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1460,6 +1902,9 @@ registryApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim: ""
   persistence:
     enabled: true
@@ -1472,7 +1917,7 @@ registryApp:
 ingestApp:
   name: ingest-app
   image: commerce/search-ingest-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   replica: 1
   resources:
     requests:
@@ -1489,6 +1934,9 @@ ingestApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim: ""
   userScripts:
     enabled: false
@@ -1511,7 +1959,7 @@ ingestApp:
 queryApp:
   name: query-app
   image: commerce/search-query-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   replica:
     auth: 1
     live: 1
@@ -1552,6 +2000,9 @@ queryApp:
     auth: {}
     live: {}
     data: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
@@ -1579,7 +2030,7 @@ cacheApp:
   enabled: false
   replica: 1
   image: commerce/cache-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1594,6 +2045,9 @@ cacheApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
@@ -1603,7 +2057,7 @@ graphqlApp:
   enabled: true
   replica: 1
   image: commerce/graphql-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1618,6 +2072,9 @@ graphqlApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
 
 ## Note: Must-Gather application is NOT production-ready
 ## Please keep enabled to be false in deployment
@@ -1626,7 +2083,7 @@ mustgatherApp:
   enabled: false
   replica: 1
   image: commerce/mustgather-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 4096Mi
@@ -1641,13 +2098,16 @@ mustgatherApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim: ""
 
 tsUtils:
   enabled: false
   name: ts-utils
   image: commerce/ts-utils
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 4096Mi
@@ -1665,6 +2125,9 @@ tsUtils:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   coresSharingPersistentVolumeClaim:
     auth: ""
     live: ""
@@ -1679,7 +2142,7 @@ approvalApp:
   enabled: false
   name: approval-app
   image: commerce/approval-app
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   resources:
     requests:
       memory: 2048Mi
@@ -1695,6 +2158,9 @@ approvalApp:
   ## use nodeSelector to constrain a Pod so that it can only run on particular set of node(s)
   ## reference here for its format: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
   nodeSelector: {}
+  ## use tolerations to allow pods to be scheduled on nodes with matching taints
+  ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: []
   ## boot Configurations for approval-app, you can choose to create a secret by yourself
   ## with the same format as app-secure.properties section and put the secret name in existingSecret
   ## or keep the existingSecret empty and let the helm chart create it automatically
@@ -1711,10 +2177,9 @@ approvalApp:
       spring.flyway.user=hclcom
       spring.flyway.password=passw0rd
       spring.flyway.default-schema=hclcom
-
 supportC:
   image: commerce/supportcontainer
-  tag: 9.1.19.0
+  tag: 9.1.20.0
 
 ## Specify the Docker image for Helm test. centos:latest is the default Docker image that is used for Helm test.
 test:

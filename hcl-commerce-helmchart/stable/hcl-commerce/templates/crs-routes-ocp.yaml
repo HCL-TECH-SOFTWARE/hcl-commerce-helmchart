@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (.Values.openshiftDeployment.enabled) ($.Values.crsApp.enabled) -}}
+{{- if and ($.Values.ingress.enabled) ($.Values.crsApp.enabled) .Values.openshiftDeployment.enabled -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}

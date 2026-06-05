@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- if and (.Values.ingress.enabled) (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") (eq (include "hcl-commerce.hasIngressController" (list "emissary" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -11,8 +11,8 @@ kind: Host
 metadata:
   name: commerce-{{ $envType }}-orchestration-domain-host
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
   acmeProvider:
@@ -25,8 +25,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-orchestration-domain-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /search/resources
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}

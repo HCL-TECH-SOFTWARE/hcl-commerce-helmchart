@@ -1,4 +1,4 @@
-{{- if or (and .Values.ingress.enabled .Values.ingress.ingressSecret.autoCreate) .Values.createSampleConfig.enabled }}
+{{- if or (and .Values.ingress.enabled .Values.ingress.ingressSecret.autoCreate) (and .Values.gateway.enabled .Values.gateway.gatewaySecret.autoCreate) .Values.createSampleConfig.enabled }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 ######################################################
@@ -47,14 +47,14 @@ spec:
         - name: {{ include "image.pull.secret" $ }}
       {{- end }}   
       containers:
-      {{- if and $.Values.ingress.enabled $.Values.ingress.ingressSecret.autoCreate }}
+      {{- if or (and $.Values.ingress.enabled $.Values.ingress.ingressSecret.autoCreate) (and $.Values.gateway.enabled $.Values.gateway.gatewaySecret.autoCreate) }}
         - name: pre-install-job-createsecret-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 10 | lower }}
           image: {{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}
           tty: true
           {{- if $.Values.common.imagePullPolicy }}
           imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
           {{- end }}
-          args: ['createsecret', '-tenant',{{ $.Values.common.tenant | quote }},'-env',{{ $.Values.common.environmentName | quote }},'-envtype',{{ $envType | quote }},'-domain', {{ $.Values.common.externalDomain | quote }}, '-namespace',{{ $.Release.Namespace | quote }},'-replace',{{ $.Values.ingress.ingressSecret.replaceExist | quote }}]
+          args: ['createsecret', '-tenant',{{ $.Values.common.tenant | quote }},'-env',{{ $.Values.common.environmentName | quote }},'-envtype',{{ $envType | quote }},'-domain', {{ $.Values.common.externalDomain | quote }}, '-namespace',{{ $.Release.Namespace | quote }},'-replace',{{ or $.Values.ingress.ingressSecret.replaceExist $.Values.gateway.gatewaySecret.replaceExist | quote }}]
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

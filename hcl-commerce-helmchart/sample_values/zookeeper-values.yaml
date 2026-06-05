@@ -18,6 +18,13 @@
 #
 # To get more information related to this version of zookeeper helm chart, please visit
 #   https://github.com/bitnami/charts/blob/zookeeper/13.8.5/bitnami/zookeeper/README.md
+#
+# Important change for xlinux:
+#  Due to changes in the Bitnami public catalog, the Bitnami ZooKeeper image
+#  zookeeper:3.9.3-debian-12-r19 has been moved to the "bitnamilegacy" repository.
+#  To avoid unexpected changes or potential availability issues, customers are strongly recommended to:
+#   Pull and store this image in their own private container registry (e.g., internal Docker repository)
+#   Reference the image from their private registry instead of relying on the public bitnamilegacy source.
 ##
 image:
   registry: docker.io

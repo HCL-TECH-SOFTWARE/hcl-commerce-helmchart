@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") ($.Values.storeWeb.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) -}}
+{{- if and ($.Values.ingress.enabled) ($.Values.storeWeb.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) (eq (include "hcl-commerce.hasIngressController" (list "ambassador" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -21,7 +21,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /
   rewrite: /
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -36,7 +36,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-wcsstore-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /wcsstore/
   rewrite: /wcsstore/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -51,7 +51,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-hclstore-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /hclstore/
   rewrite: /hclstore/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -67,7 +67,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-orchestration-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /search/resources
   rewrite: /search/resources
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -84,7 +84,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-api-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /api/
   rewrite: /api/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -99,7 +99,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-next-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /_next/
   rewrite: /_next/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -115,7 +115,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-nextjs-servicemonitor-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /api/metrics/
   rewrite: /api/metrics/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -132,7 +132,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-wcs-mapping
 spec:  
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /wcs/
   rewrite: /wcs/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -148,7 +148,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-search-mapping
 spec:  
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /search/resources/
   rewrite: /search/resources/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -165,7 +165,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-tooling-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /tooling/
   rewrite: /tooling/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -180,7 +180,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-cmc-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /lobtools/
   rewrite: /lobtools/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -196,7 +196,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-admin-rest-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /rest/
   rewrite: /rest/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -211,7 +211,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-reactstorepreview-wcs-preview-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /webapp/wcs/preview/
   rewrite: /webapp/wcs/preview/
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -227,7 +227,7 @@ kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-reactstorepreview-wps-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   bypass_auth: true
   case_sensitive: false
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -242,7 +242,7 @@ kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-reactstorepreview-dx-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   bypass_auth: true
   case_sensitive: false
   connect_timeout_ms: 1200000
@@ -260,7 +260,7 @@ kind: Mapping
 metadata:
   name: commerce-dx-{{ $envType }}-reactstorepreview-hcl-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   bypass_auth: true
   case_sensitive: false
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -277,7 +277,7 @@ kind: Mapping
 metadata:
   name: commerce-dx-auth-reactstorepreview-dam-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   bypass_auth: true
   case_sensitive: false
   connect_timeout_ms: 1200000

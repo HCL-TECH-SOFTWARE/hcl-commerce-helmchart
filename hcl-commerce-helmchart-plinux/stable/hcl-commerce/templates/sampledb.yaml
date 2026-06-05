@@ -48,6 +48,16 @@ spec:
       {{- if $.Values.tsDb.nodeSelector }}
       nodeSelector:
 {{ toYaml $.Values.tsDb.nodeSelector | indent 8 }}
+      {{- else if $.Values.common.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.common.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if $.Values.tsDb.tolerations }}
+      tolerations:
+{{ toYaml $.Values.tsDb.tolerations | indent 8 }}
+      {{- else if $.Values.common.tolerations }}
+      tolerations:
+{{ toYaml $.Values.common.tolerations | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:
@@ -73,8 +83,10 @@ spec:
       imagePullSecrets:
         - name: {{ include "image.pull.secret" $ }}
       {{- end }}
-      {{- if $.Values.tsDb.persistence.enabled }}
+      {{- if or ($.Values.tsDb.persistence.enabled) (and (not $.Values.global.sofySandboxContext) ($.Values.tsDb.userScripts.enabled)) (and $.Values.global.sofySandboxContext $.Values.tsDb.demoPack.enabled) ($.Values.tsDb.ssl.enabled) }}
       volumes:
+      {{- end }}
+      {{- if $.Values.tsDb.persistence.enabled }}
         - name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-tsdb-volume
           persistentVolumeClaim:
             {{- if $.Values.tsDb.persistence.existingClaim }}
@@ -82,6 +94,7 @@ spec:
             {{- else }}
             claimName: {{ $.Release.Name }}-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-tsdb-pvc
             {{- end }}
+      {{- end }}
       {{- if and (not $.Values.global.sofySandboxContext) ($.Values.tsDb.userScripts.enabled) }}
         - name: user-scripts
           emptyDir: {}
@@ -90,7 +103,58 @@ spec:
         - name: demopack
           emptyDir: {}
       {{- end }}
+      {{- if $.Values.tsDb.ssl.enabled }}
+        {{- if $.Values.tsDb.ssl.existingSecret }}
+        - name: existed-certs
+          secret:
+            secretName: {{ $.Values.tsDb.ssl.existingSecret }}
+        {{- else if $.Values.vaultCA.enabled}}
+        - name: ssl-certs-script
+          configMap:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db-ssl-script
+        {{- end }}
+        - name: db-ssl-certs
+          emptyDir: {}
+      {{- end }}
       initContainers:
+      {{- if and ($.Values.vaultCA.enabled) ($.Values.tsDb.ssl.enabled) (not $.Values.tsDb.ssl.existingSecret) }}
+      - name: vault-sign-certificates
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args: ["cp /scripts/vault-sign-certificates.sh /tmp/vault-sign-certificates.sh && chmod +x /tmp/vault-sign-certificates.sh && /tmp/vault-sign-certificates.sh"]
+        env:
+          - name: "VAULT_TOKEN"
+            valueFrom:
+              secretKeyRef:
+                name: {{ $.Values.common.vaultTokenSecret }}
+                key: VAULT_TOKEN
+          - name: "ENVIRONMENT"
+            value: {{ $.Values.common.environmentName | quote }}
+          - name: "TENANT"
+            value: {{ $.Values.common.tenant | quote }}
+          - name: "ENVTYPE"
+            value: {{ $envType | quote }}
+          - name: "VAULT_URL"
+            value: {{ $.Values.common.vaultUrl | quote }}
+          - name: "DOMAIN_NAME"
+            value: "{{ $.Release.Namespace }}.svc.cluster.local"
+        volumeMounts:
+          - name: db-ssl-certs
+            mountPath: /certs
+          - name: ssl-certs-script
+            mountPath: /scripts
+      {{- end }}
+      {{- if and ($.Values.vaultCA.enabled) ($.Values.tsDb.ssl.enabled) ($.Values.tsDb.ssl.existingSecret) }}
+      - name: configure-existed-ssl-secret
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args: ["cp /existed-certs/server.pem /certs/server.pem && cp /existed-certs/key.pem /certs/key.pem && cp /existed-certs/ca.pem /certs/ca.pem"]
+        volumeMounts:
+          - name: db-ssl-certs
+            mountPath: /certs
+          - name: existed-certs
+            mountPath: /existed-certs
+      {{- end }}
       {{- if and (not $.Values.global.sofySandboxContext) ($.Values.tsDb.userScripts.enabled) }}
       - name: user-script-transfer
         image: "{{ include "image.repo" $ }}{{ $.Values.tsDb.userScripts.initContainer.image }}:{{ $.Values.tsDb.userScripts.initContainer.tag }}"
@@ -133,6 +197,7 @@ spec:
           - name:  demopack
             mountPath: /data
       {{- end }}
+      {{- if $.Values.tsDb.persistence.enabled }}
       - name: pre-load-db-data
         image: "{{ include "image.repo" $ }}{{ $.Values.tsDb.image }}:{{ $.Values.tsDb.tag }}"
         {{- if $.Values.common.imagePullPolicy }}
@@ -149,6 +214,35 @@ spec:
         image: "{{ include "image.repo" $ }}{{ $.Values.tsDb.image }}:{{ $.Values.tsDb.tag }}"
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        {{- if $.Values.tsDb.ssl.enabled }}
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "[DB2 SSL] Rebuilding DIME SSL keystore using new PEM certificates..."
+            cd /SETUP/certs
+
+            echo "[DB2 SSL] Creating PKCS12 bundle from PEM files..."
+            openssl pkcs12 -export -in ../vault/certs/server.pem -inkey ../vault/certs/key.pem -name default -out server.p12 -passout pass:ibmkey
+
+            # Remove old SSL keystore files
+            rm -f dimekeyfile.kdb dimekeyfile.sth dimekeyfile.rdb dimekeyfile.crl 2>/dev/null || true
+
+            # Create new CMS keystore (for DB2 SSL)
+            /home/db2inst1/sqllib/gskit/bin/gsk8capicmd_64 -keydb -create -db dimekeyfile.kdb -pw ibmkey -stash -type cms
+
+            #echo "[DB2 SSL] Importing PKCS12 bundle into CMS keystore..."
+            /home/db2inst1/sqllib/gskit/bin/gsk8capicmd_64 -cert -import -file server.p12 -pw ibmkey -type pkcs12 -target dimekeyfile.kdb -target_pw ibmkey -label default
+
+            /home/db2inst1/sqllib/gskit/bin/gsk8capicmd_64 -cert -add -db dimekeyfile.kdb -pw ibmkey -label vault-ca -file ../vault/certs/ca.pem -trust enable
+
+            chown -R db2inst1:db2inst1 /SETUP/certs
+
+            echo "[DB2 SSL] SSL keystore updated successfully. Starting DB2..."
+
+            exec /SETUP/bin/entrypoint.sh start
         {{- end }}
         resources:
 {{ toYaml $.Values.tsDb.resources | indent 12 }}
@@ -209,7 +303,7 @@ spec:
         readinessProbe:
           tcpSocket:
             port: 50000
-        {{- if or ($.Values.tsDb.persistence.enabled) ($.Values.tsDb.userScripts.enabled) }}
+        {{- if or ($.Values.tsDb.persistence.enabled) (and $.Values.global.sofySandboxContext $.Values.tsDb.demoPack.enabled) (and (not $.Values.global.sofySandboxContext) ($.Values.tsDb.userScripts.enabled)) ($.Values.tsDb.ssl.enabled) }}
         volumeMounts:
         {{- end }}
         {{- if $.Values.tsDb.persistence.enabled }}
@@ -223,6 +317,10 @@ spec:
         {{- if and $.Values.global.sofySandboxContext $.Values.tsDb.demoPack.enabled }}
           - name:  demopack
             mountPath: /SETUP/user_scripts
+        {{- end }}
+        {{- if $.Values.tsDb.ssl.enabled }}
+          - name: db-ssl-certs
+            mountPath: /SETUP/vault/certs/
         {{- end }}
 {{- end }}
 ---

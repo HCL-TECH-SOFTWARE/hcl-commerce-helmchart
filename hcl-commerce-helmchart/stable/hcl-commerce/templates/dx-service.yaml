@@ -1,4 +1,4 @@
-{{- if and (.Values.ingress.enabled) ( .Values.dx.enabled) (ne .Values.ingress.ingressController "gke") (eq .Values.common.searchEngine "elastic") }}
+{{- if and (.Values.ingress.enabled) (.Values.dx.enabled) (eq (include "hcl-commerce.hasIngressController" (list "gke" .)) "false") (eq .Values.common.searchEngine "elastic") }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
 {{- range $envType := $envTypeList -}}
 {{- if and (ne $envType "share") (get $.Values.dx.namespace $envType) }}

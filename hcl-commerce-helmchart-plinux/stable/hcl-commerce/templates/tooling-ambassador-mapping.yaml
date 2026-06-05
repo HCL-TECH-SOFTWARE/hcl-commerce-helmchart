@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "ambassador") -}}
+{{- if and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "ambassador" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- if has "share" $envTypeList }}
 {{- $ingress_conf := $.Values.ingress.tooling }}
@@ -16,7 +16,7 @@ kind: Mapping
 metadata:
   name: commerce-tooling-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /tooling
   rewrite: /tooling
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -32,7 +32,7 @@ kind: Mapping
 metadata:
   name: commerce-tooling-approval-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /approvals
   rewrite: /approvals
   host: {{ tpl ($ingress_conf.domain | toString) $ }}

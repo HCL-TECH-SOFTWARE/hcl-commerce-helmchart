@@ -1,0 +1,192 @@
+{{- if and $.Values.gateway.enabled $.Values.storeWeb.enabled (or (eq $.Values.common.searchEngine "elastic") (and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr"))) -}}
+{{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
+{{- $tenant := $.Values.common.tenant -}}
+{{- $envName := $.Values.common.environmentName -}}
+{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $gw_conf := $.Values.gateway.reactstore.auth }}
+{{- if eq $envType "live" }}
+{{ $gw_conf = $.Values.gateway.reactstore.live }}
+{{- end }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2026
+######################################################
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-reactstore-httproute
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  parentRefs:
+  - name: {{ $gatewayName }}
+    sectionName: {{ $envType }}-reactstore
+  hostnames:
+  - {{ tpl ($gw_conf.domain | toString) $ }}
+  rules:
+  {{- if $.Values.approvalApp.enabled }}
+  {{- if not $.Values.gateway.enableManageApprovalPage }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /approvals/manage-approval
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8000
+  {{- end }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /approvals
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}approval-app
+      port: 6643
+  {{- end }}
+  {{- if $.Values.dx.enabled }}
+  {{- if and (eq $envType "auth") $.Values.dx.namespace.live }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /dx/api/dam
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}live-dx
+      port: 443
+  {{- end }}
+  {{- $dxNs := "" }}
+  {{- if eq $envType "auth" }}{{ $dxNs = $.Values.dx.namespace.auth }}{{ else }}{{ $dxNs = $.Values.dx.namespace.live }}{{ end }}
+  {{- if $dxNs }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /dx
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}-dx
+      port: 443
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /wps
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}-dx
+      port: 443
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /hcl
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}-dx
+      port: 443
+  {{- end }}
+  {{- end }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /webapp/wcs/preview
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8006
+  {{- if $.Values.gateway.enableToolingForReactStore }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /lobtools
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8000
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /tooling
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}tooling-web
+      port: 7443
+  {{- end }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /rest
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8000
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /wcs
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-app
+      port: 5443
+  {{- if eq $.Values.common.searchEngine "elastic" }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /search/resources
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}query-app
+      port: 30901
+  {{- else if and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr") }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /search/resources
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}orchestration-app
+      port: 19443
+  {{- end }}
+  {{- if $.Values.nextjsApp.enabled }}
+  {{- if and $.Values.metrics.enabled $.Values.metrics.serviceMonitor.enabled }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api/metrics
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8000
+  {{- end }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}nextjs-app
+      port: 3343
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /_next
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}nextjs-app
+      port: 3343
+  {{- end }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /wcsstore
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}store-web
+      port: 6443
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /hclstore
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}store-web
+      port: 6443
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}store-web
+      port: 6443
+---
+{{- end }}
+{{- end }}
+{{- end }}

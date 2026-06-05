@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") -}}
+{{- if and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "emissary" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -11,8 +11,8 @@ kind: Host
 metadata:
   name: commerce-{{ $envType }}-cmc-domain-host
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
   acmeProvider:
@@ -25,8 +25,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-cmc-domain-cmc-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
@@ -41,8 +41,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-cmc-domain-tooling-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /tooling/
   rewrite: /tooling/
@@ -59,8 +59,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-cmc-domain-approval-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /approvals
   rewrite: /approvals
@@ -77,8 +77,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-cmc-domain-manage-approval-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /approvals/manage-approval
   rewrite: /approvals/manage-approval

@@ -1,0 +1,88 @@
+{{- if and ($.Values.tsDb.enabled) ($.Values.vaultCA.enabled) ($.Values.tsDb.ssl.enabled) (not $.Values.tsDb.ssl.existingSecret) }}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) }}
+{{- range $envType := $envTypeList }}
+{{- if ne $envType "share" }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 2025
+######################################################
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  namespace: {{ $.Release.Namespace }}
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}db-ssl-script
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    app.kubernetes.io/name: {{ include "name" $ }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+data:
+  vault-sign-certificates.sh: |-
+    set -e
+    apk add --no-cache curl jq
+    getParameter() {
+      remotPara=$(curl -s -m 60 -X GET -H "X-Vault-Token:$VAULT_TOKEN" "${2}" | jq -r .data.value)
+      if [ "$remotPara" != "null" ] && [ "$remotPara" != "" ]; then
+        echo $remotPara
+      else
+        eval "localValue=\$$1"
+        if [ -n "$localValue" ]; then
+          echo "$localValue"
+        else
+          echo "null"
+        fi
+      fi
+    }
+    validateParameter() {
+      name=$1
+      eval "value=\$$name"
+      default=$2
+      if [ -z "$value" ] || [ "$value" == "null" ]; then
+        if [ -z $default ]; then
+          echo "ERROR: '$name' is not specified"
+          exit 1
+        else
+          eval "$name='$default'"
+          echo "WARNING: '$name' is not specified, set to default value '$default'" >&2
+        fi
+      fi
+    }
+    validateParameter VAULT_TOKEN
+    validateParameter VAULT_URL
+    validateParameter TENANT
+    validateParameter ENVIRONMENT
+    validateParameter ENVTYPE
+    # Get customized PKI role name for issue certificate
+    ROOTCA_NAME=$(getParameter "ROOTCA_NAME" "${VAULT_URL}/${TENANT}/${ENVIRONMENT}/rootCAName")
+    validateParameter ROOTCA_NAME "selfserve_production_pki"
+    # Get customized certificate TTL value / The TTL value should be lower then the TTL for specified role
+    CERT_TTL=$(getParameter "CERT_TTL" "${VAULT_URL}/${TENANT}/${ENVIRONMENT}/certTTL")
+    validateParameter CERT_TTL "8760h"
+    # Short and full database hostnames
+    SHORT_HOST="${TENANT}${ENVIRONMENT}${ENVTYPE}db"
+    FULL_HOST="${SHORT_HOST}.${DOMAIN_NAME}"
+
+    # Request certificate with SANs
+    CERT=$(curl -sS -X POST -H "X-Vault-Token:$VAULT_TOKEN" -d "{\"common_name\":\"${SHORT_HOST}\",\"alt_names\":\"${SHORT_HOST},${FULL_HOST}\",\"ttl\":\"${CERT_TTL}\"}" "${VAULT_URL}/${ROOTCA_NAME}/issue/generate-cert")
+      
+    # Check for errors
+    ERRORS=$(echo $CERT | jq .errors 2>/dev/null)
+    if [ "$ERRORS" != "null" ]; then
+      echo "Vault returned errors when trying to generate a certificate: ${ERRORS}" >&2
+      exit 1
+    fi
+    # Extract certificate and private key
+    CERTIFICATE=$(echo ${CERT} | jq -r ".data.certificate")
+    PRIVATE_KEY=$(echo ${CERT} | jq -r ".data.private_key")
+    CA_CERT=$(echo ${CERT} | jq -r ".data.issuing_ca")
+
+    # Save the certificate and private key to mounted volume
+    echo "${CERTIFICATE}" > /certs/server.pem
+    echo "${PRIVATE_KEY}" > /certs/key.pem
+    echo "${CA_CERT}" > /certs/ca.pem
+{{- end }}
+---
+{{- end }}
+{{- end }}

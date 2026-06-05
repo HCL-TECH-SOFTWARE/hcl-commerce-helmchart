@@ -1,0 +1,303 @@
+{{- if $.Values.gateway.enabled -}}
+{{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
+{{- $tenant := $.Values.common.tenant -}}
+{{- $envName := $.Values.common.environmentName -}}
+{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2026
+######################################################
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  gatewayClassName: {{ $.Values.gateway.gatewayClassName }}
+  listeners:
+  {{- range $envType := $envTypeList }}
+  {{- if ne $envType "share" }}
+  {{/* --- CMC listener --- */}}
+  {{- $cmc_conf := $.Values.gateway.cmc.auth }}
+  {{- if eq $envType "live" }}{{ $cmc_conf = $.Values.gateway.cmc.live }}{{ end }}
+  {{- if or (eq $.Values.common.searchEngine "solr") (not $.Values.storeWeb.enabled) (and (eq $envType "auth") (ne $cmc_conf.domain $.Values.gateway.reactstore.auth.domain)) (and (eq $envType "live") (ne $cmc_conf.domain $.Values.gateway.reactstore.live.domain)) }}
+  - name: {{ $envType }}-cmc
+    hostname: {{ tpl ($cmc_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($cmc_conf.tlsSecret) }}
+  {{- end }}
+  {{/* --- Accelerator listener --- */}}
+  {{- $accel_conf := $.Values.gateway.accelerator.auth }}
+  {{- if eq $envType "live" }}{{ $accel_conf = $.Values.gateway.accelerator.live }}{{ end }}
+  - name: {{ $envType }}-accelerator
+    hostname: {{ tpl ($accel_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($accel_conf.tlsSecret) }}
+  {{/* --- Admin listener --- */}}
+  {{- $admin_conf := $.Values.gateway.admin.auth }}
+  {{- if eq $envType "live" }}{{ $admin_conf = $.Values.gateway.admin.live }}{{ end }}
+  - name: {{ $envType }}-admin
+    hostname: {{ tpl ($admin_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($admin_conf.tlsSecret) }}
+  {{/* --- Org listener --- */}}
+  {{- $org_conf := $.Values.gateway.org.auth }}
+  {{- if eq $envType "live" }}{{ $org_conf = $.Values.gateway.org.live }}{{ end }}
+  - name: {{ $envType }}-org
+    hostname: {{ tpl ($org_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($org_conf.tlsSecret) }}
+  {{/* --- Transaction listener --- */}}
+  {{- $tx_conf := $.Values.gateway.transaction.auth }}
+  {{- if eq $envType "live" }}{{ $tx_conf = $.Values.gateway.transaction.live }}{{ end }}
+  - name: {{ $envType }}-transaction
+    hostname: {{ tpl ($tx_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($tx_conf.tlsSecret) }}
+  {{/* --- Reactstore listener --- */}}
+  {{- if and $.Values.storeWeb.enabled (or (eq $.Values.common.searchEngine "elastic") (and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr"))) }}
+  {{- $rs_conf := $.Values.gateway.reactstore.auth }}
+  {{- if eq $envType "live" }}{{ $rs_conf = $.Values.gateway.reactstore.live }}{{ end }}
+  - name: {{ $envType }}-reactstore
+    hostname: {{ tpl ($rs_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($rs_conf.tlsSecret) }}
+  {{/* --- Reactstore preview listener (only if different domain) --- */}}
+  {{- $rsp_conf := $.Values.gateway.reactstorepreview.auth }}
+  {{- if eq $envType "live" }}{{ $rsp_conf = $.Values.gateway.reactstorepreview.live }}{{ end }}
+  {{- if ne $rsp_conf.domain $rs_conf.domain }}
+  - name: {{ $envType }}-reactstorepreview
+    hostname: {{ tpl ($rsp_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($rsp_conf.tlsSecret) }}
+  {{- end }}
+  {{- end }}
+  {{/* --- CRS listener --- */}}
+  {{- if $.Values.crsApp.enabled }}
+  {{- $crs_conf := $.Values.gateway.crs.auth }}
+  {{- if eq $envType "live" }}{{ $crs_conf = $.Values.gateway.crs.live }}{{ end }}
+  - name: {{ $envType }}-crs
+    hostname: {{ tpl ($crs_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($crs_conf.tlsSecret) }}
+  {{- end }}
+  {{/* --- Localstore listener --- */}}
+  {{- if $.Values.common.localStoreEnabled }}
+  {{- $ls_conf := $.Values.gateway.localstore.auth }}
+  {{- if eq $envType "live" }}{{ $ls_conf = $.Values.gateway.localstore.live }}{{ end }}
+  - name: {{ $envType }}-localstore
+    hostname: {{ tpl ($ls_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($ls_conf.tlsSecret) }}
+  {{- end }}
+  {{/* --- GraphQL listener --- */}}
+  {{- if $.Values.graphqlApp.enabled }}
+  {{- $gql_conf := $.Values.gateway.graphql.auth }}
+  {{- if eq $envType "live" }}{{ $gql_conf = $.Values.gateway.graphql.live }}{{ end }}
+  - name: {{ $envType }}-graphql
+    hostname: {{ tpl ($gql_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($gql_conf.tlsSecret) }}
+  {{- end }}
+  {{/* --- Query listener --- */}}
+  {{- if eq $.Values.common.searchEngine "elastic" }}
+  {{- $q_conf := $.Values.gateway.query.auth }}
+  {{- if eq $envType "live" }}{{ $q_conf = $.Values.gateway.query.live }}{{ end }}
+  {{- $rs_domain := $.Values.gateway.reactstore.auth.domain }}
+  {{- if eq $envType "live" }}{{ $rs_domain = $.Values.gateway.reactstore.live.domain }}{{ end }}
+  {{- if or (not $.Values.storeWeb.enabled) (ne $q_conf.domain $rs_domain) }}
+  - name: {{ $envType }}-query
+    hostname: {{ tpl ($q_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($q_conf.tlsSecret) }}
+  {{- end }}
+  {{- end }}
+  {{/* --- Cache listener --- */}}
+  {{- if $.Values.cacheApp.enabled }}
+  {{- $cache_conf := $.Values.gateway.cache.auth }}
+  {{- if eq $envType "live" }}{{ $cache_conf = $.Values.gateway.cache.live }}{{ end }}
+  {{- if $cache_conf.enabled }}
+  - name: {{ $envType }}-cache
+    hostname: {{ tpl ($cache_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($cache_conf.tlsSecret) }}
+  {{- end }}
+  {{- end }}
+  {{/* --- Solr search listener --- */}}
+  {{- if eq $.Values.common.searchEngine "solr" }}
+  {{- $ss_conf := $.Values.gateway.solrsearch.auth }}
+  {{- if eq $envType "live" }}{{ $ss_conf = $.Values.gateway.solrsearch.live }}{{ end }}
+  - name: {{ $envType }}-solrsearch
+    hostname: {{ tpl ($ss_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($ss_conf.tlsSecret) }}
+  {{- end }}
+  {{/* --- Orchestration listener --- */}}
+  {{- if and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr") }}
+  {{- $orch_conf := $.Values.gateway.orchestration.auth }}
+  {{- if eq $envType "live" }}{{ $orch_conf = $.Values.gateway.orchestration.live }}{{ end }}
+  {{- $rs_domain := $.Values.gateway.reactstore.auth.domain }}
+  {{- if eq $envType "live" }}{{ $rs_domain = $.Values.gateway.reactstore.live.domain }}{{ end }}
+  {{- if or (not $.Values.storeWeb.enabled) (ne $orch_conf.domain $rs_domain) }}
+  - name: {{ $envType }}-orchestration
+    hostname: {{ tpl ($orch_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($orch_conf.tlsSecret) }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{/* --- Share-only listeners --- */}}
+  {{- if has "share" $envTypeList }}
+  {{/* --- Tooling listener --- */}}
+  {{- $tooling_conf := $.Values.gateway.tooling }}
+  - name: share-tooling
+    hostname: {{ tpl ($tooling_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($tooling_conf.tlsSecret) }}
+  {{/* --- Data query listener --- */}}
+  {{- if eq $.Values.common.searchEngine "elastic" }}
+  {{- $dq_conf := $.Values.gateway.query.data }}
+  - name: share-data-query
+    hostname: {{ tpl ($dq_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($dq_conf.tlsSecret) }}
+  {{/* --- Ingest listener --- */}}
+  {{- $ingest_conf := $.Values.gateway.ingest }}
+  - name: share-ingest
+    hostname: {{ tpl ($ingest_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($ingest_conf.tlsSecret) }}
+  {{/* --- Nifi listener --- */}}
+  {{- if $.Values.gateway.nifi.enabled }}
+  {{- $nifi_conf := $.Values.gateway.nifi }}
+  - name: share-nifi
+    hostname: {{ tpl ($nifi_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($nifi_conf.tlsSecret) }}
+  {{- end }}
+  {{/* --- Registry listener --- */}}
+  {{- if $.Values.gateway.registry.enabled }}
+  {{- $reg_conf := $.Values.gateway.registry }}
+  - name: share-registry
+    hostname: {{ tpl ($reg_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($reg_conf.tlsSecret) }}
+  {{- end }}
+  {{/* --- Mustgather listener --- */}}
+  {{- if and $.Values.mustgatherApp.enabled $.Values.gateway.mustgather.enabled }}
+  {{- $mg_conf := $.Values.gateway.mustgather }}
+  - name: share-mustgather
+    hostname: {{ tpl ($mg_conf.domain | toString) $ }}
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($mg_conf.tlsSecret) }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+{{- end }}

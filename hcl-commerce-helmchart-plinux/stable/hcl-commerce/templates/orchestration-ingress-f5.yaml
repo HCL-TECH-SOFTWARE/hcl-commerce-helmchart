@@ -1,0 +1,57 @@
+{{- if and (.Values.ingress.enabled) (.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") (eq (include "hcl-commerce.hasIngressController" (list "f5-nginx" .)) "true") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.orchestration.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.orchestration.live }}
+{{- end }}
+{{- if or (not $.Values.storeWeb.enabled) (and (eq $envType "auth") (ne $ingress_conf.domain $.Values.ingress.reactstore.auth.domain)) (and (eq $envType "live") (ne $ingress_conf.domain $.Values.ingress.reactstore.live.domain)) }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-orchestration-f5-nginx-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app"
+    nginx.org/proxy-buffer-size: "256k"
+    nginx.org/proxy-buffers: "16 512k"
+    nginx.org/proxy-busy-buffers-size: "512k"
+    {{- if $.Values.ingress.orchestration.f5NginxCustomAnnotations }}
+{{ toYaml $.Values.ingress.orchestration.f5NginxCustomAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  ingressClassName: {{ default "f5-nginx" $ingress_conf.f5NginxClass | quote }}
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: /search/resources
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app
+          servicePort: 19443
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: /search/resources
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app
+            port:
+              number: 19443
+      {{- end }}
+{{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

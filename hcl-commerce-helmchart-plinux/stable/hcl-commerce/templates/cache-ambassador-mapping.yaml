@@ -1,5 +1,5 @@
 {{- $cfg_ext := tpl $.Values.hclCache.configMap.cache_cfg_ext $ | fromYaml }}
-{{- if and (.Values.ingress.enabled) ($.Values.cacheApp.enabled) ($cfg_ext.redis.enabled) (eq .Values.ingress.ingressController "ambassador") -}}
+{{- if and (.Values.ingress.enabled) ($.Values.cacheApp.enabled) ($cfg_ext.redis.enabled) (eq (include "hcl-commerce.hasIngressController" (list "ambassador" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -22,7 +22,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-cache-domain-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /
   host: {{ tpl ($ingress_conf.domain | toString) $ }}
   host_regex: false

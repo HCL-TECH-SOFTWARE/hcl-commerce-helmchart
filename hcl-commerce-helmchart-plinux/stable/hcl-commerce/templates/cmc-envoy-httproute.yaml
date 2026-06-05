@@ -1,0 +1,88 @@
+{{- if $.Values.gateway.enabled -}}
+{{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
+{{- $tenant := $.Values.common.tenant -}}
+{{- $envName := $.Values.common.environmentName -}}
+{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $gw_conf := $.Values.gateway.cmc.auth }}
+{{- if eq $envType "live" }}
+{{ $gw_conf = $.Values.gateway.cmc.live }}
+{{- end }}
+{{- if or (eq $.Values.common.searchEngine "solr") (not $.Values.storeWeb.enabled) (and (eq $envType "auth") (ne $gw_conf.domain $.Values.gateway.reactstore.auth.domain)) (and (eq $envType "live") (ne $gw_conf.domain $.Values.gateway.reactstore.live.domain)) }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2026
+######################################################
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-cmc-httproute
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  parentRefs:
+  - name: {{ $gatewayName }}
+    sectionName: {{ $envType }}-cmc
+  hostnames:
+  - {{ tpl ($gw_conf.domain | toString) $ }}
+  rules:
+  {{- if $.Values.approvalApp.enabled }}
+  {{- if $.Values.gateway.enableManageApprovalPage }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /approvals/manage-approval
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8000
+  {{- end }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /approvals
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}approval-app
+      port: 6643
+  {{- end }}
+  {{- if $.Values.common.localStoreEnabled }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /webapp/
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8443
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /wcsstore/
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8443
+  {{- end }}
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /tooling
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}tooling-web
+      port: 7443
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8000
+---
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

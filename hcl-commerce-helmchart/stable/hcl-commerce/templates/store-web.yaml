@@ -47,6 +47,16 @@ spec:
       {{- if $.Values.storeWeb.nodeSelector }}
       nodeSelector:
 {{ toYaml $.Values.storeWeb.nodeSelector | indent 8 }}
+      {{- else if $.Values.common.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.common.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if $.Values.storeWeb.tolerations }}
+      tolerations:
+{{ toYaml $.Values.storeWeb.tolerations | indent 8 }}
+      {{- else if $.Values.common.tolerations }}
+      tolerations:
+{{ toYaml $.Values.common.tolerations | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:

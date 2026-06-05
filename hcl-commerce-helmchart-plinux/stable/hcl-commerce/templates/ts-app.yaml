@@ -72,6 +72,16 @@ spec:
       {{- if $.Values.tsApp.nodeSelector }}
       nodeSelector:
 {{ toYaml $.Values.tsApp.nodeSelector | indent 8 }}
+      {{- else if $.Values.common.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.common.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if $.Values.tsApp.tolerations }}
+      tolerations:
+{{ toYaml $.Values.tsApp.tolerations | indent 8 }}
+      {{- else if $.Values.common.tolerations }}
+      tolerations:
+{{ toYaml $.Values.common.tolerations | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:

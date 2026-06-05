@@ -124,3 +124,19 @@ RWX search StorageClass name
 {{- default .Values.global.persistence.rwxStorageClass -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Check if a specific ingress controller is enabled.
+Supports both string (backward compatible) and list formats for ingressController.
+Usage: {{ include "hcl-commerce.hasIngressController" (list "f5-nginx" .) }}
+Returns "true" or "false" as a string.
+*/}}
+{{- define "hcl-commerce.hasIngressController" -}}
+{{- $controllerName := index . 0 -}}
+{{- $root := index . 1 -}}
+{{- if kindIs "string" $root.Values.ingress.ingressController -}}
+{{- if eq $root.Values.ingress.ingressController $controllerName -}}true{{- else -}}false{{- end -}}
+{{- else -}}
+{{- if has $controllerName $root.Values.ingress.ingressController -}}true{{- else -}}false{{- end -}}
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,17 @@
+{{- if $.Values.gateway.enabled -}}
+{{- $gatewayName := printf "vault-%s-gateway" .Values.common.tenant -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    group: {{ .Release.Namespace }}
+spec:
+  gatewayClassName: {{ $.Values.gateway.gatewayClassName }}
+  listeners:
+  - name: vault
+    hostname: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
+    port: 80
+    protocol: HTTP
+{{- end }}

@@ -1,18 +1,24 @@
-{{- if and .Values.ingress.enabled (ne .Values.ingress.ingressController "ambassador") (ne .Values.ingress.ingressController "emissary") (eq .Values.common.searchEngine "elastic") (not .Values.openshiftDeployment.enabled) (.Values.ingress.ingest.enabled) -}}
-{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $ingress_controller := list "gke" "nginx" -}}
+{{- if eq (include "hcl-commerce.hasIngressController" (list $ingress_controller $)) "true" -}}
+{{- $ingress_name_suffix := "gke" -}}{{- if eq $ingress_controller "nginx" -}}{{- $ingress_name_suffix = "community-nginx" -}}{{- end -}}
+{{- if and ($.Values.ingress.enabled) ($ingress_controller) (eq $.Values.common.searchEngine "elastic") -}}
+{{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
 {{- if has "share" $envTypeList }}
 {{- $ingress_conf := $.Values.ingress.ingest }}
 apiVersion: {{ $.Values.ingress.apiVersion }}
 kind: Ingress
 metadata:
-  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}ingest-ingress
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}ingest-{{ $ingress_name_suffix }}-ingress
   namespace: {{ $.Release.Namespace }}
   annotations:
-    {{- if eq $.Values.ingress.ingressController "gke" }}
-    kubernetes.io/ingress.class: {{ default "gce" $ingress_conf.ingressClass | quote }}
+    {{- if eq $ingress_controller "gke" }}
+    {{- if $.Values.ingress.ingest.gkeCustomAnnotations }}
+{{ toYaml $.Values.ingress.ingest.gkeCustomAnnotations | indent 4 }}
     {{- end }}
-    {{- if $.Values.ingress.ingest.customAnnotations }}
-{{ toYaml $.Values.ingress.ingest.customAnnotations | indent 4 }}
+    {{- else }}
+    {{- if $.Values.ingress.ingest.communityNginxCustomAnnotations }}
+{{ toYaml $.Values.ingress.ingest.communityNginxCustomAnnotations | indent 4 }}
+    {{- end }}
     {{- end }}
   labels:
     app: HCL-Commerce
@@ -21,8 +27,10 @@ metadata:
     heritage: {{ $.Release.Service }}
     group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}
 spec:
-  {{- if eq $.Values.ingress.ingressController "nginx" }}
-  ingressClassName: {{ default "nginx" $ingress_conf.ingressClass | quote }}
+  {{- if eq $ingress_controller "nginx" }}
+  ingressClassName: {{ default "nginx" $ingress_conf.communityNginxClass | quote }}
+  {{- else if eq $ingress_controller "gke" }}
+  ingressClassName: {{ default "gce" $ingress_conf.gkeClass | quote }}
   {{- end }}
   tls:
   - hosts:
@@ -33,19 +41,21 @@ spec:
     http:
       paths:
       {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
-      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} / {{- else if eq $.Values.ingress.ingressController "gke" }} /* {{- end }}
+      - path: {{- if eq $ingress_controller "nginx" }} / {{- else if eq $ingress_controller "gke" }} /* {{- end }}
         backend:
-          serviceName: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.ingestApp.name}}
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{$.Values.ingestApp.name}}
           servicePort: 30800
       {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
-      - path: {{- if eq $.Values.ingress.ingressController "nginx" }} / {{- else if eq $.Values.ingress.ingressController "gke" }} /* {{- end }}
-        pathType: {{- if eq $.Values.ingress.ingressController "nginx" }} Prefix {{- else if eq $.Values.ingress.ingressController "gke" }} ImplementationSpecific {{- end }}
+      - path: {{- if eq $ingress_controller "nginx" }} / {{- else if eq $ingress_controller "gke" }} /* {{- end }}
+        pathType: {{- if eq $ingress_controller "nginx" }} Prefix {{- else if eq $ingress_controller "gke" }} ImplementationSpecific {{- end }}
         backend:
           service:
-            name: {{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{.Values.ingestApp.name}}
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{$.Values.ingestApp.name}}
             port:
               number: 30800
       {{- end }}
 {{- end }}
 {{- end }}
 ---
+{{- end }}
+{{- end }}

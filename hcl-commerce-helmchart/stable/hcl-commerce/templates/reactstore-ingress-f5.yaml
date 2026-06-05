@@ -1,0 +1,311 @@
+{{- if and ($.Values.ingress.enabled) ($.Values.storeWeb.enabled) (or (eq $.Values.common.searchEngine "elastic") (and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr"))) (eq (include "hcl-commerce.hasIngressController" (list "f5-nginx" .)) "true") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.reactstore.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.reactstore.live }}
+{{- end }}
+{{- $sslServices := list (printf "%s%s%sstore-web" $.Values.common.tenant $.Values.common.environmentName $envType) (printf "%s%s%sts-app" $.Values.common.tenant $.Values.common.environmentName $envType) (printf "%s%s%sts-web" $.Values.common.tenant $.Values.common.environmentName $envType) -}}
+{{- if and $.Values.ingress.enableToolingForReactStore (has "share" $envTypeList) -}}
+{{- $sslServices = append $sslServices (printf "%s%stooling-web" $.Values.common.tenant $.Values.common.environmentName) -}}
+{{- end -}}
+{{- if $.Values.nextjsApp.enabled -}}
+{{- $sslServices = append $sslServices (printf "%s%s%snextjs-app" $.Values.common.tenant $.Values.common.environmentName $envType) -}}
+{{- end -}}
+{{- if eq $.Values.common.searchEngine "elastic" -}}
+{{- $sslServices = append $sslServices (printf "%s%s%squery-app" $.Values.common.tenant $.Values.common.environmentName $envType) -}}
+{{- end -}}
+{{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") -}}
+{{- $sslServices = append $sslServices (printf "%s%s%sorchestration-app" $.Values.common.tenant $.Values.common.environmentName $envType) -}}
+{{- end -}}
+{{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) -}}
+{{- $sslServices = append $sslServices (printf "%s%s%s-dx" $.Values.common.tenant $.Values.common.environmentName $envType) -}}
+{{- end -}}
+{{- if $.Values.approvalApp.enabled -}}
+{{- $sslServices = append $sslServices (printf "%s%sapproval-app" $.Values.common.tenant $.Values.common.environmentName) -}}
+{{- end -}}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-reactstore-f5-nginx-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    {{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) }}
+    nginx.org/proxy-body-size: "800m"
+    nginx.org/client-max-body-size: "800m"
+    {{- end }}
+    nginx.org/ssl-services: {{ join "," $sslServices | quote }}
+    nginx.org/proxy-buffer-size: "256k"
+    nginx.org/proxy-buffers: "16 512k"
+    nginx.org/proxy-busy-buffers-size: "512k"
+    {{- if $.Values.ingress.reactstore.f5NginxCustomAnnotations }}
+{{ toYaml $.Values.ingress.reactstore.f5NginxCustomAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  ingressClassName: {{ default "f5-nginx" $ingress_conf.f5NginxClass | quote }}
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: /
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+          servicePort: 6443
+      - path: /wcsstore
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+          servicePort: 6443
+      - path: /hclstore
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+          servicePort: 6443
+      {{- if $.Values.nextjsApp.enabled }}
+      - path: /api
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+          servicePort: 3343
+      - path: /_next
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+          servicePort: 3343
+      {{- if and ($.Values.metrics.enabled) ($.Values.metrics.serviceMonitor.enabled) }}
+      - path: /api/metrics
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      {{- end }}
+      {{- end }}
+      - path: /wcs
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
+          servicePort: 5443
+      {{- if eq $.Values.common.searchEngine "elastic" }}
+      - path: /search/resources
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
+          servicePort: 30901
+      {{- end }}
+      {{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") }}
+      - path: /search/resources
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app
+          servicePort: 19443
+      {{- end }}
+      {{- if $.Values.ingress.enableToolingForReactStore }}
+      - path: /lobtools
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      - path: /tooling
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+          servicePort: 7443
+      {{- end }}
+      - path: /rest
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      - path: /webapp/wcs/preview
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8006
+      {{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) }}
+      - path: /dx
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+          servicePort: 443
+      - path: /wps
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+          servicePort: 443
+      - path: /hcl
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+          servicePort: 443
+      {{- if and (eq $envType "auth") (get $.Values.dx.namespace "live") }}
+      - path: /dx/api/dam
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live-dx
+          servicePort: 443
+      {{- end }}
+      {{- end }}
+      {{- if $.Values.approvalApp.enabled }}
+      - path: /approvals
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+          servicePort: 6643
+      {{- if not $.Values.ingress.enableManageApprovalPage }}
+      - path: /approvals/manage-approval
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      {{- end }}
+      {{- end }}
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+            port:
+              number: 6443
+      - path: /wcsstore
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+            port:
+              number: 6443
+      - path: /hclstore
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}store-web
+            port:
+              number: 6443
+      {{- if $.Values.nextjsApp.enabled }}
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+            port:
+              number: 3343
+      - path: /_next
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}nextjs-app
+            port:
+              number: 3343
+      {{- if and ($.Values.metrics.enabled) ($.Values.metrics.serviceMonitor.enabled) }}
+      - path: /api/metrics
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      {{- end }}
+      {{- end }}
+      - path: /wcs
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app
+            port:
+              number: 5443
+      {{- if eq $.Values.common.searchEngine "elastic" }}
+      - path: /search/resources
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}query-app
+            port:
+              number: 30901
+      {{- end }}
+      {{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") }}
+      - path: /search/resources
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}orchestration-app
+            port:
+              number: 19443
+      {{- end }}
+      {{- if $.Values.ingress.enableToolingForReactStore }}
+      - path: /lobtools
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      - path: /tooling
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+            port:
+              number: 7443
+      {{- end }}
+      - path: /rest
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      - path: /webapp/wcs/preview
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8006
+      {{- if and $.Values.dx.enabled (get $.Values.dx.namespace $envType) }}
+      - path: /dx/
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+            port:
+              number: 443
+      - path: /wps/
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+            port:
+              number: 443
+      - path: /hcl/
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-dx
+            port:
+              number: 443
+      {{- if and (eq $envType "auth") (get $.Values.dx.namespace "live") }}
+      - path: /dx/api/dam/
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live-dx
+            port:
+              number: 443
+      {{- end }}
+      {{- end }}
+      {{- if $.Values.approvalApp.enabled }}
+      - path: /approvals
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+            port:
+              number: 6643
+      {{- if not $.Values.ingress.enableManageApprovalPage }}
+      - path: /approvals/manage-approval
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      {{- end }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

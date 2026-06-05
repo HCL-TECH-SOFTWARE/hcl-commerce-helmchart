@@ -1,0 +1,448 @@
+{{- if $.Values.gateway.enabled -}}
+{{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
+{{- $tenant := $.Values.common.tenant -}}
+{{- $envName := $.Values.common.environmentName -}}
+{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
+{{- range $envType := $envTypeList }}
+{{- $caSecretName := default (printf "vault-backend-ca-%s" $envType) $.Values.gateway.backendTLSCASecret }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2026
+######################################################
+{{- if ne $envType "share" }}
+{{/* --- ts-web BackendTLSPolicy --- */}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-ts-web-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{/* --- ts-app BackendTLSPolicy --- */}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-ts-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}ts-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{/* --- store-web BackendTLSPolicy --- */}}
+{{- if $.Values.storeWeb.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-store-web-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}store-web
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}store-web.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- nextjs-app BackendTLSPolicy --- */}}
+{{- if $.Values.nextjsApp.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-nextjs-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}nextjs-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}nextjs-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- crs-app BackendTLSPolicy --- */}}
+{{- if $.Values.crsApp.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-crs-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}crs-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}crs-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- graphql-app BackendTLSPolicy --- */}}
+{{- if $.Values.graphqlApp.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-graphql-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}graphql-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}graphql-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- query-app BackendTLSPolicy --- */}}
+{{- if eq $.Values.common.searchEngine "elastic" }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-query-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}query-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}query-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- cache-app BackendTLSPolicy --- */}}
+{{- if $.Values.cacheApp.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-cache-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}cache-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}cache-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- search-app-master/repeater BackendTLSPolicy (solr) --- */}}
+{{- if eq $.Values.common.searchEngine "solr" }}
+{{- $searchServiceName := printf "%s%s%ssearch-app-master" $tenant $envName $envType }}
+{{- if eq $envType "live" }}{{ $searchServiceName = printf "%s%s%ssearch-app-repeater" $tenant $envName $envType }}{{ end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-search-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $searchServiceName }}
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $searchServiceName }}.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- orchestration-app BackendTLSPolicy --- */}}
+{{- if and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr") }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-orchestration-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $envType }}orchestration-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $envType }}orchestration-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{- end }}
+{{- if eq $envType "share" }}
+{{/* --- tooling-web BackendTLSPolicy --- */}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}-tooling-web-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $.Values.toolingWeb.name }}
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $.Values.toolingWeb.name }}.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{/* --- query-app (data) BackendTLSPolicy --- */}}
+{{- if eq $.Values.common.searchEngine "elastic" }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}-data-query-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}query-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}query-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{/* --- ingest-app BackendTLSPolicy --- */}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}-ingest-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $.Values.ingestApp.name }}
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $.Values.ingestApp.name }}.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{/* --- nifi-app BackendTLSPolicy --- */}}
+{{- if $.Values.gateway.nifi.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}-nifi-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $.Values.nifiApp.name }}
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $.Values.nifiApp.name }}.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- registry-app BackendTLSPolicy --- */}}
+{{- if $.Values.gateway.registry.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}-registry-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $.Values.registryApp.name }}
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $.Values.registryApp.name }}.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{/* --- mustgather-app BackendTLSPolicy --- */}}
+{{- if and $.Values.mustgatherApp.enabled $.Values.gateway.mustgather.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}-mustgather-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}{{ $.Values.mustgatherApp.name }}
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}{{ $.Values.mustgatherApp.name }}.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if and $.Values.approvalApp.enabled (ne $envType "share") }}
+{{/* --- approval-app BackendTLSPolicy --- */}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-approval-app-backend-tls
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  targetRefs:
+  - group: ""
+    kind: Service
+    name: {{ $tenant }}{{ $envName }}approval-app
+  validation:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: {{ $caSecretName }}
+    hostname: {{ $tenant }}{{ $envName }}approval-app.{{ $.Release.Namespace }}.svc.cluster.local
+---
+{{- end }}
+{{- end }}
+{{- end }}
+

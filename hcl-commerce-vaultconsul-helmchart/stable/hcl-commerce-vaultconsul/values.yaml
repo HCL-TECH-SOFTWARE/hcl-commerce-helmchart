@@ -37,12 +37,29 @@ common:
   commerceNameSpaces:
     - commerce
   
-  ## ingress controller [nginx,gke,ambassador,emissary]
-  ##   nginx - nginx ingress controller
+  ## ingress controller list [nginx|f5-nginx|gke|ambassador|emissary]
+  ## Supports a single controller or multiple controllers to deploy simultaneously.
+  ## Examples:
+  ##   Multiple controllers (e.g. migration from nginx to f5-nginx):
+  ##     ingressController:
+  ##       - nginx
+  ##       - f5-nginx
+  ##   nginx - community nginx ingress controller (deprecated because out of support starting March 2026)
+  ##   f5-nginx - f5 nginx ingress controller
   ##   gke - cloud load balancing using HTTP(S) Load Balancer in GKE
   ##   ambassador - ambassador API gateway
   ##   emissary - emissary API gateway (Ambassador is incompatible starting with Kubernetes 1.22 and must be migrated to Emissary)
-  ingressController: nginx
+  ingressController:
+    - f5-nginx
+
+  ## optional. Per-controller ingress class overrides.
+  ## keep empty to use the default ingress class for each controller:
+  ##   communityNginxClass defaults to 'nginx'
+  ##   f5NginxClass defaults to 'f5-nginx'
+  ##   gkeClass defaults to 'gce'
+  communityNginxClass:
+  f5NginxClass:
+  gkeClass:
 
   ## use 'networking.k8s.io/v1' for kubernetes 1.19 and above
   ## Deprecated use 'extensions/v1beta1' for kubernetes between 1.16 and 1.19 (exclusive)
@@ -61,19 +78,23 @@ openshiftDeployment:
   # The name of for an SecurityContextConstraints resource you want to have access
   sccName: "privileged"
 
+## Gateway API configuration (Kubernetes Gateway API - gateway.networking.k8s.io/v1)
+## Use this section to deploy Envoy Gateway or any Gateway API compliant implementation
+## This is separate from the ingress section above and can be used independently or alongside ingress controllers
+gateway:
+  enabled: false
+
+  ## The gatewayClassName to use for the Gateway resource (e.g. "eg" for Envoy Gateway)
+  gatewayClassName: eg
+
 vaultConsul:
-  ## docker image repository to pull vault image
+  ## xlinux vault docker image repo, name and tag
   imageRepo: docker.io/
-
-  ## plinux image repo
-  #imageRepo: icr.io/ppc64le-oss/
-
-  ## vault docker image name
   vaultImageName: hashicorp/vault
-  ## vault docker image tag
-  vaultImageTag: 1.14.8
+  vaultImageTag: 1.21.0
 
-  ## plinux vault image name and tag
+  ## plinux vault docker image repo, name and tag
+  #imageRepo: icr.io/ppc64le-oss/
   #vaultImageName: vault-ppc64le
   #vaultImageTag: v1.14.8
   
@@ -284,7 +305,7 @@ vaultConsul:
 supportC:
   imageRepo: my-docker-registry.io:5000/
   image: commerce/supportcontainer
-  tag: 9.1.19.0
+  tag: 9.1.20.0
   ## imagePullPolicy
   imagePullPolicy: IfNotPresent
   ## imagePullSecret

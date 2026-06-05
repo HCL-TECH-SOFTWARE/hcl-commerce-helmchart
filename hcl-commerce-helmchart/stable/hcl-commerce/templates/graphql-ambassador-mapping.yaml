@@ -1,4 +1,4 @@
-{{- if and (.Values.ingress.enabled) ($.Values.graphqlApp.enabled) (eq .Values.ingress.ingressController "ambassador") -}}
+{{- if and (.Values.ingress.enabled) ($.Values.graphqlApp.enabled) (eq (include "hcl-commerce.hasIngressController" (list "ambassador" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}
@@ -20,7 +20,7 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-graphql-domain-mapping
 spec:
-  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ingressClass }}
+  ambassador_id: {{ default $.Values.global.ambassadorID $ingress_conf.ambassadorClass }}
   prefix: /graphql
   rewrite: /graphql
   host: {{ tpl ($ingress_conf.domain | toString) $ }}

@@ -1,4 +1,4 @@
-{{- if or (and .Values.ingress.enabled .Values.ingress.ingressSecret.autoCreate) .Values.createSampleConfig.enabled }}
+{{- if or (and .Values.ingress.enabled .Values.ingress.ingressSecret.autoCreate) (and .Values.gateway.enabled .Values.gateway.gatewaySecret.autoCreate) .Values.createSampleConfig.enabled }}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 ######################################################
@@ -46,7 +46,7 @@ spec:
         - name: {{ include "image.pull.secret" $ }}
       {{- end }}
       containers:
-      {{- if and $.Values.ingress.enabled $.Values.ingress.ingressSecret.autoCreate }}
+      {{- if or (and $.Values.ingress.enabled $.Values.ingress.ingressSecret.autoCreate) (and $.Values.gateway.enabled $.Values.gateway.gatewaySecret.autoCreate) }}
         - name: hclcom-post-delete-secret-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 10 | lower }}
           image: {{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}
           tty: true

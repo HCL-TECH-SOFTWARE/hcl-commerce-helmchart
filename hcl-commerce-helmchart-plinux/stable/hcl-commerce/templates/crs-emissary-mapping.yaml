@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") $.Values.crsApp.enabled -}}
+{{- if and .Values.ingress.enabled $.Values.crsApp.enabled (eq (include "hcl-commerce.hasIngressController" (list "emissary" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- range $envType := $envTypeList }}
 {{- if ne $envType "share" }}
@@ -11,8 +11,8 @@ kind: Host
 metadata:
   name: commerce-{{ $envType }}-store-domain-crs-host
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
   acmeProvider:
@@ -25,8 +25,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-domain-crs-wcs-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /wcs/
   rewrite: /wcs/
@@ -42,8 +42,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-domain-crs-wcsstore-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /wcsstore/
   rewrite: /wcsstore/
@@ -59,8 +59,8 @@ kind: Mapping
 metadata:
   name: commerce-{{ $envType }}-store-domain-crs-preview-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /webapp/remote/preview/
   rewrite: /webapp/remote/preview/
