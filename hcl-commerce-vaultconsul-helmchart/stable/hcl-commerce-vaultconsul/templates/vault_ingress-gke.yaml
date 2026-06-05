@@ -1,13 +1,13 @@
-{{- if and .Values.common.enableIngress (eq .Values.common.ingressController "gke") (not .Values.openshiftDeployment.enabled) }}
+{{- if and .Values.common.enableIngress (eq (include "vault.hasIngressController" (list "gke" .)) "true") (not .Values.openshiftDeployment.enabled) }}
 apiVersion: {{ .Values.common.ingressApiVersion }}
 kind: Ingress
 metadata:
-  name: vault-{{ .Values.common.tenant }}-ingress
+  name: vault-{{ .Values.common.tenant }}-gke-ingress
   namespace: {{ .Release.Namespace }}
   labels:
     group: {{ .Release.Namespace }}
 spec:
-  ingressClassName: gce
+  ingressClassName: {{ default "gce" .Values.common.gkeClass | quote }}
   rules:
   - host: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
     http:

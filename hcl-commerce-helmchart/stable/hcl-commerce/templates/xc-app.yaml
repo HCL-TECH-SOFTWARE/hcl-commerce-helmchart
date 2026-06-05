@@ -73,6 +73,16 @@ spec:
       {{- if $.Values.xcApp.nodeSelector }}
       nodeSelector:
 {{ toYaml $.Values.xcApp.nodeSelector | indent 8 }}
+      {{- else if $.Values.common.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.common.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if $.Values.xcApp.tolerations }}
+      tolerations:
+{{ toYaml $.Values.xcApp.tolerations | indent 8 }}
+      {{- else if $.Values.common.tolerations }}
+      tolerations:
+{{ toYaml $.Values.common.tolerations | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:

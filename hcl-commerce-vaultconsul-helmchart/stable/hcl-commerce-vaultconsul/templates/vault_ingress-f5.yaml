@@ -1,0 +1,29 @@
+{{- if and .Values.common.enableIngress (eq (include "vault.hasIngressController" (list "f5-nginx" .)) "true") (not .Values.openshiftDeployment.enabled) }}
+apiVersion: {{ .Values.common.ingressApiVersion }}
+kind: Ingress
+metadata:
+  name: vault-{{ .Values.common.tenant }}-f5-nginx-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    group: {{ .Release.Namespace }}
+spec:
+  ingressClassName: {{ default "f5-nginx" .Values.common.f5NginxClass | quote }}
+  rules:
+  - host: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}
+    http:
+      paths:
+      {{- if eq .Values.common.ingressApiVersion "extensions/v1beta1" }}
+      - path: /
+        backend:
+          serviceName: vault-consul
+          servicePort: 8200
+      {{- else if eq .Values.common.ingressApiVersion "networking.k8s.io/v1" }}
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vault-consul
+            port: 
+              number: 8200
+      {{- end }}
+{{- end }}

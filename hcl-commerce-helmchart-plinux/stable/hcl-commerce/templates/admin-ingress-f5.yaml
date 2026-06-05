@@ -1,0 +1,55 @@
+{{- if and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "f5-nginx" .)) "true") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.admin.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.admin.live }}
+{{- end }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-admin-f5-nginx-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web"
+    nginx.org/proxy-buffer-size: "256k"
+    nginx.org/proxy-buffers: "16 512k"
+    nginx.org/proxy-busy-buffers-size: "512k"
+    {{- if $.Values.ingress.admin.f5NginxCustomAnnotations }}
+{{ toYaml $.Values.ingress.admin.f5NginxCustomAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  ingressClassName: {{ default "f5-nginx" $ingress_conf.f5NginxClass | quote }}
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: /
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8002
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8002
+      {{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

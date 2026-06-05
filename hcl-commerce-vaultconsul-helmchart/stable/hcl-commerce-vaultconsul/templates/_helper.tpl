@@ -53,3 +53,19 @@ Image Pull Secret
 {{ .Values.supportC.imagePullSecret }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Check if a specific ingress controller is enabled.
+Supports both string (backward compatible) and list formats for ingressController.
+Usage: {{ include "vault.hasIngressController" (list "f5-nginx" .) }}
+Returns "true" or "false" as a string.
+*/}}
+{{- define "vault.hasIngressController" -}}
+{{- $controllerName := index . 0 -}}
+{{- $root := index . 1 -}}
+{{- if kindIs "string" $root.Values.common.ingressController -}}
+{{- if eq $root.Values.common.ingressController $controllerName -}}true{{- else -}}false{{- end -}}
+{{- else -}}
+{{- if has $controllerName $root.Values.common.ingressController -}}true{{- else -}}false{{- end -}}
+{{- end -}}
+{{- end -}}

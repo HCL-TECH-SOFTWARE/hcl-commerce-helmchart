@@ -9,7 +9,7 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
-Note: The 9.1.19.0 Helm Chart can only be used to deploy HCL Commerce 9.1.19.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+Note: The 9.1.20.0 Helm Chart can only be used to deploy HCL Commerce 9.1.20.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
 
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.
@@ -185,7 +185,7 @@ The following tables lists the configurable parameters of the hcl-commerce-helmc
 | `backwardCompatibility.ingressFormatUpgrade.enabled`        |  Some of the Nginx and GKE ingress names got updated since V9.1.7.0. When upgrading from a version prior to V9.1.7.0 to a newer version, enable this flag to trigger an upgrade job to clean up the old ingress definitions to avoid conflicts during upgrade.  | `false`
 | `hclCache.configMap`        |  config map for hcl cache definition  | see [values.yaml](./values.yaml) file for the default configuration
 | `ingress.enabled`        |  ingress enablement. Make it disabled for SoFy deployment | `true`
-| `ingress.ingressController`        |  ingress controller \[nginx \| gke \| emissary \| ambassador \]. Set it to "gke" when deploying on GKE with http(s) load balancing server as ingress controller. | `nginx`
+| `ingress.ingressController`        |  Ingress controller(s) to deploy. Accepts a list of ingress controllers. Valid values: \[nginx \| f5-nginx \| gke \| emissary \| ambassador\]. Multiple controllers can be active simultaneously by specifying a list (e.g. `[nginx, f5-nginx]`). | `[f5-nginx]`
 | `ingress.enableToolingForReactStore`        |  this needs to be set to true when you are planning to allow sapphire store to launch B2B approval tooling. | `true`
 | `ingress.enableManageApprovalPage`        |  this flag is able to enable the manage approval page for marketplace approval service, set to false by default for security. | `false`
 | `ingress.emissaryIdsList`        |  ambassador ids list specifications for the emissary listener | nil
@@ -397,13 +397,144 @@ use `networking.k8s.io/v1` for kubernetes 1.19 and above to avoid the api deprec
 Deprecated use `networking.k8s.io/v1beta1` for kubernetes between 1.16 and 1.19 (exclusive).
 
 #### ingress.ingressController
-The ingress controller to take the ingress requests. The supported ingress controllers are `nginx`, `gke`, and `ambassador`. When deploying on GKE and use the default GCE ingress, please specify it as `gke` for this value. In EKS, the only supported ingress controller is `nginx`.
+The ingress controller(s) to deploy. This value accepts a YAML list. The supported ingress controllers are `nginx`, `f5-nginx`, `gke`, `emissary`, and `ambassador`. When deploying on GKE and using the default GCE ingress, specify `gke`. When using F5 NGINX ingress controller, specify `f5-nginx`. In EKS, the only supported ingress controller is `nginx`.
+
+Multiple controllers can be active simultaneously by specifying a list. This is useful for migrating between ingress controllers with minimum downtime. For example:
+```yaml
+ingress:
+  ingressController:
+    - nginx
+    - f5-nginx
+```
 
 #### ingress.ingressSecret.autoCreate
 configuration to specify whether Helm needs to auto-generate the tls secret for ingress. This is a convenient way to generate the self-signed certificate for testing environment.
 
-#### detailed ingress configuration for each service
-HCL Commerce helm chart defined a list of commonly accessed services, such as `cmc`, `crs`, `reactstore`, etc. For each of these services, you can configure the `domain`, `ingressClass` and `tlsSecret` for auth and live.
+#### Detailed ingress configuration for each service
+HCL Commerce helm chart defined a list of commonly accessed services, such as `cmc`, `crs`, `reactstore`, etc. For each of these services, you can configure the `domain` and `tlsSecret` for auth and live.
+
+Each service also supports per-controller ingress class configuration:
+- `gkeClass` - Ingress class for GKE (Google Kubernetes Engine) ingress controller
+- `communityNginxClass` - Ingress class for community NGINX ingress controller
+- `f5NginxClass` - Ingress class for F5 NGINX ingress controller
+- `emissaryClass` - Ambassador ID for Emissary ingress controller
+- `ambassadorClass` - Ambassador ID for Ambassador ingress controller
+
+Per-controller custom annotations are also supported for Kubernetes Ingress resources:
+- `gkeCustomAnnotations` - Custom annotations applied to GKE ingress resources
+- `communityNginxCustomAnnotations` - Custom annotations applied to community NGINX ingress resources
+- `f5NginxCustomAnnotations` - Custom annotations applied to F5 NGINX ingress resources
+
+This per-controller separation ensures that when multiple controllers are active simultaneously, each controller can have its own class and annotations without conflicts.
+
+#### Running multiple ingress controllers
+Multiple ingress controllers can run simultaneously by listing them in `ingress.ingressController`. This is useful for migrating between ingress controllers with minimum downtime. Each controller type produces ingress resources with distinct names to avoid conflicts:
+- community NGINX ingress resources include `community-nginx` in the name (e.g., `demoqaauth-cmc-community-nginx-ingress`)
+- F5 NGINX ingress resources include `f5-nginx` in the name (e.g., `demoqaauth-cmc-f5-nginx-ingress`)
+- GKE ingress resources include `gke` in the name (e.g., `demoqaauth-cmc-gke-ingress`)
+
+To migrate from one ingress controller to another:
+1. Add both controllers to the `ingress.ingressController` list
+2. Verify traffic shifts to the new controller
+3. Remove the old controller from the list
+
+Example: migrating from community NGINX to F5 NGINX:
+```yaml
+ingress:
+  enabled: true
+  ingressController:
+    - nginx
+    - f5-nginx
+  cmc:
+    auth:
+      domain: cmc.demoqaauth.mycompany.com
+      communityNginxClass: nginx
+      f5NginxClass: f5-nginx
+    live:
+      domain: cmc.demoqalive.mycompany.com
+      communityNginxClass: nginx
+      f5NginxClass: f5-nginx
+    communityNginxCustomAnnotations: {}
+    f5NginxCustomAnnotations: {}
+```
+
+### Gateway API Configuration (Envoy Gateway)
+As an alternative to traditional Ingress resources, HCL Commerce helm chart supports the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/) for routing external traffic. This uses standard `Gateway`, `HTTPRoute`, and `BackendTLSPolicy` resources and is designed to work with any Gateway API compliant implementation such as [Envoy Gateway](https://gateway.envoyproxy.io/).
+
+The gateway configuration is independent from the ingress section and can be used standalone or alongside ingress controllers.
+
+#### gateway.enabled
+A flag to enable Gateway API resource creation. When set to `true`, the helm chart creates a `Gateway`, `HTTPRoute` resources for each commerce service, and `BackendTLSPolicy` resources for backend TLS origination. Default is `false`.
+
+#### gateway.gatewayClassName
+The `gatewayClassName` to set on the Gateway resource. This must match the name of a `GatewayClass` deployed in your cluster. Default is `eg` (Envoy Gateway).
+
+#### gateway.backendTLSCASecret
+The name of the Kubernetes Secret containing the backend CA certificate used by `BackendTLSPolicy` resources for TLS verification of backend services. If empty, defaults to `vault-backend-ca-{envType}`, which is automatically created by the `vault-fetch-ca-job` when `vaultCA.enabled` is `true`.
+
+#### gateway.gatewaySecret.autoCreate
+Configuration to specify whether Helm needs to auto-generate the TLS secret for Gateway listeners. This is a convenient way to generate self-signed certificates for testing environments. Works the same as `ingress.ingressSecret.autoCreate`.
+
+#### gateway.enableToolingForReactStore
+When set to `true`, the React store HTTPRoute includes routes for tooling-web paths (e.g., `/lobtools`, `/tooling`). Default is `true`.
+
+#### gateway.enableManageApprovalPage
+When set to `true`, the CMC and React store HTTPRoutes include routes for the approval-app service. Default is `false` for security.
+
+#### Detailed gateway configuration for each service
+Similar to the ingress section, the gateway section defines per-component `domain` and `tlsSecret` configuration for auth and live environment types. The following services are configurable:
+
+| Service | Description | Environment Types |
+|---------|-------------|-------------------|
+| `cmc` | Commerce Management Center | auth, live |
+| `tooling` | Tooling Web (share only) | share |
+| `accelerator` | Management Center Accelerator | auth, live |
+| `admin` | Admin Console | auth, live |
+| `org` | Organization Admin Console | auth, live |
+| `localstore` | Local store (legacy JSP storefront) | auth, live |
+| `crs` | Commerce Remote Store | auth, live |
+| `reactstore` | React JS Storefront | auth, live |
+| `reactstorepreview` | React JS Store Preview | auth, live |
+| `query` | Query service (auth/live/data) | auth, live, share |
+| `solrsearch` | Solr search service | auth, live |
+| `orchestration` | Orchestration service (solr only) | auth, live |
+| `transaction` | Transaction server app | auth, live |
+| `graphql` | GraphQL service | auth, live |
+| `cache` | Cache service (disabled by default) | auth, live |
+| `nifi` | NiFi service (disabled by default) | share |
+| `ingest` | Ingest service (disabled by default) | share |
+| `registry` | Registry service (disabled by default) | share |
+| `mustgather` | Must Gather service (disabled by default) | share |
+
+Example gateway configuration:
+```yaml
+gateway:
+  enabled: true
+  gatewayClassName: eg
+  gatewaySecret:
+    autoCreate: true
+    replaceExist: true
+  cmc:
+    auth:
+      domain: cmc.demoqaauth.mycompany.com
+      tlsSecret:
+    live:
+      domain: cmc.demoqalive.mycompany.com
+      tlsSecret:
+  reactstore:
+    auth:
+      domain: www.demoqaauth.mycompany.com
+      tlsSecret:
+    live:
+      domain: www.demoqalive.mycompany.com
+      tlsSecret:
+```
+
+#### Gateway resources created
+When `gateway.enabled` is `true`, the following resources are created:
+- **Gateway**: A single `Gateway` resource with listeners for each enabled commerce service. The gateway is named `{tenant}{envName}-commerce-gateway`.
+- **HTTPRoute**: One `HTTPRoute` per commerce service per environment type, routing traffic from the Gateway listener to the appropriate backend service.
+- **BackendTLSPolicy**: One `BackendTLSPolicy` per backend service for TLS verification between the gateway and backend pods.
 
 ### Assets tool persistent volume claim configuration
 Assets tool in management center was available in v7 and v8 of commerce. Starting from Commerce v9, it has been removed. Starting from v9.1.8.0, it is re-enabled. With assets tool, you can manage files and attachment and make it accessible by stores. It means the files need to be shared across multiple micro service containers. To make the assets tool fully functioning and get the files persisted, ReadWriteMany type of storage is required. Check our knowledge centre: https://help.hcltechsw.com/commerce/9.1.0/install/tasks/tdeploykubern91-pre.html for more information about how to provision a ReadWriteMany type of persistent volume claim in Kubernetes.

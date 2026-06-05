@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "emissary") -}}
+{{- if and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "emissary" .)) "true") -}}
 {{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
 {{- if has "share" $envTypeList }}
 {{- $ingress_conf := $.Values.ingress.tooling }}
@@ -7,8 +7,8 @@ kind: Host
 metadata:
   name: commerce-tooling-host
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   hostname: {{ tpl ($ingress_conf.domain | toString) $ }}
   acmeProvider:
@@ -21,8 +21,8 @@ kind: Mapping
 metadata:
   name: commerce-tooling-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /tooling
   rewrite: /tooling
@@ -39,8 +39,8 @@ kind: Mapping
 metadata:
   name: commerce-tooling-approval-mapping
 spec:
-  {{- if or $.Values.global.emissaryID $ingress_conf.ingressClass }}
-  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.ingressClass }}' ]
+  {{- if or $.Values.global.emissaryID $ingress_conf.emissaryClass }}
+  ambassador_id: [ '{{ default $.Values.global.emissaryID $ingress_conf.emissaryClass }}' ]
   {{- end }}
   prefix: /approvals
   rewrite: /approvals

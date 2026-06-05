@@ -1,0 +1,62 @@
+{{- if and (or (and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "f5-nginx" .)) "true")) .Values.gateway.enabled) (.Values.vaultCA.enabled) (.Values.common.vaultTokenSecret) -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2026
+######################################################
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-ca-fetch-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 10 | lower }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  template:
+    spec:
+      affinity:
+      {{- include "nodeaffinity" $ | indent 6 }}
+      restartPolicy: Never
+      serviceAccountName: {{ $.Values.common.serviceAccountName | default (printf "%s-commerce" $.Release.Name) }}
+      containers:
+        - name: fetch-vault-ca
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              echo "Installing curl and jq..."
+              apt-get update && apt-get install -y curl jq
+
+              echo "Fetching CA certificate from Vault..."
+
+              curl -s -m 60 -X GET -H "X-Vault-Token:$VAULT_TOKEN" ${VAULT_URL}/selfserve_production_pki/cert/ca | jq -r '.data.certificate' > /tmp/ca.crt
+
+              echo "Creating or updating Kubernetes secret vault-backend-ca..."
+
+              kubectl create secret generic vault-backend-ca-{{ $envType }} \
+                --from-file=ca.crt=/tmp/ca.crt \
+                -n {{ $.Release.Namespace }} \
+                --dry-run=client -o yaml | kubectl apply -f -
+
+              echo "Vault CA secret created successfully."
+          env:
+            - name: "VAULT_URL"
+              value: {{ $.Values.common.vaultUrl | quote  }}
+            - name: "VAULT_TOKEN"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.common.vaultTokenSecret }}
+                  key: VAULT_TOKEN
+---
+{{- end }}
+{{- end }}

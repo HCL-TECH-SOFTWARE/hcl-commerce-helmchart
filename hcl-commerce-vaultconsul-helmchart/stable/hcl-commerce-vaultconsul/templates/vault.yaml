@@ -80,7 +80,7 @@ spec:
                 - /bin/sh
                 - -ec
                 - |
-                  [ -f /vault/ready ] && nc -z 127.0.0.1 8200
+                  [ -f /vault/ready ] && vault status -address=http://127.0.0.1:8200
             initialDelaySeconds: 240
             periodSeconds: 15
             timeoutSeconds: 10

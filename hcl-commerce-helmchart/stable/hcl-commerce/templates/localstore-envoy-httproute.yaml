@@ -1,0 +1,45 @@
+{{- if and $.Values.gateway.enabled $.Values.common.localStoreEnabled -}}
+{{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
+{{- $tenant := $.Values.common.tenant -}}
+{{- $envName := $.Values.common.environmentName -}}
+{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $gw_conf := $.Values.gateway.localstore.auth }}
+{{- if eq $envType "live" }}
+{{ $gw_conf = $.Values.gateway.localstore.live }}
+{{- end }}
+######################################################
+# Licensed Materials - Property of HCL Technologies
+#  HCL Commerce
+#  (C) Copyright HCL Technologies Limited 1996, 2026
+######################################################
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $tenant }}{{ $envName }}{{ $envType }}-localstore-httproute
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $tenant }}{{ $envName }}{{ $envType }}
+spec:
+  parentRefs:
+  - name: {{ $gatewayName }}
+    sectionName: {{ $envType }}-localstore
+  hostnames:
+  - {{ tpl ($gw_conf.domain | toString) $ }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: {{ $tenant }}{{ $envName }}{{ $envType }}ts-web
+      port: 8443
+---
+{{- end }}
+{{- end }}
+{{- end }}

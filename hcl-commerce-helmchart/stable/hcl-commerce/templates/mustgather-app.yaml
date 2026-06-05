@@ -45,6 +45,16 @@ spec:
       {{- if .Values.mustgatherApp.nodeSelector }}
       nodeSelector:
 {{ toYaml .Values.mustgatherApp.nodeSelector | indent 8 }}
+      {{- else if .Values.common.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.common.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if .Values.mustgatherApp.tolerations }}
+      tolerations:
+{{ toYaml .Values.mustgatherApp.tolerations | indent 8 }}
+      {{- else if .Values.common.tolerations }}
+      tolerations:
+{{ toYaml .Values.common.tolerations | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:

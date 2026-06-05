@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled (eq .Values.ingress.ingressController "gke") (.Values.graphqlApp.enabled) -}}
+{{- if and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "gke" .)) "true") (.Values.graphqlApp.enabled) -}}
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:

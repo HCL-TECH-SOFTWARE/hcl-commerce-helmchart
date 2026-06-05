@@ -24,10 +24,17 @@ architecture: standalone
 fullnameOverride: "hcl-commerce-redis"
 replica:
   replicaCount: 0
+##
+# CAUTION: MAJOR CHANGE IN COMMERCE 9.1.20.0+ for xlinux redis:
+#  Starting from HCL Commerce version 9.1.20.0, xLinux customers must build the Redis Bitnami Docker image themselves.
+#  Follow the instructions in the Knowledge Center to build the image,
+#   then update REDIS IMAGE to reference the custom-built image.
+#  The certified version is Bitnami Redis 8.4.1-debian-12-r1 for 9.1.20.0.
+##
 image:
-  registry: docker.io
-  repository: bitnamilegacy/redis
-  tag: 8.2.1-debian-12-r0
+  registry: yourdocker.io
+  repository: bitnami/redis
+  tag: 8.4.1-debian-12-r1
   pullPolicy: IfNotPresent
 auth:
   enabled: false

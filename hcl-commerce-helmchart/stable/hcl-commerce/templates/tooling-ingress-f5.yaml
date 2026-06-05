@@ -1,0 +1,65 @@
+{{- if and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "f5-nginx" .)) "true") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- if has "share" $envTypeList }}
+{{- $ingress_conf := $.Values.ingress.tooling }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-f5-nginx-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web{{- if $.Values.approvalApp.enabled }},{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app{{- end }}"
+    nginx.org/proxy-buffer-size: "256k"
+    nginx.org/proxy-buffers: "16 512k"
+    nginx.org/proxy-busy-buffers-size: "512k"
+    {{- if $.Values.ingress.tooling.f5NginxCustomAnnotations }}
+{{ toYaml $.Values.ingress.tooling.f5NginxCustomAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}
+spec:
+  ingressClassName: {{ default "f5-nginx" $ingress_conf.f5NginxClass | quote }}
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%sshare-certificate" $.Values.common.tenant $.Values.common.environmentName) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: /tooling
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}
+          servicePort: 7443
+      {{- if $.Values.approvalApp.enabled }}
+      - path: /approvals
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+          servicePort: 6643
+      {{- end }}
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: /tooling
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.toolingWeb.name }}
+            port:
+              number: 7443
+      {{- if $.Values.approvalApp.enabled }}
+      - path: /approvals
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+            port:
+              number: 6643
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+---

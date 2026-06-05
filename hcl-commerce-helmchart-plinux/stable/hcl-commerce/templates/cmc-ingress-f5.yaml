@@ -1,0 +1,122 @@
+{{- if and .Values.ingress.enabled (eq (include "hcl-commerce.hasIngressController" (list "f5-nginx" .)) "true") -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- range $envType := $envTypeList -}}
+{{- if ne $envType "share" }}
+{{- $ingress_conf := $.Values.ingress.cmc.auth }}
+{{- if eq $envType "live" }}
+{{ $ingress_conf = $.Values.ingress.cmc.live }}
+{{- end }}
+{{- if or (eq $.Values.common.searchEngine "solr") (not $.Values.storeWeb.enabled) (and (eq $envType "auth") (ne $ingress_conf.domain $.Values.ingress.reactstore.auth.domain)) (and (eq $envType "live") (ne $ingress_conf.domain $.Values.ingress.reactstore.live.domain)) }}
+apiVersion: {{ $.Values.ingress.apiVersion }}
+kind: Ingress
+metadata:
+  name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-cmc-f5-nginx-ingress
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web{{- if $.Values.approvalApp.enabled }},{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app{{- end }}"
+    nginx.org/proxy-buffer-size: "256k"
+    nginx.org/proxy-buffers: "16 512k"
+    nginx.org/proxy-busy-buffers-size: "512k"
+    {{- if $.Values.ingress.cmc.f5NginxCustomAnnotations }}
+{{ toYaml $.Values.ingress.cmc.f5NginxCustomAnnotations | indent 4 }}
+    {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+    group: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}
+spec:
+  ingressClassName: {{ default "f5-nginx" $ingress_conf.f5NginxClass | quote }}
+  tls:
+  - hosts:
+    - {{ tpl ($ingress_conf.domain | toString) $ }}
+    secretName: {{ default (printf "%s%s%s-certificate" $.Values.common.tenant $.Values.common.environmentName $envType) ($ingress_conf.tlsSecret) }}
+  rules:
+  - host: {{ tpl ($ingress_conf.domain | toString) $ }}
+    http:
+      paths:
+      {{- if eq $.Values.ingress.apiVersion "networking.k8s.io/v1beta1" }}
+      - path: /
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      - path: /tooling
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+          servicePort: 7443
+      {{- if $.Values.common.localStoreEnabled }}
+      - path: /webapp/
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8443
+      - path: /wcsstore/
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8443
+      {{- end }}
+      {{- if $.Values.approvalApp.enabled }}
+      - path: /approvals
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+          servicePort: 6643
+      - path: /approvals/manage-approval
+        backend:
+          serviceName: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+          servicePort: 8000
+      {{- end }}
+      {{- else if eq $.Values.ingress.apiVersion "networking.k8s.io/v1" }}
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      - path: /tooling
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}tooling-web
+            port:
+              number: 7443
+      {{- if $.Values.common.localStoreEnabled }}
+      - path: /webapp/
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8443
+      - path: /wcsstore/
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8443
+      {{- end }}
+      {{- if $.Values.approvalApp.enabled }}
+      - path: /approvals
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}approval-app
+            port:
+              number: 6643
+      {{- if $.Values.ingress.enableManageApprovalPage }}
+      - path: /approvals/manage-approval
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web
+            port:
+              number: 8000
+      {{- end }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+---
+{{- end }}
+{{- end }}

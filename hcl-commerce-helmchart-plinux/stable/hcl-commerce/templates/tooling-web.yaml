@@ -44,6 +44,16 @@ spec:
       {{- if .Values.toolingWeb.nodeSelector }}
       nodeSelector:
 {{ toYaml .Values.toolingWeb.nodeSelector | indent 8 }}
+      {{- else if .Values.common.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.common.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if .Values.toolingWeb.tolerations }}
+      tolerations:
+{{ toYaml .Values.toolingWeb.tolerations | indent 8 }}
+      {{- else if .Values.common.tolerations }}
+      tolerations:
+{{ toYaml .Values.common.tolerations | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:

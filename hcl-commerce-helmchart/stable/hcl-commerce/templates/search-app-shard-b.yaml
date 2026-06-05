@@ -58,6 +58,16 @@ spec:
       {{- if $.Values.searchAppMaster.shardB.nodeSelector }}
       nodeSelector:
 {{ toYaml $.Values.searchAppMaster.shardB.nodeSelector | indent 8 }}
+      {{- else if $.Values.common.nodeSelector }}
+      nodeSelector:
+{{ toYaml $.Values.common.nodeSelector | indent 8 }}
+      {{- end }}
+      {{- if $.Values.searchAppMaster.shardB.tolerations }}
+      tolerations:
+{{ toYaml $.Values.searchAppMaster.shardB.tolerations | indent 8 }}
+      {{- else if $.Values.common.tolerations }}
+      tolerations:
+{{ toYaml $.Values.common.tolerations | indent 8 }}
       {{- end }}
       affinity:
         nodeAffinity:

@@ -16,7 +16,7 @@ metadata:
     chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
-  name: {{ $.Release.Name }}-nonroot-update-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 10 | lower }}
+  name: {{ $.Release.Name }}-nonroot-update-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 5 | lower }}
   namespace: {{ $.Release.Namespace }}
   annotations:
     "helm.sh/hook": pre-upgrade
@@ -52,7 +52,7 @@ spec:
             claimName: commerce-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}-assets-pvc
             {{- end }}
       containers:
-        - name: pre-upgrade-nonroot-ownership-update-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 10 | lower }}
+        - name: nonroot-ownership-update-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}{{ $envType }}-{{ randAlphaNum 5 | lower }}
           image: registry.access.redhat.com/ubi8/ubi-micro:8.8-5
           tty: true
           {{- if $.Values.common.imagePullPolicy }}
