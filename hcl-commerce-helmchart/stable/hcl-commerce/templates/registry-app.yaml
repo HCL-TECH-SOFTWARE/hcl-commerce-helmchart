@@ -88,7 +88,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+        args: ['serviceDepcheck', '-service_name','vault-consul','-container_name','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-check_method','checkreadypod']
       {{- end }}
       volumes:
         - name: logs-sharing

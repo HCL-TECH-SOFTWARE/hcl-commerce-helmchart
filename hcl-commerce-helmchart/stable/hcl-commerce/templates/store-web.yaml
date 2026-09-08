@@ -82,6 +82,13 @@ spec:
       securityContext:
         fsGroup: 1000
       initContainers:
+      - name: ts-app-dependence-check
+        image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
+        tty: true
+        {{- if $.Values.common.imagePullPolicy }}
+        imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
+        {{- end }}
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.tsApp.name }}','-container_name','ts-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
       - name: store-dependence-check
         image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
         tty: true
@@ -89,7 +96,7 @@ spec:
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
         {{- if (eq $.Values.common.searchEngine "elastic") }}
-        args: ['depcheck', '-component','store-web','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','900','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.queryApp.name }}','-container_name','query-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','900','-check_method','checkreadypod']
         {{- end }}
         {{- if and ($.Values.orchestrationApp.enabled) (eq $.Values.common.searchEngine "solr") }}
         args: ['serviceDepcheck', '-service_name',{{ $.Values.common.tenant }}{{ $.Values.common.environmentName}}{{ $envType }}{{$.Values.orchestrationApp.name}}, '-container_name','orchestration-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
@@ -101,7 +108,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+        args: ['serviceDepcheck', '-service_name','vault-consul','-container_name','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-check_method','checkreadypod']
       {{- end }}
       volumes:
         - name: logs-sharing
@@ -151,7 +158,7 @@ spec:
         - name: "ENABLE_JSON_LOGGING"
           value: "true"
         {{- end }}
-        {{- if $.Values.orchestrationApp.enabled }}
+        {{- if and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr") }}
         - name: "ORCHESTRATION_ENABLED"
           value: "true"
         {{- end }}

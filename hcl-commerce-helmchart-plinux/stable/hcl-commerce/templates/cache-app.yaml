@@ -121,7 +121,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+        args: ['serviceDepcheck', '-service_name','vault-consul','-container_name','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-check_method','checkreadypod']
       {{- end }}
       {{- if $.Values.redis.enabled }}
       - name: redis-readiness-check
@@ -130,7 +130,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','redis','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype', 'auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}, '-pod_name_pattern', '{{ $.Values.redis.fullnameOverride }}-master-0', '-container_name', 'redis']
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.redis.fullnameOverride }}-master-0','-container_name','redis','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-check_method','checkreadypod']
       {{- end }}
       containers:
       - name: cache-app

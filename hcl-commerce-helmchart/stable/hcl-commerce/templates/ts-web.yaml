@@ -108,7 +108,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','transaction-web','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}{{ $.Values.tsApp.name }}','-container_name','ts-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
       volumes:
         - name: logs-sharing
           emptyDir: {}

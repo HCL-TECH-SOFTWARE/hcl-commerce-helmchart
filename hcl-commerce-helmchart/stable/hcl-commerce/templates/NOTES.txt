@@ -4,6 +4,9 @@ Chart: {{ .Chart.Name }}-{{ .Chart.Version }}
 {{- if eq .Values.common.environmentType "share" }}
 HCL Commerce V9 shared components (new tooling{{ if eq .Values.common.searchEngine "elastic"}} and data platform{{end}}) have been deployed, and it will take several minutes to fully start.
 
+Tooling:
+<Ingress_IP> tooling.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}{{ .Values.common.externalDomain }}
+
 If you haven't deployed the HCL Commerce auth or live, you can deploy it now.
 helm install {{ .Values.common.tenant }}-{{ .Values.common.environmentName }}-auth <path-to-helmchart> -f <custom-values-yaml-file> -n <namespace>
 helm install {{ .Values.common.tenant }}-{{ .Values.common.environmentName }}-live <path-to-helmchart> -f <custom-values-yaml-file> -n <namespace>
@@ -53,12 +56,12 @@ kubectl get ingress -n {{ .Release.Namespace }}
 <Ingress_IP> accelerator.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
 <Ingress_IP> admin.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
 <Ingress_IP> org.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
+<Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
 {{- if or (.Values.crsApp.enabled) (.Values.common.localStoreEnabled) }}
 <Ingress_IP> store.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
 {{- end }}
-{{- if and (.Values.storeWeb.enabled) (eq .Values.common.searchEngine "elastic") }}
+{{- if and (.Values.storeWeb.enabled) (or (eq .Values.common.searchEngine "elastic") (and (.Values.orchestrationApp.enabled) (eq .Values.common.searchEngine "solr"))) }}
 <Ingress_IP> www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
-<Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.common.externalDomain }}
 {{- end }}
 {{- if and (.Values.orchestrationApp.enabled) (eq .Values.common.searchEngine "solr") }}
 <Ingress_IP> orchestration.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}auth{{ .Values.common.externalDomain }}
@@ -72,12 +75,12 @@ kubectl get ingress -n {{ .Release.Namespace }}
 <Ingress_IP> accelerator.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
 <Ingress_IP> admin.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
 <Ingress_IP> org.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
+<Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
 {{- if or (.Values.crsApp.enabled) (.Values.common.localStoreEnabled) }}
 <Ingress_IP> store.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
 {{- end }}
-{{- if and (.Values.storeWeb.enabled) (eq .Values.common.searchEngine "elastic") }}
+{{- if and (.Values.storeWeb.enabled) (or (eq .Values.common.searchEngine "elastic") (and (.Values.orchestrationApp.enabled) (eq .Values.common.searchEngine "solr"))) }}
 <Ingress_IP> www.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}
-<Ingress_IP> store-preview.{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.common.externalDomain }}
 {{- end }}
 {{- if and (.Values.orchestrationApp.enabled) (eq .Values.common.searchEngine "solr") }}
 <Ingress_IP> orchestration.{{ .Values.common.tenant }}{{ .Values.common.environmentName }}live{{ .Values.common.externalDomain }}

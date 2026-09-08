@@ -2,7 +2,6 @@
 {{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
 {{- $tenant := $.Values.common.tenant -}}
 {{- $envName := $.Values.common.environmentName -}}
-{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
 {{- if has "share" $envTypeList }}
 {{- $gw_conf := $.Values.gateway.nifi }}
 ######################################################
@@ -22,7 +21,7 @@ metadata:
     heritage: {{ $.Release.Service }}
 spec:
   parentRefs:
-  - name: {{ $gatewayName }}
+  - name: {{ include "hcl-commerce.gateway.name" $ }}
     sectionName: share-nifi
   hostnames:
   - {{ tpl ($gw_conf.domain | toString) $ }}

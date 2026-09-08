@@ -2,24 +2,43 @@
 {{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
 {{- $tenant := $.Values.common.tenant -}}
 {{- $envName := $.Values.common.environmentName -}}
-{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
+{{- $gatewayClassName := tpl ((default $.Values.gateway.gatewayClassName $.Values.gateway.gatewayClass.name) | toString) $ -}}
+{{- $existingGatewayClass := lookup "gateway.networking.k8s.io/v1" "GatewayClass" "" $gatewayClassName -}}
 ######################################################
 # Licensed Materials - Property of HCL Technologies
 #  HCL Commerce
 #  (C) Copyright HCL Technologies Limited 1996, 2026
 ######################################################
+{{- if and $.Values.gateway.gatewayClass.create (not $existingGatewayClass) }}
 apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
+kind: GatewayClass
 metadata:
-  name: {{ $gatewayName }}
-  namespace: {{ $.Release.Namespace }}
+  name: {{ $gatewayClassName }}
   labels:
     app: HCL-Commerce
     chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
 spec:
-  gatewayClassName: {{ $.Values.gateway.gatewayClassName }}
+  controllerName: {{ $.Values.gateway.gatewayClass.controllerName }}
+---
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "hcl-commerce.gateway.name" $ }}
+  namespace: {{ $.Release.Namespace }}
+  {{- with $.Values.gateway.serviceAnnotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+  {{- end }}
+  labels:
+    app: HCL-Commerce
+    chart: {{ $.Chart.Name }}-{{ $.Chart.Version | replace "+" "-" }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  gatewayClassName: {{ $gatewayClassName }}
   listeners:
   {{- range $envType := $envTypeList }}
   {{- if ne $envType "share" }}
@@ -35,7 +54,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($cmc_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($cmc_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{/* --- Accelerator listener --- */}}
   {{- $accel_conf := $.Values.gateway.accelerator.auth }}
@@ -48,7 +67,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($accel_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($accel_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Admin listener --- */}}
   {{- $admin_conf := $.Values.gateway.admin.auth }}
   {{- if eq $envType "live" }}{{ $admin_conf = $.Values.gateway.admin.live }}{{ end }}
@@ -60,7 +79,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($admin_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($admin_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Org listener --- */}}
   {{- $org_conf := $.Values.gateway.org.auth }}
   {{- if eq $envType "live" }}{{ $org_conf = $.Values.gateway.org.live }}{{ end }}
@@ -72,7 +91,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($org_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($org_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Transaction listener --- */}}
   {{- $tx_conf := $.Values.gateway.transaction.auth }}
   {{- if eq $envType "live" }}{{ $tx_conf = $.Values.gateway.transaction.live }}{{ end }}
@@ -84,7 +103,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($tx_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($tx_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Reactstore listener --- */}}
   {{- if and $.Values.storeWeb.enabled (or (eq $.Values.common.searchEngine "elastic") (and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr"))) }}
   {{- $rs_conf := $.Values.gateway.reactstore.auth }}
@@ -97,7 +116,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($rs_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($rs_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Reactstore preview listener (only if different domain) --- */}}
   {{- $rsp_conf := $.Values.gateway.reactstorepreview.auth }}
   {{- if eq $envType "live" }}{{ $rsp_conf = $.Values.gateway.reactstorepreview.live }}{{ end }}
@@ -110,7 +129,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($rsp_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($rsp_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{- end }}
   {{/* --- CRS listener --- */}}
@@ -125,7 +144,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($crs_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($crs_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{/* --- Localstore listener --- */}}
   {{- if $.Values.common.localStoreEnabled }}
@@ -139,7 +158,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($ls_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($ls_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{/* --- GraphQL listener --- */}}
   {{- if $.Values.graphqlApp.enabled }}
@@ -153,7 +172,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($gql_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($gql_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{/* --- Query listener --- */}}
   {{- if eq $.Values.common.searchEngine "elastic" }}
@@ -170,7 +189,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($q_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($q_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{- end }}
   {{/* --- Cache listener --- */}}
@@ -186,7 +205,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($cache_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($cache_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{- end }}
   {{/* --- Solr search listener --- */}}
@@ -201,7 +220,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($ss_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($ss_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{/* --- Orchestration listener --- */}}
   {{- if and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr") }}
@@ -218,7 +237,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%s%s-certificate" $tenant $envName $envType) ($orch_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%s%s-certificate" $tenant $envName $envType) ($orch_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{- end }}
   {{- end }}
@@ -235,7 +254,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($tooling_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%sshare-certificate" $tenant $envName) ($tooling_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Data query listener --- */}}
   {{- if eq $.Values.common.searchEngine "elastic" }}
   {{- $dq_conf := $.Values.gateway.query.data }}
@@ -247,7 +266,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($dq_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%sshare-certificate" $tenant $envName) ($dq_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Ingest listener --- */}}
   {{- $ingest_conf := $.Values.gateway.ingest }}
   - name: share-ingest
@@ -258,7 +277,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($ingest_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%sshare-certificate" $tenant $envName) ($ingest_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{/* --- Nifi listener --- */}}
   {{- if $.Values.gateway.nifi.enabled }}
   {{- $nifi_conf := $.Values.gateway.nifi }}
@@ -270,7 +289,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($nifi_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%sshare-certificate" $tenant $envName) ($nifi_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{/* --- Registry listener --- */}}
   {{- if $.Values.gateway.registry.enabled }}
@@ -283,7 +302,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($reg_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%sshare-certificate" $tenant $envName) ($reg_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{/* --- Mustgather listener --- */}}
   {{- if and $.Values.mustgatherApp.enabled $.Values.gateway.mustgather.enabled }}
@@ -296,7 +315,7 @@ spec:
       mode: Terminate
       certificateRefs:
       - kind: Secret
-        name: {{ default (printf "%s%sshare-certificate" $tenant $envName) ($mg_conf.tlsSecret) }}
+        name: {{ default (default (printf "%s%sshare-certificate" $tenant $envName) ($mg_conf.tlsSecret)) ($.Values.gateway.gatewaySecret.tlsSecret) }}
   {{- end }}
   {{- end }}
   {{- end }}

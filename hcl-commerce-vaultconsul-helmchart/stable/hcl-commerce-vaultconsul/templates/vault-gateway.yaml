@@ -1,5 +1,16 @@
 {{- if $.Values.gateway.enabled -}}
 {{- $gatewayName := printf "vault-%s-gateway" .Values.common.tenant -}}
+{{- $gatewayClassName := tpl ($.Values.gateway.gatewayClass.name | toString) $ -}}
+{{- $existingGatewayClass := lookup "gateway.networking.k8s.io/v1" "GatewayClass" "" $gatewayClassName -}}
+{{- if and $.Values.gateway.gatewayClass.create (not $existingGatewayClass) }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ $gatewayClassName }}
+spec:
+  controllerName: {{ $.Values.gateway.gatewayClass.controllerName }}
+---
+{{- end }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -7,8 +18,12 @@ metadata:
   namespace: {{ $.Release.Namespace }}
   labels:
     group: {{ .Release.Namespace }}
+  {{- with $.Values.gateway.serviceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  gatewayClassName: {{ $.Values.gateway.gatewayClassName }}
+  gatewayClassName: {{ $gatewayClassName }}
   listeners:
   - name: vault
     hostname: {{ .Values.common.subDomain }}.{{ include "external.domain" . }}

@@ -2,7 +2,6 @@
 {{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
 {{- $tenant := $.Values.common.tenant -}}
 {{- $envName := $.Values.common.environmentName -}}
-{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
 {{- range $envType := $envTypeList }}
 {{- $caSecretName := default (printf "vault-backend-ca-%s" $envType) $.Values.gateway.backendTLSCASecret }}
 ######################################################

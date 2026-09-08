@@ -2,7 +2,6 @@
 {{- $envTypeList := splitList "," (nospace $.Values.common.environmentType) -}}
 {{- $tenant := $.Values.common.tenant -}}
 {{- $envName := $.Values.common.environmentName -}}
-{{- $gatewayName := printf "%s%s-commerce-gateway" $tenant $envName -}}
 {{- range $envType := $envTypeList -}}
 {{- if ne $envType "share" }}
 {{- $gw_conf := $.Values.gateway.transaction.auth }}
@@ -27,7 +26,7 @@ metadata:
     group: {{ $tenant }}{{ $envName }}{{ $envType }}
 spec:
   parentRefs:
-  - name: {{ $gatewayName }}
+  - name: {{ include "hcl-commerce.gateway.name" $ }}
     sectionName: {{ $envType }}-transaction
   hostnames:
   - {{ tpl ($gw_conf.domain | toString) $ }}

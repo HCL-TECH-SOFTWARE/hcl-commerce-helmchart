@@ -1,8 +1,8 @@
 ##
 # This values yaml file provide override values to deploy bitnami zookeeper helm chart 
 # for HCL Commerce
-#   - chart version: 13.8.5
-#   - zookeeper app version: 3.9.3
+#   - chart version: 13.8.7
+#   - zookeeper app version: 3.9.5
 # 
 # To Deploy zookeeper using this sample values
 # 1. Create a namespace
@@ -10,29 +10,37 @@
 # 2. Add helm repo
 #    helm repo add bitnami https://charts.bitnami.com/bitnami
 # 3. Deploy zookeeper using this override values
-#    helm install my-zookeeper bitnami/zookeeper -n zookeeper -f zookeeper-values.yaml --version "13.8.5"
+#    helm install my-zookeeper bitnami/zookeeper -n zookeeper -f zookeeper-values.yaml --version "13.8.7"
 # 4. Monitor deployment until all pods are healthy
 # 
-# To get the complete values.yaml file, please visit 
-#   https://github.com/bitnami/charts/blob/zookeeper/13.8.5/bitnami/zookeeper/values.yaml
+# To get the complete values.yaml file, please check zookeeper-13.8.7.tgz included in the charts folder
+
 #
-# To get more information related to this version of zookeeper helm chart, please visit
-#   https://github.com/bitnami/charts/blob/zookeeper/13.8.5/bitnami/zookeeper/README.md
+# To get more information related to this version of zookeeper helm chart, please check README.md file in zookeeper-13.8.7.tgz under charts folder
+##
 #
-# Important change for xlinux:
-#  Due to changes in the Bitnami public catalog, the Bitnami ZooKeeper image
-#  zookeeper:3.9.3-debian-12-r19 has been moved to the "bitnamilegacy" repository.
-#  To avoid unexpected changes or potential availability issues, customers are strongly recommended to:
-#   Pull and store this image in their own private container registry (e.g., internal Docker repository)
-#   Reference the image from their private registry instead of relying on the public bitnamilegacy source.
+##
+# CAUTION: MAJOR CHANGE IN COMMERCE 9.1.21.0+ for xlinux zookeeper:
+#  Starting from HCL Commerce version 9.1.21.0, xLinux customers must build the zookeeper Bitnami Docker image themselves.
+#  Follow the instructions in the Knowledge Center to build the image,
+#   then update zookeeper IMAGE to reference the custom-built image.
+#  The certified version is Bitnami zookeeper 3.9.5-debian-12-r0 for 9.1.21.0.
+##
+# As of August 28, 2025, the Bitnami public catalog will change to a new repository and move older releases to a legacy repository. Please download Build your own Bitnami images to your own Docker repository and update image registry, repository accordingly.
 ##
 image:
-  registry: docker.io
-  repository: bitnamilegacy/zookeeper
-  tag: 3.9.3-debian-12-r19
+  registry: docker.io.mycompany.com
+  repository: bitnami/zookeeper
+  tag: 3.9.5-debian-12-r0
+global:
+  security:
+    allowInsecureImages: true
 fullnameOverride: "hcl-commerce-zookeeper"
 replicaCount: 1
 maxClientCnxns: 120
+extraEnvVars:
+  - name: ALLOW_EMPTY_PASSWORD
+    value: "yes"
 ## @param nodeSelector Node labels for pod assignment
 ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
 ##

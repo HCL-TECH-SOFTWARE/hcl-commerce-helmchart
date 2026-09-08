@@ -225,7 +225,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.20.0
+  productVersion: 9.1.21.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -483,6 +483,7 @@ hclCache:
       threads: 16
       credentialsResolver: !<org.redisson.client.DefaultCredentialsResolver> {}
       password: "${ENCRYPTED:REDIS_PASSWORD_ENCRYPT:-}"
+
 ## CreateSampleConfig supports quick deploy with the HCL Commerce sample Db2 Docker image, which can be used with your authoring environments, If you deploy on different tenant and env, update the DBHOSTNAME.
 createSampleConfig:
   enabled: false
@@ -591,6 +592,7 @@ openshiftDeployment:
   ##   [......]
   ##   -----END CERTIFICATE-----
   destinationCACertificate: |-
+
 ## Ingress configuration
 ingress:
   ## ingress enablement. Make it disabled for SoFy deployment
@@ -1005,8 +1007,19 @@ ingress:
 gateway:
   enabled: false
 
-  ## The gatewayClassName to use for the Gateway resource (e.g. "eg" for Envoy Gateway)
-  gatewayClassName: eg
+  ## GatewayClass configuration for Envoy Gateway.
+  ## name supports template expressions.
+  gatewayClass:
+    name: "eg-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}"
+    ## Set create to true to automatically create the GatewayClass resource with the specified controllerName.
+    ## Set it to false if the GatewayClass is already auto-created by the gateway provider.
+    create: true
+    ## The controllerName to use for the GatewayClass resource for Envoy Gateway.
+    controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+  ## Annotations to add to the Gateway resource.
+  ## Default is empty for Envoy Gateway. Only set provider-specific annotations when needed.
+  serviceAnnotations: {}
 
   ## The Kubernetes Secret containing the backend CA certificate for BackendTLSPolicy
   ## If empty, defaults to vault-backend-ca-{envType} which is auto-created by vault-fetch-ca-job
@@ -1023,6 +1036,7 @@ gateway:
   gatewaySecret:
     autoCreate: true
     replaceExist: true
+    tlsSecret:
 
   ## Per-component domain and TLS configuration for Gateway HTTPRoutes
   ## domain:
@@ -1167,7 +1181,7 @@ tsDb:
   enabled: true
   name: ts-db
   image: commerce/ts-db
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 6144Mi
@@ -1224,7 +1238,7 @@ tsApp:
   name: ts-app
   replica: 1
   image: commerce/ts-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 5120Mi
@@ -1584,7 +1598,7 @@ orchestrationApp:
   enabled: false
   name: orchestration-app
   image: commerce/orchestration-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica:
     auth: 1
     live: 1
@@ -1635,7 +1649,7 @@ tsWeb:
   name: ts-web
   replica: 1
   image: commerce/ts-web
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1659,7 +1673,7 @@ toolingWeb:
   name: tooling-web
   replica: 1
   image: commerce/tooling-web
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1687,7 +1701,7 @@ storeWeb:
   name: store-web
   replica: 1
   image: commerce/store-web
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1714,7 +1728,7 @@ nextjsApp:
   enabled: true
   replica: 1
   image: commerce/nextjs-store-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1740,7 +1754,7 @@ crsApp:
   enabled: true
   name: crs-app
   image: commerce/crs-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1787,7 +1801,7 @@ xcApp:
   enabled: true
   name: xc-app
   image: commerce/xc-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1833,7 +1847,7 @@ xcApp:
 nifiApp:
   name: nifi-app
   image: commerce/search-nifi-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1886,7 +1900,7 @@ nifiApp:
 registryApp:
   name: registry-app
   image: commerce/search-registry-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1917,7 +1931,7 @@ registryApp:
 ingestApp:
   name: ingest-app
   image: commerce/search-ingest-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1959,7 +1973,7 @@ ingestApp:
 queryApp:
   name: query-app
   image: commerce/search-query-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica:
     auth: 1
     live: 1
@@ -2030,7 +2044,7 @@ cacheApp:
   enabled: false
   replica: 1
   image: commerce/cache-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -2057,7 +2071,7 @@ graphqlApp:
   enabled: true
   replica: 1
   image: commerce/graphql-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -2083,7 +2097,7 @@ mustgatherApp:
   enabled: false
   replica: 1
   image: commerce/mustgather-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 4096Mi
@@ -2107,7 +2121,7 @@ tsUtils:
   enabled: false
   name: ts-utils
   image: commerce/ts-utils
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 4096Mi
@@ -2142,7 +2156,7 @@ approvalApp:
   enabled: false
   name: approval-app
   image: commerce/approval-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -2177,9 +2191,10 @@ approvalApp:
       spring.flyway.user=hclcom
       spring.flyway.password=passw0rd
       spring.flyway.default-schema=hclcom
+
 supportC:
   image: commerce/supportcontainer
-  tag: 9.1.20.0
+  tag: 9.1.21.0
 
 ## Specify the Docker image for Helm test. centos:latest is the default Docker image that is used for Helm test.
 test:
