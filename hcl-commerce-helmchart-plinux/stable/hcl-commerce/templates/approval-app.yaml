@@ -96,7 +96,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+        args: ['serviceDepcheck', '-service_name','vault-consul','-container_name','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-check_method','checkreadypod']
       {{- end }}
       {{- if $.Values.postgresql.enabled }}
       - name: postgresql-readiness-check
@@ -105,7 +105,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','postgresql','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','120','-timeout','10','-pod_name_pattern','{{ $.Values.postgresql.fullnameOverride }}-0','-container_name','postgresql']
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.postgresql.fullnameOverride }}-0','-container_name','postgresql','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','120','-check_method','checkreadypod']
       {{- end }}
       {{- if include "image.pull.secret" $ }}
       imagePullSecrets:

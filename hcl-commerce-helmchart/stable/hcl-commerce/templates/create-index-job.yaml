@@ -53,21 +53,21 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','transaction-web-self','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype', 'auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}auth{{ $.Values.tsWeb.name }}','-container_name','ts-web','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.txnMaxDuration | quote }},'-check_method','checkreadypod']
       - name: nifi-readiness-check
         image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
         tty: true
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','nifi','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype','auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.nifiMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.nifiApp.name }}','-container_name','nifi-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.nifiMaxDuration | quote }},'-check_method','checkreadypod']
       - name: ingest-readiness-check
         image: "{{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}"
         tty: true
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','ingest','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype','auth','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.ingestMaxDuration | quote }},'-timeout','10','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $.Values.ingestApp.name }}','-container_name','ingest-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time',{{ $.Values.searchIndexCreation.ingestMaxDuration | quote }},'-check_method','checkreadypod']
       containers:
         - name: index-creation-job-{{ $.Values.common.tenant | lower}}{{ $.Values.common.environmentName | lower}}-{{ randAlphaNum 10 | lower }}
           image: {{ include "image.repo" $ }}{{ $.Values.supportC.image }}:{{ $.Values.supportC.tag }}

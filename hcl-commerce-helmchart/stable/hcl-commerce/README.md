@@ -9,7 +9,7 @@ A complete HCL Commerce V9 environment compose with Auth environment and Live en
 
 Vault-Consul is a mandatory component that is used by default Certificate Agent to automatically issue certificates. It is also used by the Configuration Center to store environment-related data.
 
-Note: The 9.1.20.0 Helm Chart can only be used to deploy HCL Commerce 9.1.20.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
+Note: The 9.1.21.0 Helm Chart can only be used to deploy HCL Commerce 9.1.21.0 Docker containers. This version of the Helm Chart cannot be used to deploy previous versions of HCL Commerce containers due to the inclusion of non-root user support.
 
 ## Prerequisites
 1. You have a kubernetes cluster where you can deploy HCL Commerce. It could be on private or public cloud or even on a kubernetes cluster setup locally.
@@ -466,14 +466,26 @@ The gateway configuration is independent from the ingress section and can be use
 #### gateway.enabled
 A flag to enable Gateway API resource creation. When set to `true`, the helm chart creates a `Gateway`, `HTTPRoute` resources for each commerce service, and `BackendTLSPolicy` resources for backend TLS origination. Default is `false`.
 
-#### gateway.gatewayClassName
-The `gatewayClassName` to set on the Gateway resource. This must match the name of a `GatewayClass` deployed in your cluster. Default is `eg` (Envoy Gateway).
+#### gateway.serviceAnnotations
+Annotations to add to the `Gateway` resource. Default is empty (`{}`) for Envoy Gateway. Set provider-specific annotations only when required by your environment.
+
+#### gateway.gatewayClass.name
+The `gatewayClassName` to set on the Gateway resource. Supports Helm template expressions. By default, this chart uses `eg-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}`. Override it if your platform uses a different GatewayClass name.
+
+#### gateway.gatewayClass.create
+A flag to control whether the Helm chart should create the `GatewayClass` resource. Default is `true`. Set to `false` if the GatewayClass is already managed by your platform.
+
+#### gateway.gatewayClass.controllerName
+The controller name for the `GatewayClass` spec. Default is `gateway.envoyproxy.io/gatewayclass-controller` for Envoy Gateway.
 
 #### gateway.backendTLSCASecret
 The name of the Kubernetes Secret containing the backend CA certificate used by `BackendTLSPolicy` resources for TLS verification of backend services. If empty, defaults to `vault-backend-ca-{envType}`, which is automatically created by the `vault-fetch-ca-job` when `vaultCA.enabled` is `true`.
 
 #### gateway.gatewaySecret.autoCreate
 Configuration to specify whether Helm needs to auto-generate the TLS secret for Gateway listeners. This is a convenient way to generate self-signed certificates for testing environments. Works the same as `ingress.ingressSecret.autoCreate`.
+
+#### gateway.gatewaySecret.tlsSecret
+Specify a shared TLS secret name for all Gateway listeners. If empty, each listener uses its own `tlsSecret` setting, and if that is also empty it falls back to the auto-generated default secret name.
 
 #### gateway.enableToolingForReactStore
 When set to `true`, the React store HTTPRoute includes routes for tooling-web paths (e.g., `/lobtools`, `/tooling`). Default is `true`.
@@ -510,10 +522,15 @@ Example gateway configuration:
 ```yaml
 gateway:
   enabled: true
-  gatewayClassName: eg
+  serviceAnnotations: {}
+  gatewayClass:
+    name: eg-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}
+    create: true
+    controllerName: gateway.envoyproxy.io/gatewayclass-controller
   gatewaySecret:
     autoCreate: true
     replaceExist: true
+    tlsSecret:
   cmc:
     auth:
       domain: cmc.demoqaauth.mycompany.com
@@ -532,7 +549,7 @@ gateway:
 
 #### Gateway resources created
 When `gateway.enabled` is `true`, the following resources are created:
-- **Gateway**: A single `Gateway` resource with listeners for each enabled commerce service. The gateway is named `{tenant}{envName}-commerce-gateway`.
+- **Gateway**: A single `Gateway` resource with listeners for each enabled commerce service. For a single environment type, the gateway is named `{tenant}{envName}-commerce-gateway-{envType}`. For a combined install with multiple environment types, the gateway is named `{tenant}{envName}-commerce-gateway`.
 - **HTTPRoute**: One `HTTPRoute` per commerce service per environment type, routing traffic from the Gateway listener to the appropriate backend service.
 - **BackendTLSPolicy**: One `BackendTLSPolicy` per backend service for TLS verification between the gateway and backend pods.
 

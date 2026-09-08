@@ -140,3 +140,18 @@ Returns "true" or "false" as a string.
 {{- if has $controllerName $root.Values.ingress.ingressController -}}true{{- else -}}false{{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Gateway resource name
+- Single environment install (auth/share/live): include envType to avoid cross-release collisions.
+- Combined install (auth,live,share): keep one shared gateway name for all listeners.
+*/}}
+{{- define "hcl-commerce.gateway.name" -}}
+{{- $envTypeList := splitList "," (nospace .Values.common.environmentType) -}}
+{{- $baseName := printf "%s%s-commerce-gateway" .Values.common.tenant .Values.common.environmentName -}}
+{{- if eq (len $envTypeList) 1 -}}
+{{- printf "%s-%s" $baseName (index $envTypeList 0) -}}
+{{- else -}}
+{{- $baseName -}}
+{{- end -}}
+{{- end -}}

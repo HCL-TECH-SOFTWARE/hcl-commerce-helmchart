@@ -12,7 +12,7 @@ metadata:
   name: {{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}-ts-app-f5-nginx-ingress
   namespace: {{ $.Release.Namespace }}
   annotations:
-    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app,{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web"
+    nginx.org/ssl-services: "{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-app{{- if $.Values.tsApp.wasAdminConsole.enabled }},{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}ts-web{{- end }}"
     nginx.org/proxy-buffer-size: "256k"
     nginx.org/proxy-buffers: "16 512k"
     nginx.org/proxy-busy-buffers-size: "512k"

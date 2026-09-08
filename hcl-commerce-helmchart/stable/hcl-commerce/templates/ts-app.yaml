@@ -157,7 +157,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','transaction','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',{{ $envType }},'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}db','-container_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}{{ $envType }}db','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method',"checklog@'.*DB2START\\s{1}processing\\s{1}was\\s{1}successful.*'"]
       {{- end }}
       {{- if $.Values.vaultconsul.enabled }}
       - name: vault-dependence-check
@@ -166,7 +166,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-timeout','5']
+        args: ['serviceDepcheck', '-service_name','vault-consul','-container_name','vault','-namespace',{{ $.Release.Namespace }},'-interval_time','10','-expect_during_time','120','-check_method','checkreadypod']
       {{- end }}
       {{- end }}
       volumes:
@@ -375,7 +375,7 @@ spec:
         {{- end }}
         - name: "TX_QUICK_START"
           value: {{ $.Values.tsApp.quickStart.enabled | quote }}
-        {{- if $.Values.orchestrationApp.enabled }}
+        {{- if and $.Values.orchestrationApp.enabled (eq $.Values.common.searchEngine "solr") }}
         - name: "ORCHESTRATION_ENABLED"
           value: "true"
         {{- end }}

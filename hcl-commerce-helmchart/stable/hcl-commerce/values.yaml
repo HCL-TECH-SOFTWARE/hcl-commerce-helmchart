@@ -44,25 +44,31 @@ disableAccessControl:
 # 3rd party Dependency components
 #####################################################
 ## Override some values for zookeeper
-## Important change for xlinux:
-##  Due to changes in the Bitnami public catalog, the Bitnami ZooKeeper image
-##  zookeeper:3.9.3-debian-12-r19 has been moved to the "bitnamilegacy" repository.
-##  To avoid unexpected changes or potential availability issues, customers are strongly recommended to:
-##   Pull and store this image in their own private container registry (e.g., internal Docker repository)
-##   Reference the image from their private registry instead of relying on the public bitnamilegacy source.
-##
 zookeeper:
+## If you want to deploy zookeeper together with Commerce in a single helm command, then you can enable this
+## Modify configurations based on your need and check the sample zookeeper-values.yaml for more details under sample_values folder
+## Note this should be deployed with the share instances and can only be deployed once
+## Keep it to be disabled if you are seperately deploying auth and live instances with multiple helm commands
+#
+## CAUTION: MAJOR CHANGE IN COMMERCE 9.1.21.0+ for xlinux zookeeper:
+## Starting from HCL Commerce version 9.1.21.0, xLinux customers must build the Zookeeper Bitnami Docker image themselves.
+## Follow the instructions in the Knowledge Center to build the image,then update Zookeeper IMAGE to reference the custom-built image.
+## The certified version is Bitnami zookeeper 3.9.5-debian-12-r0 for 9.1.21.0.
+
   enabled: false
   image:
-    registry: docker.io
-    repository: bitnamilegacy/zookeeper
-    tag: 3.9.3-debian-12-r19
+    registry: yourdocker.io
+    repository: bitnami/zookeeper
+    tag: 3.9.5-debian-12-r0
   global:
     security:
       allowInsecureImages: true
   fullnameOverride: "hcl-commerce-zookeeper"
   replicaCount: 1
   maxClientCnxns: 120
+  extraEnvVars:
+    - name: ALLOW_EMPTY_PASSWORD
+      value: "yes"
   ## @param nodeSelector Node labels for pod assignment
   ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
   ##
@@ -81,9 +87,8 @@ zookeeper:
 ##
 ## CAUTION: MAJOR CHANGE IN COMMERCE 9.1.20.0+ for xlinux redis:
 ##  Starting from HCL Commerce version 9.1.20.0, xLinux customers must build the Redis Bitnami Docker image themselves.
-##  Follow the instructions in the Knowledge Center to build the image,
-##   then update REDIS IMAGE to reference the custom-built image.
-##  The certified version is Bitnami Redis 8.4.1-debian-12-r1 for 9.1.20.0.
+##  Follow the instructions in the Knowledge Center to build the image,then update REDIS IMAGE to reference the custom-built image.
+##  The certified version is Bitnami Redis 8.8.0-debian-12-r3 for 9.1.21.0.
 ##
 redis:
   enabled: false
@@ -94,7 +99,7 @@ redis:
   image:
     registry: yourdocker.io
     repository: bitnami/redis
-    tag: 8.4.1-debian-12-r1
+    tag: 8.8.0-debian-12-r3
     pullPolicy: IfNotPresent
   global:
     security:
@@ -129,28 +134,6 @@ redis:
       save ""
       maxmemory 3000mb
       maxmemory-policy volatile-lru
-
-## Override some values for elasticsearch
-elasticsearch:
-  enabled: false
-  fullnameOverride: "hcl-commerce-elasticsearch"
-  imageTag: "7.17.29"
-  replicas: 1
-  minimumMasterNodes: 1
-  esJavaOpts: "-Xmx6g -Xms6g"
-  nodeSelector: {}
-  resources:
-    requests:
-      cpu: "1000m"
-      memory: "8Gi"
-    limits:
-      cpu: "2000m"
-      memory: "8Gi"
-  esConfig:
-    elasticsearch.yml: |
-      indices.query.bool.max_clause_count: 100000
-      xpack.monitoring.collection.enabled: true
-      http.max_content_length: 1000mb
 
 ## Override some values for postgresql required when approval service is enabled
 postgresql:
@@ -224,7 +207,7 @@ license: not_accepted
 ## Common configuration for all component Docker
 common:
   ## HCL Commerce Production Information
-  productVersion: 9.1.20.0
+  productVersion: 9.1.21.0
 
   ## If specified it will add an environment variable to all the containers to specify the timezone to use
   ## in the format of: America/Toronto by following the ICANN TZ Database.
@@ -1009,8 +992,19 @@ ingress:
 gateway:
   enabled: false
 
-  ## The gatewayClassName to use for the Gateway resource (e.g. "eg" for Envoy Gateway)
-  gatewayClassName: eg
+  ## GatewayClass configuration for Envoy Gateway.
+  ## name supports template expressions.
+  gatewayClass:
+    name: "eg-{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}"
+    ## Set create to true to automatically create the GatewayClass resource with the specified controllerName.
+    ## Set it to false if the GatewayClass is already auto-created by the gateway provider.
+    create: true
+    ## The controllerName to use for the GatewayClass resource for Envoy Gateway.
+    controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+  ## Annotations to add to the Gateway resource.
+  ## Default is empty for Envoy Gateway. Only set provider-specific annotations when needed.
+  serviceAnnotations: {}
 
   ## The Kubernetes Secret containing the backend CA certificate for BackendTLSPolicy
   ## If empty, defaults to vault-backend-ca-{envType} which is auto-created by vault-fetch-ca-job
@@ -1027,6 +1021,7 @@ gateway:
   gatewaySecret:
     autoCreate: true
     replaceExist: true
+    tlsSecret:
 
   ## Per-component domain and TLS configuration for Gateway HTTPRoutes
   ## domain:
@@ -1171,7 +1166,7 @@ tsDb:
   enabled: true
   name: ts-db
   image: commerce/ts-db
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 6144Mi
@@ -1228,7 +1223,7 @@ tsApp:
   name: ts-app
   replica: 1
   image: commerce/ts-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 5120Mi
@@ -1567,6 +1562,8 @@ searchAppSlave:
   ## use tolerations to allow pods to be scheduled on nodes with matching taints
   ## reference: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
   tolerations: []
+  ## startupProbe mode options: startup or readiness
+  startupProbeMode: startup
   coresSharingPersistentVolumeClaim: ""
   userScripts:
     enabled: false
@@ -1590,7 +1587,7 @@ orchestrationApp:
   enabled: false
   name: orchestration-app
   image: commerce/orchestration-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica:
     auth: 1
     live: 1
@@ -1641,7 +1638,7 @@ tsWeb:
   name: ts-web
   replica: 1
   image: commerce/ts-web
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1665,7 +1662,7 @@ toolingWeb:
   name: tooling-web
   replica: 1
   image: commerce/tooling-web
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1692,7 +1689,7 @@ storeWeb:
   name: store-web
   replica: 1
   image: commerce/store-web
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1719,7 +1716,7 @@ nextjsApp:
   enabled: true
   replica: 1
   image: commerce/nextjs-store-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   ## for nextjs, nodeInstanceNumber decides how many Node process can be run by Node.js cluster API on vault.
   ## you can specify nodeInstanceNumber on vault, path: TENANT/ENVIRONMENT/nodeInstanceNumber/nextjs-app
   ## if nodeInstanceNumber is not specified on valut, the limits cpu will be used
@@ -1750,7 +1747,7 @@ crsApp:
   enabled: true
   name: crs-app
   image: commerce/crs-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1797,7 +1794,7 @@ xcApp:
   enabled: true
   name: xc-app
   image: commerce/xc-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1843,7 +1840,7 @@ xcApp:
 nifiApp:
   name: nifi-app
   image: commerce/search-nifi-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1896,7 +1893,7 @@ nifiApp:
 registryApp:
   name: registry-app
   image: commerce/search-registry-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -1927,7 +1924,7 @@ registryApp:
 ingestApp:
   name: ingest-app
   image: commerce/search-ingest-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica: 1
   resources:
     requests:
@@ -1969,7 +1966,7 @@ ingestApp:
 queryApp:
   name: query-app
   image: commerce/search-query-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   replica:
     auth: 1
     live: 1
@@ -2040,7 +2037,7 @@ cacheApp:
   enabled: false
   replica: 1
   image: commerce/cache-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -2067,7 +2064,7 @@ graphqlApp:
   enabled: true
   replica: 1
   image: commerce/graphql-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -2093,7 +2090,7 @@ mustgatherApp:
   enabled: false
   replica: 1
   image: commerce/mustgather-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 4096Mi
@@ -2117,7 +2114,7 @@ tsUtils:
   enabled: false
   name: ts-utils
   image: commerce/ts-utils
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 4096Mi
@@ -2152,7 +2149,7 @@ approvalApp:
   enabled: false
   name: approval-app
   image: commerce/approval-app
-  tag: 9.1.20.0
+  tag: 9.1.21.0
   resources:
     requests:
       memory: 2048Mi
@@ -2190,7 +2187,7 @@ approvalApp:
 
 supportC:
   image: commerce/supportcontainer
-  tag: 9.1.20.0
+  tag: 9.1.21.0
 
 ## Specify the Docker image for Helm test. centos:latest is the default Docker image that is used for Helm test.
 test:

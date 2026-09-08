@@ -1,0 +1,106 @@
+##
+# Sample YAML file for deploying Elasticsearch using ECK (Elastic Cloud on Kubernetes)
+#
+# 1. Install the ECK Operator.
+#    Follow the official installation guide:
+#    https://www.elastic.co/docs/deploy-manage/deploy/cloud-on-k8s/install
+#
+#    Example: Install ECK using Helm
+#      helm repo add elastic https://helm.elastic.co
+#      helm repo update
+#      helm install elastic-operator elastic/eck-operator \
+#        -n elastic-system --create-namespace
+#
+# 2. Deploy Elasticsearch.
+#    Follow the official Elasticsearch deployment guide:
+#    https://www.elastic.co/docs/deploy-manage/deploy/cloud-on-k8s/elasticsearch-deployment-quickstart
+#
+#    Example:
+#    a) Create a namespace (optional)
+#         kubectl create namespace elastic-apps
+#
+#    b) Save this manifest as elasticsearch.yaml
+#
+#    c) Deploy Elasticsearch
+#         kubectl apply -f elasticsearch.yaml -n elastic-apps
+#
+#    d) Monitor the deployment until all pods are healthy
+#         kubectl get pods -n elastic-apps
+#
+# Notes:
+# - The ECK operator must be running before deploying Elasticsearch.
+##
+##
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elastic-apps
+spec:
+  version: 9.4.2
+
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+
+  nodeSets:
+    - name: master-data
+      count: 1
+      config:
+        indices.query.bool.max_clause_count: 100000
+        xpack.monitoring.collection.enabled: true
+        http.max_content_length: 1000mb
+        xpack.security.enabled: false
+        xpack.security.http.ssl.enabled: false
+        xpack.security.transport.ssl.enabled: false
+        node.roles:
+          - master
+          - data
+          - ingest
+
+      podTemplate:
+        metadata:
+          labels:
+            app: elastic-apps
+        spec:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        elasticsearch.k8s.elastic.co/cluster-name: elastic-apps
+
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  cpu: "1000m"
+                  memory: 6Gi
+                limits:
+                  cpu: "2000m"
+                  memory: 8Gi
+              readinessProbe:
+                exec:
+                  command:
+                  - bash
+                  - -c
+                  - /mnt/elastic-internal/scripts/readiness-probe-script.sh
+
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            storageClassName: standard
+            resources:
+              requests:
+                storage: 50Gi
+
+  updateStrategy:
+    changeBudget:
+      maxSurge: 1
+      maxUnavailable: 1

@@ -151,7 +151,7 @@ spec:
         {{- if $.Values.common.imagePullPolicy }}
         imagePullPolicy: {{ $.Values.common.imagePullPolicy }}
         {{- end }}
-        args: ['depcheck', '-component','search','-tenant',{{ $.Values.common.tenant }},'-env',{{ $.Values.common.environmentName}},'-envtype',live,'-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-timeout','5','-spiuser_pwd_encrypte',{{ $.Values.common.spiUserPwdBase64 }}]
+        args: ['serviceDepcheck', '-service_name','{{ $.Values.common.tenant }}{{ $.Values.common.environmentName }}live{{ $.Values.tsApp.name }}','-container_name','ts-app','-namespace',{{ $.Release.Namespace }},'-interval_time','20','-expect_during_time','600','-check_method','checkreadypod']
       volumes:
         - name: logs-sharing
           emptyDir: {}
@@ -273,7 +273,7 @@ spec:
           protocol: TCP
         startupProbe:
           httpGet:
-            path: /search/admin/resources/health/status?type=container&mode=startup
+            path: /search/admin/resources/health/status?type=container&mode={{ $.Values.searchAppSlave.startupProbeMode }}
             port: 3738
             scheme: HTTPS
             httpHeaders:
